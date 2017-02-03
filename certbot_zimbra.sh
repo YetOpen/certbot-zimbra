@@ -55,13 +55,13 @@ if [ $? -ne 0 ] ; then
 fi
 
 # Make zimbra accessible files
-mkdir /opt/zimbra/ssl/letsencrypt
+mkdir /opt/zimbra/ssl/letsencrypt 2>/dev/null
 cp /etc/letsencrypt/live/$DOMAIN/* /opt/zimbra/ssl/letsencrypt/
 chown -R zimbra:zimbra /opt/zimbra/ssl/letsencrypt/
 
 # Now we should have the chain. Let's create the "patched" chain suitable for Zimbra
 cat /etc/letsencrypt/live/$DOMAIN/chain.pem > /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
-# The cert below comes from https://www.identrust.com/certificates/trustid/root-download-x3.html. It should be better to let ethe user fetch it?
+# The cert below comes from https://www.identrust.com/certificates/trustid/root-download-x3.html. It should be better to let the user fetch it?
 cat << EOF >> /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
 -----BEGIN CERTIFICATE-----
 MIIDSjCCAjKgAwIBAgIQRK+wgNajJ7qJMDmGLvhAazANBgkqhkiG9w0BAQUFADA/
@@ -97,7 +97,7 @@ fi
 cp -a /opt/zimbra/ssl/zimbra /opt/zimbra/ssl/zimbra.$(date "+%Y%m%d")
 
 cp /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/zimbra/commercial/commercial.key
-# FIXME use root for 8.6 
+# FIXME use root for 8.6
 su - zimbra -c '/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem'
 
 # Finally apply cert!
