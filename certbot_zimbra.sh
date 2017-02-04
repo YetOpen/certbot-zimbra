@@ -17,52 +17,68 @@ if [ -z "$LEB_BIN" ]; then
 	exit 1;
 fi
 
-DETECTED_ZIMBRA_VERSION=$(su - zimbra -c /opt/zimbra/bin/zmcontrol | grep -Po '\d.\d.\d')
-PATCHFILE="patches/zimbra_${DETECTED_ZIMBRA_VERSION}_letsencrypt_nginx.patch"
+## functions
 
-# If we got no domain from command line try using zimbra hostname
-if [ -z "$DOMAIN" ]; then
-	ZMHOSTNAME=$(/opt/zimbra/bin/zmhostname)
-	while true; do
-		read -p "Detected $ZMHOSTNAME as Zimbra domain: use this hostname for certificate request?" yn
-	    	case $yn in
-			[Yy]* ) DOMAIN=$ZMHOSTNAME; break;;
-			[Nn]* ) echo "Please call $(basename $0) your.host.name"; exit;;
-			* ) echo "Please answer yes or no.";;
-	    	esac
-	done
-fi
+# Patch nginx, and check if it's installed
+function patch_nginx() {
+	# check nginx is installed
+	if [ ! -x "/opt/zimbra/common/sbin/nginx" ]; then
+		echo "zimbra-proxy package not present"
+		exit 1;
+	fi
 
-if [ ! -f "$PATCHFILE" ]; then
-	echo "Your Zimbra version $DETECTED_ZIMBRA_VERSION is not currently supported"
-	exit 1;
-fi
+	DETECTED_ZIMBRA_VERSION=$(su - zimbra -c /opt/zimbra/bin/zmcontrol | grep -Po '\d.\d.\d')
+	PATCHFILE="patches/zimbra_${DETECTED_ZIMBRA_VERSION}_letsencrypt_nginx.patch"
 
-# Test if we need to patch nginx.conf.web.http.default
-grep -Fxq '/\.well-known' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
-if [ $? -eq 0 ]; then
-	echo "Patching /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default";
-	patch /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default < $PATCHFILE
-	# reload nginx config
-	/opt/zimbra/common/sbin/nginx -c /opt/zimbra/conf/nginx.conf -s reload
-fi
+	if [ ! -f "$PATCHFILE" ]; then
+		echo "Your Zimbra version $DETECTED_ZIMBRA_VERSION is not currently supported"
+		exit 1;
+	fi
 
-# Request our cert
-$LEB_BIN certonly -a webroot -w /opt/zimbra/data/nginx/html -d $DOMAIN
-if [ $? -ne 0 ] ; then
-	echo "letsencrypt returned an error";
-	exit 1;
-fi
+	# Test if we need to patch nginx.conf.web.http.default
+	grep -Fxq '/\.well-known' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
+	if [ $? -eq 0 ]; then
+		echo "Patching /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default";
+		patch /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default < $PATCHFILE
+		# reload nginx config
+		/opt/zimbra/common/sbin/nginx -c /opt/zimbra/conf/nginx.conf -s reload
+	fi
+}
 
-# Make zimbra accessible files
-mkdir /opt/zimbra/ssl/letsencrypt 2>/dev/null
-cp /etc/letsencrypt/live/$DOMAIN/* /opt/zimbra/ssl/letsencrypt/
-chown -R zimbra:zimbra /opt/zimbra/ssl/letsencrypt/
+# perform the letsencrypt request and prepares the certs
+function request_certificate() {
+	# If we got no domain from command line try using zimbra hostname
+	if [ -z "$DOMAIN" ]; then
+		ZMHOSTNAME=$(/opt/zimbra/bin/zmhostname)
+		while true; do
+			read -p "Detected $ZMHOSTNAME as Zimbra domain: use this hostname for certificate request?" yn
+		    	case $yn in
+				[Yy]* ) DOMAIN=$ZMHOSTNAME; break;;
+				[Nn]* ) echo "Please call $(basename $0) your.host.name"; exit;;
+				* ) echo "Please answer yes or no.";;
+		    	esac
+		done
+	fi
 
-# Now we should have the chain. Let's create the "patched" chain suitable for Zimbra
-cat /etc/letsencrypt/live/$DOMAIN/chain.pem > /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
-# The cert below comes from https://www.identrust.com/certificates/trustid/root-download-x3.html. It should be better to let the user fetch it?
-cat << EOF >> /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
+	# Request our cert
+	$LEB_BIN certonly -a webroot -w /opt/zimbra/data/nginx/html -d $DOMAIN
+	if [ $? -ne 0 ] ; then
+		echo "letsencrypt returned an error";
+		exit 1;
+	fi
+}
+
+# copies stuff ready for zimbra deployment and test them
+function prepare_certificate () {
+	# Make zimbra accessible files
+	mkdir /opt/zimbra/ssl/letsencrypt 2>/dev/null
+	cp /etc/letsencrypt/live/$DOMAIN/* /opt/zimbra/ssl/letsencrypt/
+	chown -R zimbra:zimbra /opt/zimbra/ssl/letsencrypt/
+
+	# Now we should have the chain. Let's create the "patched" chain suitable for Zimbra
+	cat /etc/letsencrypt/live/$DOMAIN/chain.pem > /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
+	# The cert below comes from https://www.identrust.com/certificates/trustid/root-download-x3.html. It should be better to let the user fetch it?
+	cat << EOF >> /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
 -----BEGIN CERTIFICATE-----
 MIIDSjCCAjKgAwIBAgIQRK+wgNajJ7qJMDmGLvhAazANBgkqhkiG9w0BAQUFADA/
 MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT
@@ -85,21 +101,34 @@ Ob8VZRzI9neWagqNdwvYkQsEjgfbKbYK7p2CNTUQ
 -----END CERTIFICATE-----
 EOF
 
-# Test cert
-# FIXME use root for 8.6 https://wiki.zimbra.com/wiki/Installing_a_LetsEncrypt_SSL_Certificate#Zimbra_Collaboration_8.6_and_previous
-su - zimbra -c '/opt/zimbra/bin/zmcertmgr verifycrt comm /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem'
-if [ $? -eq 1 ]; then
-	echo "Unable to verify cert!"
-	exit 1;
-fi
+	# Test cert
+	# FIXME use root for 8.6 https://wiki.zimbra.com/wiki/Installing_a_LetsEncrypt_SSL_Certificate#Zimbra_Collaboration_8.6_and_previous
+	su - zimbra -c '/opt/zimbra/bin/zmcertmgr verifycrt comm /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem'
+	if [ $? -eq 1 ]; then
+		echo "Unable to verify cert!"
+		exit 1;
+	fi
 
-# Backup
-cp -a /opt/zimbra/ssl/zimbra /opt/zimbra/ssl/zimbra.$(date "+%Y%.m%.d-%H.%M")
+}
 
-cp /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/zimbra/commercial/commercial.key
-# FIXME use root for 8.6
-su - zimbra -c '/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem'
+# deploys certificate and restarts zimbra. ASSUMES prepare_certificate has been called already
+function deploy_certificate() {
+	# Backup old stuff
+	cp -a /opt/zimbra/ssl/zimbra /opt/zimbra/ssl/zimbra.$(date "+%Y%.m%.d-%H.%M")
 
-# Finally apply cert!
-su - zimbra -c 'zmcontrol restart'
-# FIXME And hope that everything started fine! :)
+	cp /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/zimbra/commercial/commercial.key
+	# FIXME use root for 8.6
+	su - zimbra -c '/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem'
+
+	# Finally apply cert!
+	su - zimbra -c 'zmcontrol restart'
+	# FIXME And hope that everything started fine! :)
+
+}
+## end functions
+
+# main flow
+patch_nginx
+request_certificate
+prepare_certificate
+deploy_certificate
