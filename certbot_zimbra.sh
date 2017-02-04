@@ -3,24 +3,32 @@
 # author: Lorenzo Milesi <maxxer@yetopen.it>
 # GPLv3 license
 
-# Optional first argument: hostname (otherwise detected by zmhostname)
-DOMAIN="$1"
-
-LEB_BIN=$(which letsencrypt)
-if [ -z "$LEB_BIN" ]; then
-	# try with certbot
-	LEB_BIN=$(which certbot)
-fi
-# No way
-if [ -z "$LEB_BIN" ]; then
-	echo "No letsencrypt/certbot binary found in $PATH";
-	exit 1;
-fi
+NO_NGINX="no"
+RENEW_ONLY="no"
+NEW_CERT="no"
+WEBROOT="/opt/zimbra/data/nginx/html"
 
 ## functions
+# check executable
+check_executable () {
+	LEB_BIN=$(which letsencrypt)
+	if [ -z "$LEB_BIN" ]; then
+		# try with certbot
+		LEB_BIN=$(which certbot)
+	fi
+	# No way
+	if [ -z "$LEB_BIN" ]; then
+		echo "No letsencrypt/certbot binary found in $PATH";
+		exit 1;
+	fi
+}
 
 # Patch nginx, and check if it's installed
 function patch_nginx() {
+	if [ "$NO_NGINX" == "yes" ]; then
+		return
+	fi
+
 	# check nginx is installed
 	if [ ! -x "/opt/zimbra/common/sbin/nginx" ]; then
 		echo "zimbra-proxy package not present"
@@ -47,21 +55,24 @@ function patch_nginx() {
 
 # perform the letsencrypt request and prepares the certs
 function request_certificate() {
+	if [ "$RENEW_ONLY" == "yes"]; then
+		return
+	fi
 	# If we got no domain from command line try using zimbra hostname
 	if [ -z "$DOMAIN" ]; then
 		ZMHOSTNAME=$(/opt/zimbra/bin/zmhostname)
 		while true; do
-			read -p "Detected $ZMHOSTNAME as Zimbra domain: use this hostname for certificate request?" yn
+			read -p "Detected $ZMHOSTNAME as Zimbra domain: use this hostname for certificate request? " yn
 		    	case $yn in
 				[Yy]* ) DOMAIN=$ZMHOSTNAME; break;;
-				[Nn]* ) echo "Please call $(basename $0) your.host.name"; exit;;
+				[Nn]* ) echo "Please call $(basename $0) --hostname your.host.name"; exit;;
 				* ) echo "Please answer yes or no.";;
 		    	esac
 		done
 	fi
 
 	# Request our cert
-	$LEB_BIN certonly -a webroot -w /opt/zimbra/data/nginx/html -d $DOMAIN
+	$LEB_BIN certonly -a webroot -w $WEBROOT -d $DOMAIN
 	if [ $? -ne 0 ] ; then
 		echo "letsencrypt returned an error";
 		exit 1;
@@ -132,9 +143,62 @@ function check_user () {
    exit 1
 fi
 }
+
+function usage () {
+	cat <<EOF
+USAGE: $(basename $0) < -n | -r > [-d my.host.name] [-x] [-w /var/www]
+  Options:
+	 -n | --new: performs a request for a new certificate
+	 -r | --renew: deploys certificate, assuming it has just been renewed
+
+	Optional arguments:"
+	 -d | --hostname: hostname being requested. If not passed uses \`zmhostname\`
+	 -x | --no-nginx: doesn't check and patch zimbra's nginx. Assumes some other webserver is listening on port 80
+	 -w | --webroot: if there's another webserver on port 80 specify its webroot
+EOF
+}
 ## end functions
 
 # main flow
+check_executable
+
+# parameters parsing http://stackoverflow.com/a/14203146/738852
+while [[ $# -gt 0 ]]; do
+	key="$1"
+
+	case $key in
+	    -d|--hostname)
+	    DOMAIN="$2"
+	    shift # past argument
+	    ;;
+	    -x|--no-nginx)
+	    NO_NGINX="yes"
+	    ;;
+			-n|--new)
+	  	NEW_CERT="yes"
+	    ;;
+			-r|--renew)
+	  	RENEW_ONLY="yes"
+	    ;;
+			-w|--webroot)
+	  	WEBROOT="$2"
+			shift
+	    ;;
+	    *)
+	  	# unknown option
+			usage
+			exit 0
+	    ;;
+	esac
+	shift # past argument or value
+done
+
+if [ "$NEW_CERT" == "no" ] && [ "$RENEW_ONLY" == "no" ]; then
+	usage
+	exit 0
+fi
+
+# actions
 check_user
 patch_nginx
 request_certificate
