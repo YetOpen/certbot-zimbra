@@ -125,9 +125,17 @@ function deploy_certificate() {
 	# FIXME And hope that everything started fine! :)
 
 }
+
+function check_user () {
+	if [ "$EUID" -ne 0 ]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+}
 ## end functions
 
 # main flow
+check_user
 patch_nginx
 request_certificate
 prepare_certificate
