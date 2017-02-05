@@ -42,3 +42,5 @@ See [LICENSE](LICENSE).
 # Author
 
 &copy; Lorenzo Milesi <maxxer@yetopen.it>
+
+Feedback, bugs, PR are welcome on [GitHub](https://github.com/yetopen/certbot-zimbra).
