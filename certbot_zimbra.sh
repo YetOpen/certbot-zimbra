@@ -55,10 +55,8 @@ function patch_nginx() {
 
 # perform the letsencrypt request and prepares the certs
 function request_certificate() {
-	if [ "$RENEW_ONLY" == "yes"]; then
-		return
-	fi
 	# If we got no domain from command line try using zimbra hostname
+	# FIXME the prompt should be avoided in cron!
 	if [ -z "$DOMAIN" ]; then
 		ZMHOSTNAME=$(/opt/zimbra/bin/zmhostname)
 		while true; do
@@ -69,6 +67,10 @@ function request_certificate() {
 				* ) echo "Please answer yes or no.";;
 		    	esac
 		done
+	fi
+
+	if [ "$RENEW_ONLY" == "yes" ]; then
+		return
 	fi
 
 	# Request our cert
