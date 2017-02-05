@@ -1,9 +1,9 @@
 # certbot-zimbra
-Automated letsencrypt/certbot certificate deploy script for Zimbra hosts
+Automated letsencrypt/certbot certificate deploy script for Zimbra hosts.
+
+The script tweaks zimbra's nginx config to allow access of *.well-known* webserver location from local files instead of redirecting upstream to jsp. So it **may not be used if there's no *zimbra-nginx* package installed**.
 
 This is still a BETA script, currently working and tested on 8.7.2_UBUNTU16 only.
-
-Also it's missing the renewal stuff.
 
 # Usage
 
