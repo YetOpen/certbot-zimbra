@@ -23,23 +23,45 @@ check_executable () {
 	fi
 }
 
+# version compare from  http://stackoverflow.com/a/24067243/738852
+function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
+
+function bootstrap() {
+	if [ ! -x "/opt/zimbra/bin/zmcontrol" ]; then
+		echo "/opt/zimbra/bin/zmcontrol not found"
+		exit 1;
+	fi
+	DETECTED_ZIMBRA_VERSION=$(su - zimbra -c '/opt/zimbra/bin/zmcontrol -v' | grep -Po '\d.\d.\d')
+	if [ -z "$DETECTED_ZIMBRA_VERSION" ]; then
+		echo "Unable to detect zimbra version"
+		exit 1;
+	fi
+	echo "Detected Zimbra $DETECTED_ZIMBRA_VERSION"
+	check_executable
+
+	if version_gt $DETECTED_ZIMBRA_VERSION "8.6"; then
+		NGINX_BIN="/opt/zimbra/common/sbin/nginx"
+	else
+		NGINX_BIN="/opt/zimbra/nginx/sbin/nginx"
+	fi
+}
+
 # Patch nginx, and check if it's installed
 function patch_nginx() {
 	if [ "$NO_NGINX" == "yes" ]; then
 		return
 	fi
 
-	# check nginx is installed
-	if [ ! -x "/opt/zimbra/common/sbin/nginx" ]; then
+	# check if nginx is installed
+	if [ ! -x $NGINX_BIN ]; then
 		echo "zimbra-proxy package not present"
 		exit 1;
 	fi
 
-	DETECTED_ZIMBRA_VERSION=$(su - zimbra -c /opt/zimbra/bin/zmcontrol | grep -Po '\d.\d.\d')
 	PATCHFILE="patches/zimbra_${DETECTED_ZIMBRA_VERSION}_letsencrypt_nginx.patch"
 
 	if [ ! -f "$PATCHFILE" ]; then
-		echo "Your Zimbra version $DETECTED_ZIMBRA_VERSION is not currently supported"
+		echo "Your Zimbra version is not currently supported (or patch subdir was not copied)"
 		exit 1;
 	fi
 
@@ -49,7 +71,7 @@ function patch_nginx() {
 		echo "Patching /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default";
 		patch /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default < $PATCHFILE
 		# reload nginx config
-		/opt/zimbra/common/sbin/nginx -c /opt/zimbra/conf/nginx.conf -s reload
+		$NGINX_BIN -c /opt/zimbra/conf/nginx.conf -s reload
 	fi
 }
 
@@ -114,9 +136,12 @@ Ob8VZRzI9neWagqNdwvYkQsEjgfbKbYK7p2CNTUQ
 -----END CERTIFICATE-----
 EOF
 
-	# Test cert
-	# FIXME use root for 8.6 https://wiki.zimbra.com/wiki/Installing_a_LetsEncrypt_SSL_Certificate#Zimbra_Collaboration_8.6_and_previous
-	su - zimbra -c '/opt/zimbra/bin/zmcertmgr verifycrt comm /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem'
+	# Test cert. 8.6 and below must use root
+	if version_gt $DETECTED_ZIMBRA_VERSION "8.6"; then
+		su - zimbra -c '/opt/zimbra/bin/zmcertmgr verifycrt comm /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem'
+	else
+		/opt/zimbra/bin/zmcertmgr verifycrt comm /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
+	fi
 	if [ $? -eq 1 ]; then
 		echo "Unable to verify cert!"
 		exit 1;
@@ -130,8 +155,11 @@ function deploy_certificate() {
 	cp -a /opt/zimbra/ssl/zimbra /opt/zimbra/ssl/zimbra.$(date "+%Y%.m%.d-%H.%M")
 
 	cp /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/zimbra/commercial/commercial.key
-	# FIXME use root for 8.6
-	su - zimbra -c '/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem'
+	if version_gt $DETECTED_ZIMBRA_VERSION "8.6"; then
+		su - zimbra -c '/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem'
+	else
+		/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
+	fi
 
 	# Finally apply cert!
 	su - zimbra -c 'zmcontrol restart'
@@ -166,8 +194,6 @@ EOF
 ## end functions
 
 # main flow
-check_executable
-
 # parameters parsing http://stackoverflow.com/a/14203146/738852
 while [[ $# -gt 0 ]]; do
 	key="$1"
@@ -205,6 +231,7 @@ if [ "$NEW_CERT" == "no" ] && [ "$RENEW_ONLY" == "no" ]; then
 fi
 
 # actions
+bootstrap
 check_user
 patch_nginx
 request_certificate
