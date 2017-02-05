@@ -45,7 +45,7 @@ function bootstrap() {
 	echo "Detected Zimbra $DETECTED_ZIMBRA_VERSION"
 	check_executable
 
-	if version_gt $DETECTED_ZIMBRA_VERSION "8.6"; then
+	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
 		NGINX_BIN="/opt/zimbra/common/sbin/nginx"
 	else
 		NGINX_BIN="/opt/zimbra/nginx/sbin/nginx"
@@ -153,7 +153,7 @@ Ob8VZRzI9neWagqNdwvYkQsEjgfbKbYK7p2CNTUQ
 EOF
 
 	# Test cert. 8.6 and below must use root
-	if version_gt $DETECTED_ZIMBRA_VERSION "8.6"; then
+	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
 		su - zimbra -c '/opt/zimbra/bin/zmcertmgr verifycrt comm /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem'
 	else
 		/opt/zimbra/bin/zmcertmgr verifycrt comm /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
@@ -171,7 +171,7 @@ function deploy_certificate() {
 	cp -a /opt/zimbra/ssl/zimbra /opt/zimbra/ssl/zimbra.$(date "+%Y%.m%.d-%H.%M")
 
 	cp /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/zimbra/commercial/commercial.key
-	if version_gt $DETECTED_ZIMBRA_VERSION "8.6"; then
+	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
 		su - zimbra -c '/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem'
 	else
 		/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
