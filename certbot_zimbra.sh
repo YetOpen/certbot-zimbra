@@ -72,8 +72,8 @@ function patch_nginx() {
 	fi
 
 	# Test if we need to patch nginx.conf.web.http.default
-	grep -Fxq '/\.well-known' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
-	if [ $? -eq 0 ]; then
+	grep -Fxq '\\.well-known' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
+	if [ $? -eq 1 ]; then
 		echo "Patching /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default";
 		patch /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default < $PATCHFILE
 		if [ $? -ne 0 ]; then
