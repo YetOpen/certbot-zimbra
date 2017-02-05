@@ -76,6 +76,10 @@ function patch_nginx() {
 	if [ $? -eq 0 ]; then
 		echo "Patching /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default";
 		patch /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default < $PATCHFILE
+		if [ $? -ne 0 ]; then
+			echo "Patching failed! File a bug with the output above"
+			exit 1;
+		fi
 		# reload nginx config
 		$NGINX_BIN -c /opt/zimbra/conf/nginx.conf -s reload
 	fi
