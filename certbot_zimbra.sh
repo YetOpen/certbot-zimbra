@@ -11,11 +11,17 @@ WEBROOT="/opt/zimbra/data/nginx/html"
 ## functions
 # check executable
 check_executable () {
-	LEB_BIN=$(which letsencrypt)
-	if [ -z "$LEB_BIN" ]; then
-		# try with certbot
+	if type $(which certbot-auto) 2>&1 >/dev/null
+	then
+		LEB_BIN=$(which certbot-auto)
+	elif type $(which certbot) 2>&1 >/dev/null
+	then
 		LEB_BIN=$(which certbot)
+	elif type $(which letsencrypt) 2>&1 >/dev/null
+	then
+		LEB_BIN=$(which letsencrypt)
 	fi
+
 	# No way
 	if [ -z "$LEB_BIN" ]; then
 		echo "No letsencrypt/certbot binary found in $PATH";
@@ -31,7 +37,7 @@ function bootstrap() {
 		echo "/opt/zimbra/bin/zmcontrol not found"
 		exit 1;
 	fi
-	DETECTED_ZIMBRA_VERSION=$(su - zimbra -c '/opt/zimbra/bin/zmcontrol -v' | grep -Po '\d.\d.\d')
+	DETECTED_ZIMBRA_VERSION=$(su - zimbra -c '/opt/zimbra/bin/zmcontrol -v' | grep -Po '\d.\d.\d' | head -n 1)
 	if [ -z "$DETECTED_ZIMBRA_VERSION" ]; then
 		echo "Unable to detect zimbra version"
 		exit 1;
@@ -93,6 +99,12 @@ function request_certificate() {
 
 	if [ "$RENEW_ONLY" == "yes" ]; then
 		return
+	fi
+
+	# <8.7 didn't have nginx webroot
+	if [ ! -d "$WEBROOT" ]; then
+		mkdir -p $WEBROOT
+		chown -R zimbra:zimbra $WEBROOT
 	fi
 
 	# Request our cert
