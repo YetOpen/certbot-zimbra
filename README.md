@@ -10,7 +10,7 @@ This is still a BETA script, currently working and tested on 8.7.2_UBUNTU16 only
 ## Zimbra 8.7 single server
 
 Run
-`./certbot_zimbra.sh`
+`./certbot_zimbra.sh -n`
 it should do everything by itself, including **restarting zimbra**.
 
 ## Renewal
