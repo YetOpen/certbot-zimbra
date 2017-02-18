@@ -3,12 +3,15 @@ Automated letsencrypt/certbot certificate deploy script for Zimbra hosts.
 
 The script tweaks zimbra's nginx config to allow access of *.well-known* webserver location from local files instead of redirecting upstream to jsp. So it **may not be used if there's no *zimbra-nginx* package installed**.
 
-This is still a BETA script, currently working and tested on 8.7.2_UBUNTU16 only.
+This is still a BETA script. Tested on:
+* 8.7.2_UBUNTU16
+* 8.6_RHEL7
+* 8.6_UBUNTU12
 
 # Requirements
 
 * zimbra-proxy package is required
-* currently working only if [*zimbraMailMode*](https://wiki.zimbra.com/wiki/CLI_zmtlsctl_to_set_Web_Server_Mode) is set to *both*
+* currently working if [*zimbraReverseProxyMailMode*](https://wiki.zimbra.com/wiki/CLI_zmtlsctl_to_set_Web_Server_Mode) is set to *both* or *https*
 
 # Usage
 
