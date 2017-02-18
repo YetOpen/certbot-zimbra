@@ -9,16 +9,13 @@ NEW_CERT="no"
 WEBROOT="/opt/zimbra/data/nginx/html"
 
 ## functions
-# check executable
+# check executable certbot-auto / certbot / letsencrypt
 check_executable () {
-	if type $(which certbot-auto) 2>&1 >/dev/null
-	then
-		LEB_BIN=$(which certbot-auto)
-	elif type $(which certbot) 2>&1 >/dev/null
-	then
+	LEB_BIN=$(which certbot-auto)
+	if [ -z "$LEB_BIN"]; then 
 		LEB_BIN=$(which certbot)
-	elif type $(which letsencrypt) 2>&1 >/dev/null
-	then
+	fi
+	if [ -z "$LEB_BIN"]; then 
 		LEB_BIN=$(which letsencrypt)
 	fi
 
@@ -45,6 +42,9 @@ function bootstrap() {
 	echo "Detected Zimbra $DETECTED_ZIMBRA_VERSION"
 	check_executable
 
+	# zimbraReverseProxyMailMode
+	ZMODE=$(/opt/zimbra/bin/zmprov gs $(/opt/zimbra/bin/zmhostname) zimbraReverseProxyMailMode | grep Mode | cut -f 2 -d " ")
+
 	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
 		NGINX_BIN="/opt/zimbra/common/sbin/nginx"
 	else
@@ -55,6 +55,11 @@ function bootstrap() {
 # Patch nginx, and check if it's installed
 function patch_nginx() {
 	if [ "$NO_NGINX" == "yes" ]; then
+		return
+	fi
+	# In https mode patching nginx is not required
+	if [ "$ZMODE" == "https" ]; then
+		echo "Detected zimbraReverseProxyMailMode in https only, requesting certificate in standalone mode. Make sure your firewall has port 80 open"
 		return
 	fi
 
@@ -112,7 +117,14 @@ function request_certificate() {
 	fi
 
 	# Request our cert
-	$LEB_BIN certonly -a webroot -w $WEBROOT -d $DOMAIN
+	case $ZMODE in
+		https)
+			$LEB_BIN certonly -a standalone --standalone-supported-challenges http-01 -d $DOMAIN
+			;;
+		*)
+			$LEB_BIN certonly -a webroot -w $WEBROOT -d $DOMAIN
+			;;
+	esac
 	if [ $? -ne 0 ] ; then
 		echo "letsencrypt returned an error";
 		exit 1;
