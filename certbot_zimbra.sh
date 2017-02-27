@@ -69,6 +69,13 @@ function patch_nginx() {
 		exit 1;
 	fi
 
+    # check if patch binary is present
+	PATCH_BIN=$(which patch)
+	if [ -z "$PATCH_BIN" ]; then
+		echo "No patch binary found. Please install OS 'patch' package";
+		exit 1;
+	fi
+
 	PATCHFILE="patches/zimbra_${DETECTED_ZIMBRA_VERSION}_letsencrypt_nginx.patch"
 
 	if [ ! -f "$PATCHFILE" ]; then
@@ -80,7 +87,7 @@ function patch_nginx() {
 	grep -Fxq '\\.well-known' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
 	if [ $? -eq 1 ]; then
 		echo "Patching /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default";
-		patch /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default < $PATCHFILE
+		$PATCH_BIN /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default < $PATCHFILE
 		if [ $? -ne 0 ]; then
 			echo "Patching failed! File a bug with the output above"
 			exit 1;
