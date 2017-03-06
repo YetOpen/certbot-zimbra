@@ -12,10 +12,10 @@ WEBROOT="/opt/zimbra/data/nginx/html"
 # check executable certbot-auto / certbot / letsencrypt
 check_executable () {
 	LEB_BIN=$(which certbot-auto)
-	if [ -z "$LEB_BIN"]; then 
+	if [ -z "$LEB_BIN" ]; then 
 		LEB_BIN=$(which certbot)
 	fi
-	if [ -z "$LEB_BIN"]; then 
+	if [ -z "$LEB_BIN" ]; then 
 		LEB_BIN=$(which letsencrypt)
 	fi
 
