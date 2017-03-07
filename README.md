@@ -27,7 +27,7 @@ EFF suggest to run *renew* twice a day. Since this would imply restarting zimbra
 the commands below, as suitable for your setup:
 
 ```
-12 5 * * * root /usr/bin/certbot renew --post-hook "/usr/local/bin/certbot_zimbra.sh -r -d $(zmhostname)"
+12 5 * * * root /usr/bin/certbot renew --post-hook "/usr/local/bin/certbot_zimbra.sh -r -d $(/opt/zimbra/bin/zmhostname)"
 ```
 The `--post-hook` parameter has been added since certbot 0.7.0, so check your version before using it. If it's not supported you should get a workaround, but probably the easiest way is to upgrade it.
 
