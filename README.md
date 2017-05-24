@@ -38,6 +38,7 @@ The example below uses the renew-hook which will only rerun the script if a rene
 
 Create a service file eg: /etc/systemd/system/renew-letsencrypt.service
 
+```
 [Unit]
 Description=Renew Let's Encrypt certificates
 After=network-online.target
@@ -46,9 +47,11 @@ After=network-online.target
 Type=oneshot
 # check for renewal, only start/stop nginx if certs need to be renewed
 ExecStart=/usr/bin/certbot renew --quiet --agree-tos --renew-hook "/usr/local/bin/certbot_zimbra.sh -r -d $(/opt/zimbra/bin/zmhostname)"
+```
 
 Create a timer file to run the above once a day at 2am: /etc/systemd/system/renew-letsencrypt.timer
 
+```
 [Unit]
 Description=Daily renewal of Let's Encrypt's certificates
 
@@ -61,13 +64,20 @@ Persistent=true
 
 [Install]
 WantedBy=timers.target
+```
 
+Then reload the unit file with
+```
 systemctl daemon-reload
 systemctl start renew-letsencrypt.timer
 systemctl enable renew-letsencrypt.timer
+```
 
 Check the timers status:
+```
 systemctl list-timers renew-letsencrypt.timer
+```
+
 
 ## If you have another webserver in front
 
