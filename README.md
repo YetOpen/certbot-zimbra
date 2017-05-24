@@ -33,6 +33,42 @@ The `--post-hook` parameter has been added since certbot 0.7.0, so check your ve
 
 The `-d` option is required in order to avoid domain confirmation prompt.
 
+## Renewal using Systemd
+The example below uses the renew-hook which will only rerun the script if a renewal was successfull and thus only reloading zimbra when needed.
+
+Create a service file eg: /etc/systemd/system/renew-letsencrypt.service
+
+[Unit]
+Description=Renew Let's Encrypt certificates
+After=network-online.target
+
+[Service]
+Type=oneshot
+# check for renewal, only start/stop nginx if certs need to be renewed
+ExecStart=/usr/bin/certbot renew --quiet --agree-tos --renew-hook "/usr/local/bin/certbot_zimbra.sh -r -d $(/opt/zimbra/bin/zmhostname)"
+
+Create a timer file to run the above once a day at 2am: /etc/systemd/system/renew-letsencrypt.timer
+
+[Unit]
+Description=Daily renewal of Let's Encrypt's certificates
+
+[Timer]
+# once a day, at 2AM
+OnCalendar=*-*-* 02:00:00
+# Be kind to the Let's Encrypt servers: add a random delay of 0–3600 seconds
+RandomizedDelaySec=3600
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+
+systemctl daemon-reload
+systemctl start renew-letsencrypt.timer
+systemctl enable renew-letsencrypt.timer
+
+Check the timers status:
+systemctl list-timers renew-letsencrypt.timer
+
 ## If you have another webserver in front
 
 *(It may happen even in the best families)*
