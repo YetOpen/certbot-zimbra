@@ -197,7 +197,7 @@ function deploy_certificate() {
 	fi
 	
 	# Set ownership of nginx config template
-        chown zimbra.zimbra /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
+        chown zimbra:zimbra /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
 	
 	# Finally apply cert!
 	su - zimbra -c 'zmcontrol restart'
