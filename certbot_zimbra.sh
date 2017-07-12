@@ -195,7 +195,10 @@ function deploy_certificate() {
 	else
 		/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
 	fi
-
+	
+	# Set ownership of nginx config template
+        chown zimbra:zimbra /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
+	
 	# Finally apply cert!
 	su - zimbra -c 'zmcontrol restart'
 	# FIXME And hope that everything started fine! :)
