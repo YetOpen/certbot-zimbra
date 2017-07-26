@@ -34,7 +34,7 @@ function bootstrap() {
 		echo "/opt/zimbra/bin/zmcontrol not found"
 		exit 1;
 	fi
-	DETECTED_ZIMBRA_VERSION=$(su - zimbra -c '/opt/zimbra/bin/zmcontrol -v' | grep -Po '\d.\d.\d' | head -n 1)
+	DETECTED_ZIMBRA_VERSION=$(su - zimbra -c '/opt/zimbra/bin/zmcontrol -v' | grep -Po '(\d+).(\d+).(\d+)' | head -n 1)
 	if [ -z "$DETECTED_ZIMBRA_VERSION" ]; then
 		echo "Unable to detect zimbra version"
 		exit 1;
