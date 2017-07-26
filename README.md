@@ -11,7 +11,7 @@ This is still a BETA script. Tested on:
 # Requirements
 
 * zimbra-proxy package is required
-* currently working if [*zimbraReverseProxyMailMode*](https://wiki.zimbra.com/wiki/CLI_zmtlsctl_to_set_Web_Server_Mode) is set to *both* or *https*
+* currently working if [*zimbraReverseProxyMailMode*](https://wiki.zimbra.com/wiki/Enabling_Zimbra_Proxy_and_memcached#Protocol_Requirements_Including_HTTPS_Redirect) is set to *both* or *https*
 * of course either `certbot` or `letsencrypt` binary is required. The preferred way is to install [following EFF manual](https://certbot.eff.org/docs/install.html#certbot-auto), to obtain the latest version
 
 # Usage
