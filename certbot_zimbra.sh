@@ -76,7 +76,7 @@ function patch_nginx() {
 		exit 1;
 	fi
 
-	PATCHFILE="patches/zimbra_${DETECTED_ZIMBRA_VERSION}_letsencrypt_nginx.patch"
+	PATCHFILE=$(dirname $0)"/patches/zimbra_${DETECTED_ZIMBRA_VERSION}_letsencrypt_nginx.patch"
 
 	if [ ! -f "$PATCHFILE" ]; then
 		echo "Your Zimbra version is not currently supported (or patch subdir was not copied)"
