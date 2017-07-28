@@ -3,15 +3,17 @@ Automated letsencrypt/certbot certificate deploy script for Zimbra hosts.
 
 The script tweaks zimbra's nginx config to allow access of *.well-known* webserver location from local files instead of redirecting upstream to jsp. So it **may not be used if there's no *zimbra-nginx* package installed**.
 
+It works for all [*zimbraReverseProxyMailMode*](https://wiki.zimbra.com/wiki/Enabling_Zimbra_Proxy_and_memcached#Protocol_Requirements_Including_HTTPS_Redirect)s (not really all, *http* only is NOT working). If it's *https* only the certificate is requeste in *standalone* mode. If in *both* or *redirect* the request will be made using *webroot* mode, thanks to the patch included.
+
 This is still a BETA script. Tested on:
-* 8.7.2_UBUNTU16
+* 8.7.11_UBUNTU16
 * 8.6_RHEL7
 * 8.6_UBUNTU12
 
 # Requirements
 
-* zimbra-proxy package is required
-* currently working if [*zimbraReverseProxyMailMode*](https://wiki.zimbra.com/wiki/Enabling_Zimbra_Proxy_and_memcached#Protocol_Requirements_Including_HTTPS_Redirect) is set to *both* or *https*
+* **port 80 must be open on the firewall**, for both the *webroot* and *standalone* mode
+* zimbra-proxy package is required (for !*https* mode)
 * of course either `certbot` or `letsencrypt` binary is required. The preferred way is to install [following EFF manual](https://certbot.eff.org/docs/install.html#certbot-auto), to obtain the latest version
 
 # Usage
@@ -30,7 +32,7 @@ the commands below, as suitable for your setup:
 ```
 12 5 * * * root /usr/bin/certbot renew --renew-hook "/usr/local/bin/certbot_zimbra.sh -r -d $(/opt/zimbra/bin/zmhostname)"
 ```
-The `--post-hook` parameter has been added since certbot 0.7.0, so check your version before using it. If it's not supported you should get a workaround, but probably the easiest way is to upgrade it.
+The `--renew-hook` parameter has been added since certbot 0.7.0, so check your version before using it. If it's not supported you should get a workaround, but probably the easiest way is to upgrade it.
 
 The `-d` option is required in order to avoid domain confirmation prompt.
 
