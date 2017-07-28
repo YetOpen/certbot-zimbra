@@ -84,12 +84,17 @@ function patch_nginx() {
 	fi
 
 	# Test if we need to patch nginx.conf.web.http.default
-	grep -Fxq '\\.well-known' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
+	grep -Fxq '\\.well-known\\\|' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
 	if [ $? -eq 1 ]; then
-		echo "Patching /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default";
+		echo "Patching /opt/zimbra/conf/nginx/includes/nginx.conf.web.http{s}.default";
 		$PATCH_BIN /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default < $PATCHFILE
 		if [ $? -ne 0 ]; then
-			echo "Patching failed! File a bug with the output above"
+			echo "Patching http failed! File a bug with the output above"
+			exit 1;
+		fi
+		$PATCH_BIN /opt/zimbra/conf/nginx/includes/nginx.conf.web.https.default < $PATCHFILE
+		if [ $? -ne 0 ]; then
+			echo "Patching https failed! File a bug with the output above"
 			exit 1;
 		fi
 		# reload nginx config
@@ -124,6 +129,7 @@ function request_certificate() {
 	fi
 
 	# Request our cert
+    # If Zimbra is in https only we can use port 80 for ourselves, otherwise go through nginx
 	case $ZMODE in
 		https)
 			$LEB_BIN certonly -a standalone --preferred-challenges http -d $DOMAIN
