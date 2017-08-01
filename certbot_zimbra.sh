@@ -148,11 +148,11 @@ function request_certificate() {
 function prepare_certificate () {
 	# Make zimbra accessible files
 	mkdir /opt/zimbra/ssl/letsencrypt 2>/dev/null
-	cp /etc/letsencrypt/live/$DOMAIN/* /opt/zimbra/ssl/letsencrypt/
+	cp $CERTPATH/* /opt/zimbra/ssl/letsencrypt/
 	chown -R zimbra:zimbra /opt/zimbra/ssl/letsencrypt/
 
 	# Now we should have the chain. Let's create the "patched" chain suitable for Zimbra
-	cat /etc/letsencrypt/live/$DOMAIN/chain.pem > /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
+	cat $CERTPATH/chain.pem > /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
 	# The cert below comes from https://www.identrust.com/certificates/trustid/root-download-x3.html. It should be better to let the user fetch it?
 	cat << EOF >> /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
 -----BEGIN CERTIFICATE-----
@@ -225,7 +225,7 @@ USAGE: $(basename $0) < -n | -r > [-d my.host.name] [-x] [-w /var/www]
 	 -n | --new: performs a request for a new certificate
 	 -r | --renew: deploys certificate, assuming it has just been renewed
 
-	Optional arguments:"
+	Optional arguments:
 	 -d | --hostname: hostname being requested. If not passed uses \`zmhostname\`
 	 -x | --no-nginx: doesn't check and patch zimbra's nginx. Assumes some other webserver is listening on port 80
 	 -w | --webroot: if there's another webserver on port 80 specify its webroot
@@ -274,6 +274,12 @@ done
 if [ "$NEW_CERT" == "no" ] && [ "$RENEW_ONLY" == "no" ]; then
 	usage
 	exit 0
+fi
+
+# If passed by --renew-hook 
+CERTPATH=$RENEWED_LINEAGE
+if [ -z "$CERTPATH" ]; then
+    CERTPATH="/etc/letsencrypt/live/$DOMAIN"
 fi
 
 # actions
