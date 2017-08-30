@@ -289,3 +289,5 @@ patch_nginx
 request_certificate
 prepare_certificate
 deploy_certificate
+
+exit 0;
