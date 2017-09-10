@@ -8,17 +8,185 @@ RENEW_ONLY="no"
 NEW_CERT="no"
 WEBROOT="/opt/zimbra/data/nginx/html"
 
+## patches
+read -r -d '' PATCH_Z87 <<'EOF'
+diff -Naur templates_orig/nginx.conf.web.http.default.template templates/nginx.conf.web.http.default.template
+--- templates_orig/nginx.conf.web.http.default.template	2017-09-10 05:41:26.194942738 +0200
++++ templates/nginx.conf.web.http.default.template	2017-09-10 05:43:22.510893276 +0200
+@@ -39,6 +39,8 @@
+     ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
+     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
+     ${web.login.upstream.disable} }
++
++    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
+     
+     ${web.login.upstream.disable} location = /
+     ${web.login.upstream.disable} {   
+@@ -357,7 +359,7 @@
+     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
+     ${web.ews.upstream.disable} }
+     
+-    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
++    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
+     {
+         # Begin stray redirect hack
+         #
+diff -Naur templates_orig/nginx.conf.web.https.default.template templates/nginx.conf.web.https.default.template
+--- templates_orig/nginx.conf.web.https.default.template	2017-09-10 05:41:26.198942736 +0200
++++ templates/nginx.conf.web.https.default.template	2017-09-10 05:43:50.214881510 +0200
+@@ -82,6 +82,8 @@
+     ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
+     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
+     ${web.login.upstream.disable} }
++
++    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
+     
+     ${web.login.upstream.disable} location = /
+     ${web.login.upstream.disable} {   
+@@ -446,7 +448,7 @@
+     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
+     ${web.ews.upstream.disable} }
+     
+-    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
++    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
+     {
+         # Begin stray redirect hack
+         #
+diff -Naur templates_orig/nginx.conf.web.https.template templates/nginx.conf.web.https.template
+--- templates_orig/nginx.conf.web.https.template	2017-09-10 05:41:26.198942736 +0200
++++ templates/nginx.conf.web.https.template	2017-09-10 05:44:22.934883851 +0200
+@@ -62,6 +62,8 @@
+     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
+     ${web.login.upstream.disable} }
+ 
++    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
++
+     ${web.login.upstream.disable} location = /
+     ${web.login.upstream.disable} {
+     ${web.login.upstream.disable}     set $mailhostport ${web.http.uport};   # replace this with *the* mailhost port
+@@ -425,7 +427,7 @@
+     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
+     ${web.ews.upstream.disable} }
+ 
+-    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
++    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
+     {
+         # Begin stray redirect hack
+         #
+diff -Naur templates_orig/nginx.conf.web.http.template templates/nginx.conf.web.http.template
+--- templates_orig/nginx.conf.web.http.template	2017-09-10 05:41:26.198942736 +0200
++++ templates/nginx.conf.web.http.template	2017-09-10 05:44:51.494887178 +0200
+@@ -41,6 +41,8 @@
+     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
+     ${web.login.upstream.disable} }
+ 
++    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; } 
++
+     ${web.login.upstream.disable} location = /
+     ${web.login.upstream.disable} {
+     ${web.login.upstream.disable}     set $mailhostport ${web.http.uport};   # replace this with *the* mailhost port
+@@ -358,7 +360,7 @@
+     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
+     ${web.ews.upstream.disable} }
+ 
+-    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
++    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
+     {
+         # Begin stray redirect hack
+         #
+EOF
+
+read -r -d '' PATCH_Z86 <<'EOF'
++++ templates/nginx.conf.web.http.default.template	2017-09-10 09:57:59.420380580 +0200
+@@ -39,6 +39,8 @@
+     ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
+     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
+     ${web.login.upstream.disable} }
++
++    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
+     
+     ${web.login.upstream.disable} location = /
+     ${web.login.upstream.disable} {   
+@@ -339,7 +341,7 @@
+     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
+     ${web.ews.upstream.disable} }
+     
+-    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
++    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
+     {
+         # Begin stray redirect hack
+         #
+diff -Naur templates_ORIG/nginx.conf.web.https.default.template templates/nginx.conf.web.https.default.template
+--- templates_ORIG/nginx.conf.web.https.default.template	2015-12-16 09:51:45.196584572 +0100
++++ templates/nginx.conf.web.https.default.template	2017-09-10 09:58:23.839441900 +0200
+@@ -55,6 +55,8 @@
+     ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
+     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
+     ${web.login.upstream.disable} }
++
++    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
+     
+     ${web.login.upstream.disable} location = /
+     ${web.login.upstream.disable} {   
+@@ -354,7 +356,7 @@
+     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
+     ${web.ews.upstream.disable} }
+     
+-    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
++    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
+     {
+         # Begin stray redirect hack
+         #
+diff -Naur templates_ORIG/nginx.conf.web.https.template templates/nginx.conf.web.https.template
+--- templates_ORIG/nginx.conf.web.https.template	2015-12-02 15:36:35.322922195 +0100
++++ templates/nginx.conf.web.https.template	2017-09-10 09:59:17.917577714 +0200
+@@ -56,6 +56,8 @@
+     ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
+     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
+     ${web.login.upstream.disable} }
++ 
++    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
+     
+     ${web.login.upstream.disable} location = /
+     ${web.login.upstream.disable} {   
+@@ -355,7 +357,7 @@
+     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
+     ${web.ews.upstream.disable} }
+     
+-    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
++    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
+     {
+         # Begin stray redirect hack
+         #
+diff -Naur templates_ORIG/nginx.conf.web.http.template templates/nginx.conf.web.http.template
+--- templates_ORIG/nginx.conf.web.http.template	2014-12-15 22:18:51.000000000 +0100
++++ templates/nginx.conf.web.http.template	2017-09-10 10:00:10.216709079 +0200
+@@ -66,6 +66,8 @@
+     ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
+     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
+     ${web.login.upstream.disable} }
++
++    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
+       
+     location /
+     {
+@@ -340,7 +342,7 @@
+     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
+     ${web.ews.upstream.disable} }
+     
+-    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
++    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
+     {
+         # Begin stray redirect hack
+         #
+EOF
+
+## end patches
+
 ## functions
 # check executable certbot-auto / certbot / letsencrypt
-check_executable () {
-	LEB_BIN=$(which certbot-auto)
-	if [ -z "$LEB_BIN" ]; then 
-		LEB_BIN=$(which certbot)
-	fi
-	if [ -z "$LEB_BIN" ]; then 
-		LEB_BIN=$(which letsencrypt)
-	fi
-
+function check_executable() {
+	LEB_BIN=$(which certbot-auto certbot letsencrypt | head -n 1)
 	# No way
 	if [ -z "$LEB_BIN" ]; then
 		echo "No letsencrypt/certbot binary found in $PATH";
@@ -30,6 +198,8 @@ check_executable () {
 function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 
 function bootstrap() {
+    echo "Certbot-Zimbra v0.2 - https://github.com/YetOpen/certbot-zimbra"
+
 	if [ ! -x "/opt/zimbra/bin/zmcontrol" ]; then
 		echo "/opt/zimbra/bin/zmcontrol not found"
 		exit 1;
@@ -57,16 +227,17 @@ function patch_nginx() {
 	if [ "$NO_NGINX" == "yes" ]; then
 		return
 	fi
-	# In https mode patching nginx is not required
-	if [ "$ZMODE" == "https" ]; then
-		echo "Detected zimbraReverseProxyMailMode in https only, requesting certificate in standalone mode. Make sure your firewall has port 80 open"
-		return
-	fi
 
 	# check if nginx is installed
 	if [ ! -x $NGINX_BIN ]; then
 		echo "zimbra-proxy package not present"
 		exit 1;
+	fi
+
+	grep -Fxq '\\.well-known\\\|' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
+	if [ $? -eq 0 ]; then
+		# No need to patch
+		return
 	fi
 
     # check if patch binary is present
@@ -76,29 +247,44 @@ function patch_nginx() {
 		exit 1;
 	fi
 
-	PATCHFILE=$(dirname $0)"/patches/zimbra_${DETECTED_ZIMBRA_VERSION}_letsencrypt_nginx.patch"
+	# Let's make a backup of zimbra's original templates
+	BKDATE=$(date +"%Y%m%d_%H%M%S")
+	echo "Making a backup of nginx templates in /opt/zimbra/conf/nginx/templates.$BKDATE"
+	cp -r /opt/zimbra/conf/nginx/templates /opt/zimbra/conf/nginx/templates.$BKDATE
 
-	if [ ! -f "$PATCHFILE" ]; then
-		echo "Your Zimbra version is not currently supported (or patch subdir was not copied)"
+	# Simulate patching
+	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
+		echo "$PATCH_Z87" | $PATCH_BIN --dry-run -p1 -d /opt/zimbra/conf/nginx/templates/ 
+	elif version_gt $DETECTED_ZIMBRA_VERSION 8.6; then
+		echo "$PATCH_Z86" | $PATCH_BIN --dry-run -p1 -d /opt/zimbra/conf/nginx/templates/ 
+	else
+		echo "Your Zimbra version is not currently supported"
+		exit 1;
+	fi
+	if [ $? -ne 0 ]; then
+		echo "Patching test failed! Please file a bug with the output above to https://github.com/YetOpen/certbot-zimbra/issues/new"
 		exit 1;
 	fi
 
-	# Test if we need to patch nginx.conf.web.http.default
-	grep -Fxq '\\.well-known\\\|' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
-	if [ $? -eq 1 ]; then
-		echo "Patching /opt/zimbra/conf/nginx/includes/nginx.conf.web.http{s}.default";
-		$PATCH_BIN /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default < $PATCHFILE
-		if [ $? -ne 0 ]; then
-			echo "Patching http failed! File a bug with the output above"
-			exit 1;
-		fi
-		$PATCH_BIN /opt/zimbra/conf/nginx/includes/nginx.conf.web.https.default < $PATCHFILE
-		if [ $? -ne 0 ]; then
-			echo "Patching https failed! File a bug with the output above"
-			exit 1;
-		fi
-		# reload nginx config
-		$NGINX_BIN -c /opt/zimbra/conf/nginx.conf -s reload
+	# DO patch
+	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
+		echo "$PATCH_Z87" | $PATCH_BIN -p1 -d /opt/zimbra/conf/nginx/templates/ 
+	elif version_gt $DETECTED_ZIMBRA_VERSION 8.6; then
+		echo "$PATCH_Z86" | $PATCH_BIN -p1 -d /opt/zimbra/conf/nginx/templates/ 
+	fi
+	if [ $? -ne 0 ]; then
+		echo "Patching zimbra's nginx failed! File a bug with the output above to https://github.com/YetOpen/certbot-zimbra/issues/new"
+		# Restore the backups
+		cp /opt/zimbra/conf/nginx/templates.$BKDATE/* /opt/zimbra/conf/nginx/templates/
+		echo "The original templates has been restored from /opt/zimbra/conf/nginx/templates.$BKDATE"
+		exit 1;
+	fi
+
+	# reload nginx config
+	su - zimbra -c 'zmproxyctl restart'
+	if [ $? -ne 0 ]; then
+		echo "Something went wrong while restarting zimbra proxy component. Please file a bug with the output above to https://github.com/YetOpen/certbot-zimbra/issues/new"
+		exit 1;
 	fi
 }
 
@@ -130,14 +316,7 @@ function request_certificate() {
 
 	# Request our cert
     # If Zimbra is in https only we can use port 80 for ourselves, otherwise go through nginx
-	case $ZMODE in
-		https)
-			$LEB_BIN certonly -a standalone --preferred-challenges http -d $DOMAIN
-			;;
-		*)
-			$LEB_BIN certonly -a webroot -w $WEBROOT -d $DOMAIN
-			;;
-	esac
+	$LEB_BIN certonly -a webroot -w $WEBROOT -d $DOMAIN
 	if [ $? -ne 0 ] ; then
 		echo "letsencrypt returned an error";
 		exit 1;
@@ -201,10 +380,10 @@ function deploy_certificate() {
 	else
 		/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
 	fi
-	
+
 	# Set ownership of nginx config template
         chown zimbra:zimbra /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
-	
+
 	# Finally apply cert!
 	su - zimbra -c 'zmcontrol restart'
 	# FIXME And hope that everything started fine! :)
@@ -276,7 +455,7 @@ if [ "$NEW_CERT" == "no" ] && [ "$RENEW_ONLY" == "no" ]; then
 	exit 0
 fi
 
-# If passed by --renew-hook 
+# If passed by --renew-hook, contains the path of the renewed cert which may differ from the default /etc/letsencrypt/live/$DOMAIN
 CERTPATH=$RENEWED_LINEAGE
 if [ -z "$CERTPATH" ]; then
     CERTPATH="/etc/letsencrypt/live/$DOMAIN"
