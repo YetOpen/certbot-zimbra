@@ -107,7 +107,7 @@ Since v0.2 patches are embedded into the script. To produce a patch:
 1. make a fresh zimbra installation
 1. make a copy of the vanilla `/opt/zimbra/conf/nginx/templates` location (i.e. `cp -r /opt/zimbra/conf/nginx/templates /opt/zimbra/conf/nginx/templates_ORIG`)
 1. patch the templates file by adding the `.well-known/acme-challenge` location with a webroot (see existing patches)
-1. produce a patchfile, making sure to have only one directory below and escape $: `cd /opt/zimbra/conf/nginx/ ; diff -Naur templates_ORIG templates > /tmp/zimbra_YOURVERSION.patch`
+1. produce a patchfile, making sure to have only one directory below: `cd /opt/zimbra/conf/nginx/ ; diff -Naur templates_ORIG templates > /tmp/zimbra_YOURVERSION.patch`
 1. embed the patch in the *patches* section
 1. add the version condition in `patch_nginx` function
 
