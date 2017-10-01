@@ -11,89 +11,57 @@ WEBROOT="/opt/zimbra/data/nginx/html"
 ## patches
 read -r -d '' PATCH_Z87 <<'EOF'
 diff -Naur templates_orig/nginx.conf.web.http.default.template templates/nginx.conf.web.http.default.template
---- templates_orig/nginx.conf.web.http.default.template	2017-09-10 05:41:26.194942738 +0200
-+++ templates/nginx.conf.web.http.default.template	2017-09-10 05:43:22.510893276 +0200
-@@ -39,6 +39,8 @@
+--- templates_orig/nginx.conf.web.http.default.template	2017-10-01 20:30:23.022776735 +0200
++++ templates/nginx.conf.web.http.default.template	2017-10-01 20:39:04.619034013 +0200
+@@ -65,6 +65,9 @@
      ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
      ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
      ${web.login.upstream.disable} }
 +
-+    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
-     
-     ${web.login.upstream.disable} location = /
-     ${web.login.upstream.disable} {   
-@@ -357,7 +359,7 @@
-     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
-     ${web.ews.upstream.disable} }
-     
--    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
-+    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
++    # patched by certbot-zimbra.sh
++    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
+
+     location /
      {
-         # Begin stray redirect hack
-         #
 diff -Naur templates_orig/nginx.conf.web.https.default.template templates/nginx.conf.web.https.default.template
---- templates_orig/nginx.conf.web.https.default.template	2017-09-10 05:41:26.198942736 +0200
-+++ templates/nginx.conf.web.https.default.template	2017-09-10 05:43:50.214881510 +0200
-@@ -82,6 +82,8 @@
+--- templates_orig/nginx.conf.web.https.default.template	2017-10-01 20:30:23.034776741 +0200
++++ templates/nginx.conf.web.https.default.template	2017-10-01 20:38:47.583025551 +0200
+@@ -94,6 +94,9 @@
      ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
      ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
      ${web.login.upstream.disable} }
 +
-+    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
-     
-     ${web.login.upstream.disable} location = /
-     ${web.login.upstream.disable} {   
-@@ -446,7 +448,7 @@
-     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
-     ${web.ews.upstream.disable} }
-     
--    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
-+    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
++    # patched by certbot-zimbra.sh
++    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
+
+     location /
      {
-         # Begin stray redirect hack
-         #
 diff -Naur templates_orig/nginx.conf.web.https.template templates/nginx.conf.web.https.template
---- templates_orig/nginx.conf.web.https.template	2017-09-10 05:41:26.198942736 +0200
-+++ templates/nginx.conf.web.https.template	2017-09-10 05:44:22.934883851 +0200
-@@ -62,6 +62,8 @@
+--- templates_orig/nginx.conf.web.https.template	2017-10-01 20:30:23.034776741 +0200
++++ templates/nginx.conf.web.https.template	2017-10-01 20:35:34.062929705 +0200
+@@ -95,6 +95,9 @@
      ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
      ${web.login.upstream.disable} }
- 
-+    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
+
++    # patched by certbot-zimbra.sh
++    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
 +
-     ${web.login.upstream.disable} location = /
-     ${web.login.upstream.disable} {
-     ${web.login.upstream.disable}     set $mailhostport ${web.http.uport};   # replace this with *the* mailhost port
-@@ -425,7 +427,7 @@
-     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
-     ${web.ews.upstream.disable} }
- 
--    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
-+    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
+     location /
      {
          # Begin stray redirect hack
-         #
 diff -Naur templates_orig/nginx.conf.web.http.template templates/nginx.conf.web.http.template
---- templates_orig/nginx.conf.web.http.template	2017-09-10 05:41:26.198942736 +0200
-+++ templates/nginx.conf.web.http.template	2017-09-10 05:44:51.494887178 +0200
-@@ -41,6 +41,8 @@
+--- templates_orig/nginx.conf.web.http.template	2017-10-01 20:30:23.034776741 +0200
++++ templates/nginx.conf.web.http.template	2017-10-01 20:33:26.550866829 +0200
+@@ -67,6 +67,9 @@
      ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
      ${web.login.upstream.disable} }
- 
-+    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; } 
+
++    # patched by certbot-zimbra.sh
++    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
 +
-     ${web.login.upstream.disable} location = /
-     ${web.login.upstream.disable} {
-     ${web.login.upstream.disable}     set $mailhostport ${web.http.uport};   # replace this with *the* mailhost port
-@@ -358,7 +360,7 @@
-     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
-     ${web.ews.upstream.disable} }
- 
--    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
-+    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
+     location /
      {
          # Begin stray redirect hack
-         #
 EOF
 
 read -r -d '' PATCH_Z86 <<'EOF'
@@ -103,19 +71,10 @@ read -r -d '' PATCH_Z86 <<'EOF'
      ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
      ${web.login.upstream.disable} }
 +
-+    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
-     
++    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
+
      ${web.login.upstream.disable} location = /
-     ${web.login.upstream.disable} {   
-@@ -339,7 +341,7 @@
-     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
-     ${web.ews.upstream.disable} }
-     
--    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
-+    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
-     {
-         # Begin stray redirect hack
-         #
+     ${web.login.upstream.disable} {
 diff -Naur templates_ORIG/nginx.conf.web.https.default.template templates/nginx.conf.web.https.default.template
 --- templates_ORIG/nginx.conf.web.https.default.template	2015-12-16 09:51:45.196584572 +0100
 +++ templates/nginx.conf.web.https.default.template	2017-09-10 09:58:23.839441900 +0200
@@ -124,19 +83,10 @@ diff -Naur templates_ORIG/nginx.conf.web.https.default.template templates/nginx.
      ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
      ${web.login.upstream.disable} }
 +
-+    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
-     
++    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
+
      ${web.login.upstream.disable} location = /
-     ${web.login.upstream.disable} {   
-@@ -354,7 +356,7 @@
-     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
-     ${web.ews.upstream.disable} }
-     
--    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
-+    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
-     {
-         # Begin stray redirect hack
-         #
+     ${web.login.upstream.disable} {
 diff -Naur templates_ORIG/nginx.conf.web.https.template templates/nginx.conf.web.https.template
 --- templates_ORIG/nginx.conf.web.https.template	2015-12-02 15:36:35.322922195 +0100
 +++ templates/nginx.conf.web.https.template	2017-09-10 09:59:17.917577714 +0200
@@ -144,20 +94,11 @@ diff -Naur templates_ORIG/nginx.conf.web.https.template templates/nginx.conf.web
      ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
      ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
      ${web.login.upstream.disable} }
-+ 
-+    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
-     
++
++    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
+
      ${web.login.upstream.disable} location = /
-     ${web.login.upstream.disable} {   
-@@ -355,7 +357,7 @@
-     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
-     ${web.ews.upstream.disable} }
-     
--    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
-+    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
-     {
-         # Begin stray redirect hack
-         #
+     ${web.login.upstream.disable} {
 diff -Naur templates_ORIG/nginx.conf.web.http.template templates/nginx.conf.web.http.template
 --- templates_ORIG/nginx.conf.web.http.template	2014-12-15 22:18:51.000000000 +0100
 +++ templates/nginx.conf.web.http.template	2017-09-10 10:00:10.216709079 +0200
@@ -166,19 +107,10 @@ diff -Naur templates_ORIG/nginx.conf.web.http.template templates/nginx.conf.web.
      ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
      ${web.login.upstream.disable} }
 +
-+    location ^~ /.well-known { root /opt/zimbra/data/nginx/html; }
-       
++    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
+
      location /
      {
-@@ -340,7 +342,7 @@
-     ${web.ews.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
-     ${web.ews.upstream.disable} }
-     
--    location ~* /(service|principals|dav|\.well-known|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
-+    location ~* /(service|principals|dav|home|octopus|shf|user|certauth|spnegoauth|(zimbra/home)|(zimbra/user))/
-     {
-         # Begin stray redirect hack
-         #
 EOF
 
 ## end patches
@@ -234,7 +166,7 @@ function patch_nginx() {
 		exit 1;
 	fi
 
-	grep -Fxq '\\.well-known\\\|' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
+	grep -Fxq 'acme-challenge' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
 	if [ $? -eq 0 ]; then
 		# No need to patch
 		return
@@ -254,9 +186,9 @@ function patch_nginx() {
 
 	# Simulate patching
 	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
-		echo "$PATCH_Z87" | $PATCH_BIN --dry-run -p1 -d /opt/zimbra/conf/nginx/templates/ 
+		echo "$PATCH_Z87" | $PATCH_BIN --dry-run -p1 -d /opt/zimbra/conf/nginx/templates/
 	elif version_gt $DETECTED_ZIMBRA_VERSION 8.6; then
-		echo "$PATCH_Z86" | $PATCH_BIN --dry-run -p1 -d /opt/zimbra/conf/nginx/templates/ 
+		echo "$PATCH_Z86" | $PATCH_BIN --dry-run -p1 -d /opt/zimbra/conf/nginx/templates/
 	else
 		echo "Your Zimbra version is not currently supported"
 		exit 1;
@@ -268,9 +200,9 @@ function patch_nginx() {
 
 	# DO patch
 	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
-		echo "$PATCH_Z87" | $PATCH_BIN -p1 -d /opt/zimbra/conf/nginx/templates/ 
+		echo "$PATCH_Z87" | $PATCH_BIN -p1 -d /opt/zimbra/conf/nginx/templates/
 	elif version_gt $DETECTED_ZIMBRA_VERSION 8.6; then
-		echo "$PATCH_Z86" | $PATCH_BIN -p1 -d /opt/zimbra/conf/nginx/templates/ 
+		echo "$PATCH_Z86" | $PATCH_BIN -p1 -d /opt/zimbra/conf/nginx/templates/
 	fi
 	if [ $? -ne 0 ]; then
 		echo "Patching zimbra's nginx failed! File a bug with the output above to https://github.com/YetOpen/certbot-zimbra/issues/new"

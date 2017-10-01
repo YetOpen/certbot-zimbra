@@ -1,3 +1,8 @@
+## v0.2.1-alpha
+
+* Less invasive patches (taken from @afrimberger's 619f6e0) #22
+* Fixed patch already applied test (thanks to @mauriziomarini) #24 
+
 ## v0.2-alpha
 
 Half rewrite of the first version:
