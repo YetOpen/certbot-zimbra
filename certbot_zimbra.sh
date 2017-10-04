@@ -186,9 +186,9 @@ function patch_nginx() {
 
 	# Simulate patching
 	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
-		echo "$PATCH_Z87" | $PATCH_BIN --dry-run -p1 -d /opt/zimbra/conf/nginx/templates/
+		echo "$PATCH_Z87" | $PATCH_BIN --dry-run -l -p1 -d /opt/zimbra/conf/nginx/templates/
 	elif version_gt $DETECTED_ZIMBRA_VERSION 8.6; then
-		echo "$PATCH_Z86" | $PATCH_BIN --dry-run -p1 -d /opt/zimbra/conf/nginx/templates/
+		echo "$PATCH_Z86" | $PATCH_BIN --dry-run -l -p1 -d /opt/zimbra/conf/nginx/templates/
 	else
 		echo "Your Zimbra version is not currently supported"
 		exit 1;
@@ -200,9 +200,9 @@ function patch_nginx() {
 
 	# DO patch
 	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
-		echo "$PATCH_Z87" | $PATCH_BIN -p1 -d /opt/zimbra/conf/nginx/templates/
+		echo "$PATCH_Z87" | $PATCH_BIN -l -p1 -d /opt/zimbra/conf/nginx/templates/
 	elif version_gt $DETECTED_ZIMBRA_VERSION 8.6; then
-		echo "$PATCH_Z86" | $PATCH_BIN -p1 -d /opt/zimbra/conf/nginx/templates/
+		echo "$PATCH_Z86" | $PATCH_BIN -l -p1 -d /opt/zimbra/conf/nginx/templates/
 	fi
 	if [ $? -ne 0 ]; then
 		echo "Patching zimbra's nginx failed! File a bug with the output above to https://github.com/YetOpen/certbot-zimbra/issues/new"
