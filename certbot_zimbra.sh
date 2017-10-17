@@ -3,6 +3,7 @@
 # author: Lorenzo Milesi <maxxer@yetopen.it>
 # GPLv3 license
 
+AGREE_TOS=""
 NO_NGINX="no"
 RENEW_ONLY="no"
 NEW_CERT="no"
@@ -248,7 +249,7 @@ function request_certificate() {
 
 	# Request our cert
     # If Zimbra is in https only we can use port 80 for ourselves, otherwise go through nginx
-	$LEB_BIN certonly -a webroot -w $WEBROOT -d $DOMAIN
+	$LEB_BIN certonly $AGREE_TOS -a webroot -w $WEBROOT -d $DOMAIN
 	if [ $? -ne 0 ] ; then
 		echo "letsencrypt returned an error";
 		exit 1;
@@ -371,6 +372,10 @@ while [[ $# -gt 0 ]]; do
 	    ;;
 			-w|--webroot)
 	  	WEBROOT="$2"
+			shift
+	    ;;
+			-a|--agree-tos)
+	  	AGREE_TOS="--text --agree-tos --non-interactive"
 			shift
 	    ;;
 	    *)
