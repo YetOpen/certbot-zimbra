@@ -341,6 +341,7 @@ USAGE: $(basename $0) < -n | -r > [-d my.host.name] [-x] [-w /var/www]
 	 -d | --hostname: hostname being requested. If not passed uses \`zmhostname\`
 	 -x | --no-nginx: doesn't check and patch zimbra's nginx. Assumes some other webserver is listening on port 80
 	 -w | --webroot: if there's another webserver on port 80 specify its webroot
+	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt
 
 Author: Lorenzo Milesi <maxxer@yetopen.it>
 Feedback, bugs and PR are welcome on GitHub: https://github.com/yetopen/certbot-zimbra.
