@@ -166,7 +166,7 @@ function patch_nginx() {
 		exit 1;
 	fi
 
-	grep -Fxq 'acme-challenge' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
+	grep -q 'acme-challenge' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
 	if [ $? -eq 0 ]; then
 		# No need to patch
 		return
@@ -248,7 +248,7 @@ function request_certificate() {
 
 	# Request our cert
     # If Zimbra is in https only we can use port 80 for ourselves, otherwise go through nginx
-	$LEB_BIN certonly -a webroot -w $WEBROOT -d $DOMAIN
+	$LEB_BIN certonly --text --agree-tos --non-interactive -a webroot -w $WEBROOT -d $DOMAIN
 	if [ $? -ne 0 ] ; then
 		echo "letsencrypt returned an error";
 		exit 1;
