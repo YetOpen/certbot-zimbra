@@ -248,7 +248,7 @@ function request_certificate() {
 
 	# Request our cert
     # If Zimbra is in https only we can use port 80 for ourselves, otherwise go through nginx
-	$LEB_BIN certonly -a webroot -w $WEBROOT -d $DOMAIN
+	$LEB_BIN certonly --text --agree-tos --non-interactive -a webroot -w $WEBROOT -d $DOMAIN
 	if [ $? -ne 0 ] ; then
 		echo "letsencrypt returned an error";
 		exit 1;
