@@ -7,6 +7,7 @@ Letsencrypt by default tries to verify a domain using https, so the script shoul
 
 This is still a BETA script. Tested on:
 * 8.7.11_UBUNTU16
+* 8.7.11_RHEL7
 * 8.6_RHEL7
 * 8.6_UBUNTU12
 
