@@ -166,7 +166,7 @@ function patch_nginx() {
 		exit 1;
 	fi
 
-	grep -Fxq 'acme-challenge' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
+	grep -q 'acme-challenge' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
 	if [ $? -eq 0 ]; then
 		# No need to patch
 		return
