@@ -3,10 +3,13 @@
 # author: Lorenzo Milesi <maxxer@yetopen.it>
 # GPLv3 license
 
+AGREE_TOS=""
 NO_NGINX="no"
 RENEW_ONLY="no"
 NEW_CERT="no"
 WEBROOT="/opt/zimbra/data/nginx/html"
+SERVICES=all
+RESTART_ZIMBRA="yes"
 
 ## patches
 read -r -d '' PATCH_Z87 <<'EOF'
@@ -166,7 +169,7 @@ function patch_nginx() {
 		exit 1;
 	fi
 
-	grep -Fxq 'acme-challenge' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
+	grep -q 'acme-challenge' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
 	if [ $? -eq 0 ]; then
 		# No need to patch
 		return
@@ -248,7 +251,7 @@ function request_certificate() {
 
 	# Request our cert
     # If Zimbra is in https only we can use port 80 for ourselves, otherwise go through nginx
-	$LEB_BIN certonly -a webroot -w $WEBROOT -d $DOMAIN
+	$LEB_BIN certonly $AGREE_TOS -a webroot -w $WEBROOT -d $DOMAIN
 	if [ $? -ne 0 ] ; then
 		echo "letsencrypt returned an error";
 		exit 1;
@@ -308,16 +311,16 @@ function deploy_certificate() {
 
 	cp /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/zimbra/commercial/commercial.key
 	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
-		su - zimbra -c '/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem'
+		su - zimbra -c "/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem -deploy ${SERVICES}"
 	else
-		/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
+		/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem -deploy "${SERVICES}"
 	fi
 
 	# Set ownership of nginx config template
         chown zimbra:zimbra /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
 
 	# Finally apply cert!
-	su - zimbra -c 'zmcontrol restart'
+	[[ "${RESTART_ZIMBRA}" == "yes" ]] && su - zimbra -c 'zmcontrol restart'
 	# FIXME And hope that everything started fine! :)
 
 }
@@ -340,6 +343,9 @@ USAGE: $(basename $0) < -n | -r > [-d my.host.name] [-x] [-w /var/www]
 	 -d | --hostname: hostname being requested. If not passed uses \`zmhostname\`
 	 -x | --no-nginx: doesn't check and patch zimbra's nginx. Assumes some other webserver is listening on port 80
 	 -w | --webroot: if there's another webserver on port 80 specify its webroot
+	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt
+	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
+	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
 
 Author: Lorenzo Milesi <maxxer@yetopen.it>
 Feedback, bugs and PR are welcome on GitHub: https://github.com/yetopen/certbot-zimbra.
@@ -372,6 +378,16 @@ while [[ $# -gt 0 ]]; do
 			-w|--webroot)
 	  	WEBROOT="$2"
 			shift
+	    ;;
+			-a|--agree-tos)
+	  	AGREE_TOS="--text --agree-tos --non-interactive"
+      ;;
+			-s|--services)
+	  	SERVICES="$2"
+			shift
+	    ;;
+			-z|--no-zimbra-restart)
+	  	RESTART_ZIMBRA="no"
 	    ;;
 	    *)
 	  	# unknown option
