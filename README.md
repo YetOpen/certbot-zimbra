@@ -16,7 +16,7 @@ This is still a BETA script. Tested on:
 * zimbra-proxy package is required (for !*https* mode)
 * of course either `certbot` or `letsencrypt` binary is required
 
-## Certbot/Letsencrypt installation
+## Certbot installation
 
 The preferred way is to install it is by using the wizard [at certbot's home](https://certbot.eff.org/). Choose *None of the above* as software and your operating system. This will allow you to install easily upgradable system packages.
 
@@ -28,7 +28,7 @@ By installing Certbot via packages it automatically creates a cron schedule to r
 
 # Usage
 
-## Zimbra 8.7 single server
+## Zimbra 8.7 single server
 
 Run
 `./certbot_zimbra.sh -n`
