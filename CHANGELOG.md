@@ -1,3 +1,10 @@
+## v0.2.2-alpha
+
+* Added --no-zimbra-restart option, thanks to Pavel Pulec
+* Added --services options, thanks to Pavel Pulec
+* (hopefully) Finally fixed patch detection, thanks to Pavel Pulec
+* Addedd --agree-tos option, thanks to Pavel Pulec
+
 ## v0.2.1-alpha
 
 * Less invasive patches (taken from @afrimberger's 619f6e0) #22
