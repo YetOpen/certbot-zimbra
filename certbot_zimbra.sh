@@ -313,7 +313,7 @@ function deploy_certificate() {
 	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
 		su - zimbra -c "/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem -deploy ${SERVICES}"
 	else
-		/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem -deploy "${SERVICES}"
+		/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
 	fi
 
 	# Set ownership of nginx config template
