@@ -1,9 +1,10 @@
 ## v0.2.2-alpha
 
+* Added --patch-only option to only patch nginx, to be called before renewal
 * Added --no-zimbra-restart option, thanks to Pavel Pulec
 * Added --services options, thanks to Pavel Pulec
 * (hopefully) Finally fixed patch detection, thanks to Pavel Pulec
-* Addedd --agree-tos option, thanks to Pavel Pulec
+* Added --agree-tos option, thanks to Pavel Pulec
 
 ## v0.2.1-alpha
 
