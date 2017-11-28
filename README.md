@@ -39,8 +39,11 @@ it should do everything by itself, including **restarting zimbra**.
 EFF suggest to run *renew* twice a day. Since this would imply restarting zimbra, once a day outside workhours should be fine. So in your favourite place (like `/etc/cron.d/zimbracrontab`) schedule the commands below, as suitable for your setup:
 
 ```
-12 5 * * * root /usr/bin/certbot renew --renew-hook "/usr/local/bin/certbot_zimbra.sh -r -d $(/opt/zimbra/bin/zmhostname)"
+12 5 * * * root /usr/bin/certbot renew --pre-hook "/usr/local/bin/certbot_zimbra.sh -p" --renew-hook "/usr/local/bin/certbot_zimbra.sh -r -d $(/opt/zimbra/bin/zmhostname)"
 ```
+The `--pre-hook` ensures Zimbra's nginx is patched to allow certificate verification. You can omit it if you remember to manually execute that command after an upgrade or
+a reinstall which may restore nginx's templates to their default.
+
 The `--renew-hook` parameter has been added since certbot 0.7.0, so check your version before using it. If it's not supported you should get a workaround, but probably the easiest way is to upgrade it.
 
 The `-d` option is required in order to avoid domain confirmation prompt by the script.
@@ -58,7 +61,7 @@ After=network-online.target
 [Service]
 Type=oneshot
 # check for renewal, only start/stop nginx if certs need to be renewed
-ExecStart=/usr/bin/certbot renew --quiet --agree-tos --renew-hook "/usr/local/bin/certbot_zimbra.sh -r -d $(/opt/zimbra/bin/zmhostname)"
+ExecStart=/usr/bin/certbot renew --quiet --agree-tos --pre-hook "/usr/local/bin/certbot_zimbra.sh -p" --renew-hook "/usr/local/bin/certbot_zimbra.sh -r -d $(/opt/zimbra/bin/zmhostname)"
 ```
 
 Create a timer file to run the above once a day at 2am: /etc/systemd/system/renew-letsencrypt.timer

@@ -9,6 +9,7 @@ RENEW_ONLY="no"
 NEW_CERT="no"
 WEBROOT="/opt/zimbra/data/nginx/html"
 SERVICES=all
+PATCH_ONLY="no"
 RESTART_ZIMBRA="yes"
 
 ## patches
@@ -334,10 +335,11 @@ fi
 
 function usage () {
 	cat <<EOF
-USAGE: $(basename $0) < -n | -r > [-d my.host.name] [-x] [-w /var/www]
+USAGE: $(basename $0) < -n | -r | -p > [-d my.host.name] [-x] [-w /var/www]
   Options:
 	 -n | --new: performs a request for a new certificate
 	 -r | --renew: deploys certificate, assuming it has just been renewed
+	 -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade
 
 	Optional arguments:
 	 -d | --hostname: hostname being requested. If not passed uses \`zmhostname\`
@@ -369,6 +371,9 @@ while [[ $# -gt 0 ]]; do
 	    -x|--no-nginx)
 	    NO_NGINX="yes"
 	    ;;
+	    -p|--patch-only)
+	    PATCH_ONLY="yes"
+	    ;;
 			-n|--new)
 	  	NEW_CERT="yes"
 	    ;;
@@ -398,8 +403,13 @@ while [[ $# -gt 0 ]]; do
 	shift # past argument or value
 done
 
-if [ "$NEW_CERT" == "no" ] && [ "$RENEW_ONLY" == "no" ]; then
+if [ "$NEW_CERT" == "no" ] && [ "$RENEW_ONLY" == "no" ] && [ "$PATCH_ONLY" == "no" ]; then
 	usage
+	exit 0
+fi
+
+if [ "$PATCH_ONLY" == "yes" ] && [ "$NO_NGINX" == "yes" ]; then
+	echo "Incompatible nginx parameters"
 	exit 0
 fi
 
@@ -413,6 +423,9 @@ fi
 bootstrap
 check_user
 patch_nginx
+if [ "$PATCH_ONLY" == "yes" ]; then
+    exit 0;
+fi
 request_certificate
 prepare_certificate
 deploy_certificate
