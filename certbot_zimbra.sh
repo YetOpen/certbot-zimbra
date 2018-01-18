@@ -414,10 +414,10 @@ if [ "$PATCH_ONLY" == "yes" ] && [ "$NO_NGINX" == "yes" ]; then
 fi
 
 # If passed by --renew-hook, contains the path of the renewed cert which may differ from the default /etc/letsencrypt/live/$DOMAIN
-CERTPATH=$RENEWED_LINEAGE
-if [ -z "$CERTPATH" ]; then
-    CERTPATH="/etc/letsencrypt/live/$DOMAIN"
-fi
+#CERTPATH=$RENEWED_LINEAGE
+#if [ -z "$CERTPATH" ]; then
+CERTPATH="/etc/letsencrypt/live/$DOMAIN"
+#fi
 
 # actions
 bootstrap
