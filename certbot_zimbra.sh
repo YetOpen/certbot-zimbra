@@ -263,11 +263,11 @@ function request_certificate() {
 function prepare_certificate () {
 	# Make zimbra accessible files
 	mkdir /opt/zimbra/ssl/letsencrypt 2>/dev/null
-	cp $CERTPATH/* /opt/zimbra/ssl/letsencrypt/
+	cp $CERTPATH/$ZMHOSTNAME/* /opt/zimbra/ssl/letsencrypt/
 	chown -R zimbra:zimbra /opt/zimbra/ssl/letsencrypt/
 
 	# Now we should have the chain. Let's create the "patched" chain suitable for Zimbra
-	cat $CERTPATH/chain.pem > /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
+	cat $CERTPATH/$ZMHOSTNAME/chain.pem > /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
 	# The cert below comes from https://www.identrust.com/certificates/trustid/root-download-x3.html. It should be better to let the user fetch it?
 	cat << EOF >> /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
 -----BEGIN CERTIFICATE-----
