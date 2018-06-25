@@ -6,7 +6,7 @@ The script tweaks zimbra's nginx config to allow access of *.well-known* webserv
 Letsencrypt by default tries to verify a domain using https, so the script should work fine if [*zimbraReverseProxyMailMode*](https://wiki.zimbra.com/wiki/Enabling_Zimbra_Proxy_and_memcached#Protocol_Requirements_Including_HTTPS_Redirect)s is set to *both* or *https*. May not work for *http* only.
 
 This is still a BETA script. Tested on:
-* 8.7.11_UBUNTU16
+* 8.8.8_UBUNTU16
 * 8.7.11_RHEL7
 * 8.6_RHEL7
 * 8.6_UBUNTU12
@@ -114,6 +114,20 @@ Since v0.2 patches are embedded into the script. To produce a patch:
 1. produce a patchfile, making sure to have only one directory below: `cd /opt/zimbra/conf/nginx/ ; diff -Naur templates_ORIG templates > /tmp/zimbra_YOURVERSION.patch`
 1. embed the patch in the *patches* section
 1. add the version condition in `patch_nginx` function
+
+## Upgrade from v0.1
+
+If you originally requested the certificate with the first version of the script, which used *standalone* method, newer version will fail to renew. This because it
+now uses *webroot* mode by patching Zimbra's nginx, making it more simple to work and to mantain.
+
+To check if you have the old method, run `grep authenticator /etc/letsencrypt/renewal/YOURDOMAIN.conf`. If it says *standalone* you got it!
+
+To get it back working, @andrewmur on [issue #43](https://github.com/YetOpen/certbot-zimbra/issues/43#issuecomment-400018603) suggests to stop (and kill, to make sure) nginx
+before renewal. This is proven to work (by  him).
+
+A more *definitive* solution would be to try forcing the issue of a new certificate in *webroot* mode, so that it will work with newver versions of the scripts. But this is
+untested. ;)
+
 
 # License
 
