@@ -1,3 +1,7 @@
+##
+
+*  Fix *prepare certificate*, thanks to Antonio Prado (#44)
+
 ## v0.2.2-alpha
 
 * Added --patch-only option to only patch nginx, to be called before renewal
