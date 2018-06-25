@@ -1,6 +1,7 @@
-##
+## v0.3.0-alpha
 
-*  Fix *prepare certificate*, thanks to Antonio Prado (#44)
+* Fix *prepare certificate*, thanks to Antonio Prado (#44)
+* Added patches for Zimbra 8.8.8
 
 ## v0.2.2-alpha
 
