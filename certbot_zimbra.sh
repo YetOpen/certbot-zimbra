@@ -178,7 +178,7 @@ EOF
 ## functions
 # check executable certbot-auto / certbot / letsencrypt
 function check_executable() {
-	LEB_BIN=$(which certbot-auto certbot letsencrypt | head -n 1)
+	LEB_BIN=$(which certbot-auto certbot letsencrypt 2>/dev/null | head -n 1)
 	# No way
 	if [ -z "$LEB_BIN" ]; then
 		echo "No letsencrypt/certbot binary found in $PATH";
@@ -233,7 +233,7 @@ function patch_nginx() {
 	fi
 
     # check if patch binary is present
-	PATCH_BIN=$(which patch)
+	PATCH_BIN=$(which patch 2>/dev/null)
 	if [ -z "$PATCH_BIN" ]; then
 		echo "No patch binary found. Please install OS 'patch' package";
 		exit 1;
