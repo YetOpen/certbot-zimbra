@@ -12,6 +12,7 @@ SERVICES=all
 PATCH_ONLY="no"
 RESTART_ZIMBRA="yes"
 EXTRA_DOMAIN=""
+PROMPT_CONFIRM="no"
 
 ## patches
 read -r -d '' PATCH_Z88 <<'EOF'
@@ -284,13 +285,15 @@ function patch_nginx() {
 # perform the letsencrypt request and prepares the certs
 function request_certificate() {
 	# If we got no domain from command line try using zimbra hostname
-	# FIXME the prompt should be avoided in cron!
 	if [ -z "$DOMAIN" ]; then
-		ZMHOSTNAME=$(/opt/zimbra/bin/zmhostname)
+		DOMAIN=$(/opt/zimbra/bin/zmhostname)
+    fi
+	echo "Detected $DOMAIN as Zimbra hostname"
+    if [ "$PROMPT_CONFIRM" == "yes" ]; then
 		while true; do
-			read -p "Detected $ZMHOSTNAME as Zimbra domain: use this hostname for certificate request? " yn
+			read -p "Use this for certificate request? " yn
 		    	case $yn in
-				[Yy]* ) DOMAIN=$ZMHOSTNAME; break;;
+				[Yy]* ) break;;
 				[Nn]* ) echo "Please call $(basename $0) --hostname your.host.name"; exit;;
 				* ) echo "Please answer yes or no.";;
 		    	esac
@@ -404,6 +407,7 @@ USAGE: $(basename $0) < -n | -r | -p > [-d my.host.name] [-e extra.domain.tld] [
 	 -x | --no-nginx: doesn't check and patch zimbra's nginx. Assumes some other webserver is listening on port 80
 	 -w | --webroot: if there's another webserver on port 80 specify its webroot
 	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt
+	 -c | --prompt-confirmation: ask for confirmation before proceding with cert request showing detected hostname
 	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
 	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
 
@@ -436,25 +440,28 @@ while [[ $# -gt 0 ]]; do
 	    -p|--patch-only)
 	    PATCH_ONLY="yes"
 	    ;;
-			-n|--new)
+		-n|--new)
 	  	NEW_CERT="yes"
 	    ;;
-			-r|--renew)
+		-r|--renew)
 	  	RENEW_ONLY="yes"
 	    ;;
-			-w|--webroot)
+		-w|--webroot)
 	  	WEBROOT="$2"
-			shift
+		shift
 	    ;;
-			-a|--agree-tos)
+		-a|--agree-tos)
 	  	AGREE_TOS="--text --agree-tos --non-interactive"
-      ;;
-			-s|--services)
+        ;;
+		-s|--services)
 	  	SERVICES="$2"
-			shift
+		shift
 	    ;;
-			-z|--no-zimbra-restart)
+		-z|--no-zimbra-restart)
 	  	RESTART_ZIMBRA="no"
+	    ;;
+		-c|--prompt-confirmation)
+	  	PROMPT_CONFIRM="yes"
 	    ;;
 	    *)
 	  	# unknown option

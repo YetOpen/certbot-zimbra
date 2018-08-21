@@ -32,7 +32,9 @@ By installing Certbot via packages it automatically creates a cron schedule to r
 
 Run
 `./certbot_zimbra.sh -n`
-it should do everything by itself, including **restarting zimbra**.
+it should do everything by itself, including **restarting zimbra**. 
+
+The domain of the certificate is obtained automatically by running `zmhostname`. If this is not correct for your setup just pass `--hostname/-d` manually.
 
 ## Renewal
 

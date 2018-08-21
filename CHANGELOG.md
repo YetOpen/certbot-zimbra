@@ -1,6 +1,7 @@
 ## v0.4.0-beta - IN PROGRESS
 
 * Added ability to request certificate for more than one domain thanks to @pulecp #53 
+* Removed domain confirmation prompt for new requests. Just use `zmhostname` 
 
 ## v0.3.0-alpha
 
