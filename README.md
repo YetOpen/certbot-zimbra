@@ -24,7 +24,7 @@ By installing Certbot via packages it automatically creates a cron schedule to r
 
 # Limitations
 
-* The script doesn't handle multiple certificates on the same server. See #8 and #17
+* The script doesn't handle multiple domains configured with SNI. See #8
 
 # Usage
 

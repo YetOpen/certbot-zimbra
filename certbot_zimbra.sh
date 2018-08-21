@@ -190,7 +190,7 @@ function check_executable() {
 function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 
 function bootstrap() {
-    echo "Certbot-Zimbra v0.3 - https://github.com/YetOpen/certbot-zimbra"
+    echo "Certbot-Zimbra v0.4 - https://github.com/YetOpen/certbot-zimbra"
 
 	if [ ! -x "/opt/zimbra/bin/zmcontrol" ]; then
 		echo "/opt/zimbra/bin/zmcontrol not found"
