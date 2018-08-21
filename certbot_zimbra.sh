@@ -204,9 +204,6 @@ function bootstrap() {
 	echo "Detected Zimbra $DETECTED_ZIMBRA_VERSION"
 	check_executable
 
-	# zimbraReverseProxyMailMode
-	ZMODE=$(/opt/zimbra/bin/zmprov gs $(/opt/zimbra/bin/zmhostname) zimbraReverseProxyMailMode | grep Mode | cut -f 2 -d " ")
-
 	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
 		NGINX_BIN="/opt/zimbra/common/sbin/nginx"
 	else
