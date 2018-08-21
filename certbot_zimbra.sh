@@ -11,6 +11,7 @@ WEBROOT="/opt/zimbra/data/nginx/html"
 SERVICES=all
 PATCH_ONLY="no"
 RESTART_ZIMBRA="yes"
+EXTRA_DOMAIN=""
 
 ## patches
 read -r -d '' PATCH_Z88 <<'EOF'
@@ -174,7 +175,7 @@ EOF
 
 ## end patches
 
-## functions
+## functions
 # check executable certbot-auto / certbot / letsencrypt
 function check_executable() {
 	LEB_BIN=$(which certbot-auto certbot letsencrypt | head -n 1)
@@ -311,7 +312,7 @@ function request_certificate() {
 
 	# Request our cert
     # If Zimbra is in https only we can use port 80 for ourselves, otherwise go through nginx
-	$LEB_BIN certonly $AGREE_TOS -a webroot -w $WEBROOT -d $DOMAIN
+	$LEB_BIN certonly $AGREE_TOS --expand -a webroot -w $WEBROOT -d $DOMAIN $EXTRA_DOMAIN
 	if [ $? -ne 0 ] ; then
 		echo "letsencrypt returned an error";
 		exit 1;
@@ -394,7 +395,7 @@ fi
 
 function usage () {
 	cat <<EOF
-USAGE: $(basename $0) < -n | -r | -p > [-d my.host.name] [-x] [-w /var/www]
+USAGE: $(basename $0) < -n | -r | -p > [-d my.host.name] [-e extra.domain.tld] [-x] [-w /var/www]
   Options:
 	 -n | --new: performs a request for a new certificate
 	 -r | --renew: deploys certificate, assuming it has just been renewed
@@ -402,6 +403,7 @@ USAGE: $(basename $0) < -n | -r | -p > [-d my.host.name] [-x] [-w /var/www]
 
 	Optional arguments:
 	 -d | --hostname: hostname being requested. If not passed uses \`zmhostname\`
+	 -e | --extra-domain: additional domains being requested. Can be used multiple times
 	 -x | --no-nginx: doesn't check and patch zimbra's nginx. Assumes some other webserver is listening on port 80
 	 -w | --webroot: if there's another webserver on port 80 specify its webroot
 	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt
@@ -427,6 +429,10 @@ while [[ $# -gt 0 ]]; do
 	    DOMAIN="$2"
 	    shift # past argument
 	    ;;
+      -e|--extra-domain)
+      EXTRA_DOMAIN="${EXTRA_DOMAIN} -d $2"
+      shift # past argument
+      ;;
 	    -x|--no-nginx)
 	    NO_NGINX="yes"
 	    ;;
