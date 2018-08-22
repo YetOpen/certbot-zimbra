@@ -28,7 +28,7 @@ By installing Certbot via packages it automatically creates a cron schedule to r
 
 # Usage
 
-## Zimbra 8.7 single server
+## Zimbra 8.6+ single server
 
 Run
 `./certbot_zimbra.sh -n`
