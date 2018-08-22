@@ -34,7 +34,10 @@ Run
 `./certbot_zimbra.sh -n`
 it should do everything by itself, including **restarting zimbra**. 
 
-The domain of the certificate is obtained automatically by running `zmhostname`. If this is not correct for your setup just pass `--hostname/-d` manually.
+The domain of the certificate is obtained automatically by running `zmhostname`. If you want do request a specific hostname use the `-d/--hostname` option.
+
+The certificate can be requested with additional hostnames. By default the script loops though all Zimbra domains and fetches 
+the zimbraPublicServiceHostname defined and adds them to the request. If you want to disable this behavior use the `-u/--no-public-hostname-detection` option. To indicate additional domains explicitly use the `-e/--extra-domain` option (can be specified multiple times). Note that `-e` disables additional hostname detection. 
 
 ## Renewal
 

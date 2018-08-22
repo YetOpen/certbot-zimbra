@@ -13,6 +13,7 @@ PATCH_ONLY="no"
 RESTART_ZIMBRA="yes"
 EXTRA_DOMAIN=""
 PROMPT_CONFIRM="no"
+DETECT_PUBLIC_HOSTNAMES="yes"
 
 ## patches
 read -r -d '' PATCH_Z88 <<'EOF'
@@ -287,11 +288,18 @@ function request_certificate() {
 	# If we got no domain from command line try using zimbra hostname
 	if [ -z "$DOMAIN" ]; then
 		DOMAIN=$(/opt/zimbra/bin/zmhostname)
+        # Detect additional hostnames
+        find_additional_public_hostnames
+    fi
+    if [ -z "$DOMAIN" ]; then
+        echo "No domain detected! Please run with --hostname or check why zmhostname is not working"
+        exit 1;
     fi
 	echo "Detected $DOMAIN as Zimbra hostname"
+    [ ! -z "$EXTRA_DOMAIN_OUTPUT" ] && echo "These additional domains will be part of the requested certificate: $EXTRA_DOMAIN_OUTPUT"
     if [ "$PROMPT_CONFIRM" == "yes" ]; then
 		while true; do
-			read -p "Use this for certificate request? " yn
+			read -p "Is this correct? " yn
 		    	case $yn in
 				[Yy]* ) break;;
 				[Nn]* ) echo "Please call $(basename $0) --hostname your.host.name"; exit;;
@@ -317,6 +325,23 @@ function request_certificate() {
 		echo "letsencrypt returned an error";
 		exit 1;
 	fi
+}
+
+# detect additional public service hostnames from configured domains' zimbraPublicServiceHostname
+function find_additional_public_hostnames() {
+    # If we already have them set leave alone
+    [ ! -z "$EXTRA_DOMAIN" ] && return;
+    # If it has been requested NOT to perform the search
+    [ "$DETECT_PUBLIC_HOSTNAME" == "no" ] && return;
+    for i in $(/opt/zimbra/bin/zmprov gad); do
+        ADDITIONAL_DOMAIN=$(/opt/zimbra/bin/zmprov gd $i zimbraPublicServiceHostname | grep zimbraPublicServiceHostname | cut -f 2 -d ' ')
+        [ -z "$ADDITIONAL_DOMAIN" ] && continue
+        # Skip our primary domain
+        [ "$ADDITIONAL_DOMAIN" == "$DOMAIN" ] && continue;
+        EXTRA_DOMAIN="${EXTRA_DOMAIN} -d $ADDITIONAL_DOMAIN"
+        # to be used at prompt
+        EXTRA_DOMAIN_OUTPUT="${EXTRA_DOMAIN_OUTPUT} $ADDITIONAL_DOMAIN"
+    done
 }
 
 # copies stuff ready for zimbra deployment and test them
@@ -410,6 +435,7 @@ USAGE: $(basename $0) < -n | -r | -p > [-d my.host.name] [-e extra.domain.tld] [
 	 -c | --prompt-confirmation: ask for confirmation before proceding with cert request showing detected hostname
 	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
 	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
+	 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraServicePublicHostname. Enabled when -e is passed
 
 Author: Lorenzo Milesi <maxxer@yetopen.it>
 Feedback, bugs and PR are welcome on GitHub: https://github.com/yetopen/certbot-zimbra.
@@ -428,12 +454,18 @@ while [[ $# -gt 0 ]]; do
 	case $key in
 	    -d|--hostname)
 	    DOMAIN="$2"
+        DETECT_PUBLIC_HOSTNAMES="no"
 	    shift # past argument
 	    ;;
-      -e|--extra-domain)
-      EXTRA_DOMAIN="${EXTRA_DOMAIN} -d $2"
-      shift # past argument
-      ;;
+        -e|--extra-domain)
+        EXTRA_DOMAIN="${EXTRA_DOMAIN} -d $2"
+        EXTRA_DOMAIN_OUTPUT="${EXTRA_DOMAIN_OUTPUT} $2"
+        DETECT_PUBLIC_HOSTNAMES="no"
+        shift # past argument
+        ;;
+	    -h|--no-public-hostname-detection)
+        DETECT_PUBLIC_HOSTNAMES="no"
+	    ;;
 	    -x|--no-nginx)
 	    NO_NGINX="yes"
 	    ;;

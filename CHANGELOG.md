@@ -1,7 +1,8 @@
 ## v0.4.0-beta - IN PROGRESS
 
 * Added ability to request certificate for more than one domain thanks to @pulecp #53 
-* Removed domain confirmation prompt for new requests. Just use `zmhostname` 
+* Automatically get zimbraPublicServiceHostname hosts from domain and add them to the cert #54
+* Removed domain confirmation prompt for new requests. Just use `zmhostname` by default
 
 ## v0.3.0-alpha
 
