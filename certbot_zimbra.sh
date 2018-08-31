@@ -331,6 +331,8 @@ function request_certificate() {
 
 # detect additional public service hostnames from configured domains' zimbraPublicServiceHostname
 function find_additional_public_hostnames() {
+    # Useless during renew
+    [ "$RENEW_ONLY" == "yes" ] && return;
     # If we already have them set leave alone
     [ ! -z "$EXTRA_DOMAIN" ] && return;
     # If it has been requested NOT to perform the search
