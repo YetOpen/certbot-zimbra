@@ -308,6 +308,8 @@ function request_certificate() {
 		done
 	fi
 
+	# Set variable for use in prepare_certificate
+	CERTPATH="/etc/letsencrypt/live/$DOMAIN"
 	if [ "$RENEW_ONLY" == "yes" ]; then
 		return
 	fi
@@ -346,13 +348,17 @@ function find_additional_public_hostnames() {
 
 # copies stuff ready for zimbra deployment and test them
 function prepare_certificate () {
+	if [ -z "$CERTPATH" ] ; then
+		echo "Empty CERTPATH"
+		exit 1;
+	fi
 	# Make zimbra accessible files
 	mkdir /opt/zimbra/ssl/letsencrypt 2>/dev/null
-	cp $CERTPATH/$ZMHOSTNAME/* /opt/zimbra/ssl/letsencrypt/
+	cp $CERTPATH/* /opt/zimbra/ssl/letsencrypt/
 	chown -R zimbra:zimbra /opt/zimbra/ssl/letsencrypt/
 
 	# Now we should have the chain. Let's create the "patched" chain suitable for Zimbra
-	cat $CERTPATH/$ZMHOSTNAME/chain.pem > /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
+	cat $CERTPATH/chain.pem > /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
 	# The cert below comes from https://www.identrust.com/certificates/trustid/root-download-x3.html. It should be better to let the user fetch it?
 	cat << EOF >> /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
 -----BEGIN CERTIFICATE-----
