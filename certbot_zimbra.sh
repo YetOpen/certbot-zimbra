@@ -439,7 +439,7 @@ USAGE: $(basename $0) < -n | -r | -p > [-d my.host.name] [-e extra.domain.tld] [
 	 -e | --extra-domain: additional domains being requested. Can be used multiple times
 	 -x | --no-nginx: doesn't check and patch zimbra's nginx. Assumes some other webserver is listening on port 80
 	 -w | --webroot: if there's another webserver on port 80 specify its webroot
-	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt
+	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
 	 -c | --prompt-confirmation: ask for confirmation before proceding with cert request showing detected hostname
 	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
 	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
