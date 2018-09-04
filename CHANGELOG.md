@@ -1,4 +1,4 @@
-## v0.4.0-beta - IN PROGRESS
+## v0.4.0-beta
 
 * Added ability to request certificate for more than one domain thanks to @pulecp #53 
 * Automatically get zimbraPublicServiceHostname hosts from domain and add them to the cert #54
