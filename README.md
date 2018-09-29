@@ -43,7 +43,8 @@ Either one of these action is mandatory:
 * -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade
 
 Optional arguments:
-* -d | --hostname: hostname being requested. If not passed uses \`zmhostname\`
+
+* -d | --hostname: hostname being requested. If not passed uses `zmhostname`
 * -e | --extra-domain: additional domains being requested. Can be used multiple times
 * -x | --no-nginx: doesn't check and patch zimbra's nginx. Assumes some other webserver is listening on port 80
 * -w | --webroot: if there's another webserver on port 80/443 specify its webroot
@@ -52,6 +53,7 @@ Optional arguments:
 * -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
 * -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
 * -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraServicePublicHostname. Enabled when -e is passed
+* -j | --no-port-check: disable port 80 check
 
 ## Zimbra 8.6+ single server example
 

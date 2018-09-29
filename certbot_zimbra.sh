@@ -14,6 +14,7 @@ RESTART_ZIMBRA="yes"
 EXTRA_DOMAIN=""
 PROMPT_CONFIRM="no"
 DETECT_PUBLIC_HOSTNAMES="yes"
+SKIP_PORT_CHECK="no"
 
 ## functions
 # check executable certbot-auto / certbot / letsencrypt
@@ -49,6 +50,43 @@ function bootstrap() {
 	else
 		NGINX_BIN="/opt/zimbra/nginx/sbin/nginx"
 	fi
+
+	if ! is_zimbra_on_port_80 ; then
+		echo "Zimbra's nginx doesn't seem to be listening on port 80"
+		echo "This script applies a patch to nginx, so it wouldn't work. Please check your config or pass -j"
+		exit 1;
+	fi
+}
+
+# Check if nginx is listening on port 80 or return an error
+function is_zimbra_on_port_80 () {
+	if [ "$SKIP_PORT_CHECK" == "yes" ]; then
+		echo "Skipping port check"
+		return
+	fi
+
+	# Better check with lsof, if available
+	LSOF_BIN=$(which lsof 2>/dev/null)
+	if [ ! -z "$LSOF_BIN" ]; then
+		NGINX_CNT=$($LSOF_BIN -i :80 -u zimbra -a | grep -v COMMAND | wc -l)
+		if [ $NGINX_CNT -lt 1 ]; then
+			false
+			return
+		fi
+	fi
+	
+	# Fallback to ss
+	SS_BIN=$(which ss 2>/dev/null)
+	if [ ! -z "$SS_BIN" ]; then
+		NGINX_CNT=$($SS_BIN -lptn sport eq 80 | grep nginx | wc -l)
+		if [ $NGINX_CNT -lt 1 ]; then
+			false
+			return
+		fi
+	fi
+
+	# If no tool is available just return true
+	true
 }
 
 # Patch nginx, and check if it's installed
@@ -249,6 +287,7 @@ USAGE: $(basename $0) < -n | -r | -p > [-d my.host.name] [-e extra.domain.tld] [
 	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
 	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
 	 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraServicePublicHostname. Enabled when -e is passed
+	 -j | --no-port-check: disable port 80 check
 
 Author: Lorenzo Milesi <maxxer@yetopen.it>
 Feedback, bugs and PR are welcome on GitHub: https://github.com/yetopen/certbot-zimbra.
@@ -307,6 +346,9 @@ while [[ $# -gt 0 ]]; do
 	    ;;
 		-c|--prompt-confirmation)
 	  	PROMPT_CONFIRM="yes"
+	    ;;
+		-j|--no-port-check)
+	  	SKIP_PORT_CHECK="yes"
 	    ;;
 	    *)
 	  	# unknown option

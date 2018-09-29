@@ -1,6 +1,7 @@
 ## v0.5.0-beta
 
 * Patch nginx using sed instead of patch strings! Thanks to @eN0RM
+* Added a check for port 80 being used by nginx #58
 
 ## v0.4.0-beta
 
