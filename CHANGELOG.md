@@ -1,3 +1,7 @@
+## v0.5.0-beta
+
+* Patch nginx using sed instead of patch strings! Thanks to @eN0RM
+
 ## v0.4.0-beta
 
 * Added ability to request certificate for more than one domain thanks to @pulecp #53 

@@ -15,168 +15,6 @@ EXTRA_DOMAIN=""
 PROMPT_CONFIRM="no"
 DETECT_PUBLIC_HOSTNAMES="yes"
 
-## patches
-read -r -d '' PATCH_Z88 <<'EOF'
-diff -Naur templates_8_8_8/nginx.conf.web.http.default.template templates/nginx.conf.web.http.default.template
---- templates_8_8_8/nginx.conf.web.http.default.template	2018-06-25 23:03:42.620346515 +0200
-+++ templates/nginx.conf.web.http.default.template	2018-06-25 23:05:31.716450475 +0200
-@@ -65,6 +65,9 @@
-     ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
-     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
-     ${web.login.upstream.disable} }
-+
-+    # patched by certbot-zimbra.sh
-+    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
-
-     location /
-     {
-diff -Naur templates_8_8_8/nginx.conf.web.https.default.template templates/nginx.conf.web.https.default.template
---- templates_8_8_8/nginx.conf.web.https.default.template	2018-06-25 23:03:42.628346522 +0200
-+++ templates/nginx.conf.web.https.default.template	2018-06-25 23:06:07.480484698 +0200
-@@ -124,6 +124,9 @@
-     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
-     ${web.login.upstream.disable} }
-
-+    # patched by certbot-zimbra.sh
-+    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
-+
-     location /
-     {
-         # Begin stray redirect hack
-diff -Naur templates_8_8_8/nginx.conf.web.https.template templates/nginx.conf.web.https.template
---- templates_8_8_8/nginx.conf.web.https.template	2018-06-25 23:03:42.624346518 +0200
-+++ templates/nginx.conf.web.https.template	2018-06-25 23:06:31.680507894 +0200
-@@ -95,6 +95,9 @@
-     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
-     ${web.login.upstream.disable} }
-
-+    # patched by certbot-zimbra.sh
-+    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
-+
-     location /
-     {
-         # Begin stray redirect hack
-diff -Naur templates_8_8_8/nginx.conf.web.http.template templates/nginx.conf.web.http.template
---- templates_8_8_8/nginx.conf.web.http.template	2018-06-25 23:03:42.620346515 +0200
-+++ templates/nginx.conf.web.http.template	2018-06-25 23:07:00.856535901 +0200
-@@ -67,6 +67,9 @@
-     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
-     ${web.login.upstream.disable} }
-
-+    # patched by certbot-zimbra.sh
-+    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
-+
-     location /
-     {
-         # Begin stray redirect hack
-EOF
-
-read -r -d '' PATCH_Z87 <<'EOF'
-diff -Naur templates_orig/nginx.conf.web.http.default.template templates/nginx.conf.web.http.default.template
---- templates_orig/nginx.conf.web.http.default.template	2017-10-01 20:30:23.022776735 +0200
-+++ templates/nginx.conf.web.http.default.template	2017-10-01 20:39:04.619034013 +0200
-@@ -65,6 +65,9 @@
-     ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
-     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
-     ${web.login.upstream.disable} }
-+
-+    # patched by certbot-zimbra.sh
-+    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
-
-     location /
-     {
-diff -Naur templates_orig/nginx.conf.web.https.default.template templates/nginx.conf.web.https.default.template
---- templates_orig/nginx.conf.web.https.default.template	2017-10-01 20:30:23.034776741 +0200
-+++ templates/nginx.conf.web.https.default.template	2017-10-01 20:38:47.583025551 +0200
-@@ -94,6 +94,9 @@
-     ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
-     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
-     ${web.login.upstream.disable} }
-+
-+    # patched by certbot-zimbra.sh
-+    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
-
-     location /
-     {
-diff -Naur templates_orig/nginx.conf.web.https.template templates/nginx.conf.web.https.template
---- templates_orig/nginx.conf.web.https.template	2017-10-01 20:30:23.034776741 +0200
-+++ templates/nginx.conf.web.https.template	2017-10-01 20:35:34.062929705 +0200
-@@ -95,6 +95,9 @@
-     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
-     ${web.login.upstream.disable} }
-
-+    # patched by certbot-zimbra.sh
-+    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
-+
-     location /
-     {
-         # Begin stray redirect hack
-diff -Naur templates_orig/nginx.conf.web.http.template templates/nginx.conf.web.http.template
---- templates_orig/nginx.conf.web.http.template	2017-10-01 20:30:23.034776741 +0200
-+++ templates/nginx.conf.web.http.template	2017-10-01 20:33:26.550866829 +0200
-@@ -67,6 +67,9 @@
-     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
-     ${web.login.upstream.disable} }
-
-+    # patched by certbot-zimbra.sh
-+    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
-+
-     location /
-     {
-         # Begin stray redirect hack
-EOF
-
-read -r -d '' PATCH_Z86 <<'EOF'
-+++ templates/nginx.conf.web.http.default.template	2017-09-10 09:57:59.420380580 +0200
-@@ -39,6 +39,8 @@
-     ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
-     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
-     ${web.login.upstream.disable} }
-+
-+    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
-
-     ${web.login.upstream.disable} location = /
-     ${web.login.upstream.disable} {
-diff -Naur templates_ORIG/nginx.conf.web.https.default.template templates/nginx.conf.web.https.default.template
---- templates_ORIG/nginx.conf.web.https.default.template	2015-12-16 09:51:45.196584572 +0100
-+++ templates/nginx.conf.web.https.default.template	2017-09-10 09:58:23.839441900 +0200
-@@ -55,6 +55,8 @@
-     ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
-     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
-     ${web.login.upstream.disable} }
-+
-+    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
-
-     ${web.login.upstream.disable} location = /
-     ${web.login.upstream.disable} {
-diff -Naur templates_ORIG/nginx.conf.web.https.template templates/nginx.conf.web.https.template
---- templates_ORIG/nginx.conf.web.https.template	2015-12-02 15:36:35.322922195 +0100
-+++ templates/nginx.conf.web.https.template	2017-09-10 09:59:17.917577714 +0200
-@@ -56,6 +56,8 @@
-     ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
-     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ https://$http_host/;
-     ${web.login.upstream.disable} }
-+
-+    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
-
-     ${web.login.upstream.disable} location = /
-     ${web.login.upstream.disable} {
-diff -Naur templates_ORIG/nginx.conf.web.http.template templates/nginx.conf.web.http.template
---- templates_ORIG/nginx.conf.web.http.template	2014-12-15 22:18:51.000000000 +0100
-+++ templates/nginx.conf.web.http.template	2017-09-10 10:00:10.216709079 +0200
-@@ -66,6 +66,8 @@
-     ${web.login.upstream.disable}     # Fudge inter-mailbox redirects (kludge)
-     ${web.login.upstream.disable}     proxy_redirect http://$relhost/ http://$http_host/;
-     ${web.login.upstream.disable} }
-+
-+    location ^~ /.well-known/acme-challenge { root /opt/zimbra/data/nginx/html; }
-
-     location /
-     {
-EOF
-
-## end patches
-
 ## functions
 # check executable certbot-auto / certbot / letsencrypt
 function check_executable() {
@@ -192,7 +30,7 @@ function check_executable() {
 function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 
 function bootstrap() {
-    echo "Certbot-Zimbra v0.4 - https://github.com/YetOpen/certbot-zimbra"
+    echo "Certbot-Zimbra v0.5 - https://github.com/YetOpen/certbot-zimbra"
 
 	if [ ! -x "/opt/zimbra/bin/zmcontrol" ]; then
 		echo "/opt/zimbra/bin/zmcontrol not found"
@@ -225,17 +63,11 @@ function patch_nginx() {
 		exit 1;
 	fi
 
+	# Check if patch is already present	
 	grep -q 'acme-challenge' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
 	if [ $? -eq 0 ]; then
 		# No need to patch
 		return
-	fi
-
-    # check if patch binary is present
-	PATCH_BIN=$(which patch 2>/dev/null)
-	if [ -z "$PATCH_BIN" ]; then
-		echo "No patch binary found. Please install OS 'patch' package";
-		exit 1;
 	fi
 
 	# Let's make a backup of zimbra's original templates
@@ -243,38 +75,11 @@ function patch_nginx() {
 	echo "Making a backup of nginx templates in /opt/zimbra/conf/nginx/templates.$BKDATE"
 	cp -r /opt/zimbra/conf/nginx/templates /opt/zimbra/conf/nginx/templates.$BKDATE
 
-	# Simulate patching
-	if version_gt $DETECTED_ZIMBRA_VERSION 8.8; then
-		echo "$PATCH_Z88" | $PATCH_BIN --dry-run -l -p1 -d /opt/zimbra/conf/nginx/templates/
-	elif version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
-		echo "$PATCH_Z87" | $PATCH_BIN --dry-run -l -p1 -d /opt/zimbra/conf/nginx/templates/
-	elif version_gt $DETECTED_ZIMBRA_VERSION 8.6; then
-		echo "$PATCH_Z86" | $PATCH_BIN --dry-run -l -p1 -d /opt/zimbra/conf/nginx/templates/
-	else
-		echo "Your Zimbra version is not currently supported"
-		exit 1;
-	fi
-	if [ $? -ne 0 ]; then
-		echo "Patching test failed! Please file a bug with the output above to https://github.com/YetOpen/certbot-zimbra/issues/new"
-		exit 1;
-	fi
-
 	# DO patch
-	if version_gt $DETECTED_ZIMBRA_VERSION 8.8; then
-		echo "$PATCH_Z87" | $PATCH_BIN -l -p1 -d /opt/zimbra/conf/nginx/templates/
-	elif version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
-		echo "$PATCH_Z87" | $PATCH_BIN -l -p1 -d /opt/zimbra/conf/nginx/templates/
-	elif version_gt $DETECTED_ZIMBRA_VERSION 8.6; then
-		echo "$PATCH_Z86" | $PATCH_BIN -l -p1 -d /opt/zimbra/conf/nginx/templates/
-	fi
-	if [ $? -ne 0 ]; then
-		echo "Patching zimbra's nginx failed! File a bug with the output above to https://github.com/YetOpen/certbot-zimbra/issues/new"
-		# Restore the backups
-		cp /opt/zimbra/conf/nginx/templates.$BKDATE/* /opt/zimbra/conf/nginx/templates/
-		echo "The original templates has been restored from /opt/zimbra/conf/nginx/templates.$BKDATE"
-		exit 1;
-	fi
-
+	for patchfile in nginx.conf.web.http.default.template nginx.conf.web.https.default.template nginx.conf.web.http.template nginx.conf.web.https.template ; do
+		sed -i 's/^}/\n    # patched by certbot-zimbra.sh\n    location \^\~ \/.well-known\/acme-challenge { \n        root \/opt\/zimbra\/data\/nginx\/html;\n    }\n}/' /opt/zimbra/conf/nginx/templates/$patchfile
+	done;
+		
 	# reload nginx config
 	su - zimbra -c 'zmproxyctl restart'
 	if [ $? -ne 0 ]; then
