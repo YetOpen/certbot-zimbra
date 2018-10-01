@@ -74,7 +74,7 @@ function is_zimbra_on_port_80 () {
 			return
 		fi
 	fi
-	
+
 	# Fallback to ss
 	SS_BIN=$(which ss 2>/dev/null)
 	if [ ! -z "$SS_BIN" ]; then
@@ -101,7 +101,7 @@ function patch_nginx() {
 		exit 1;
 	fi
 
-	# Check if patch is already present	
+	# Check if patch is already present
 	grep -q 'acme-challenge' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
 	if [ $? -eq 0 ]; then
 		# No need to patch
@@ -117,7 +117,7 @@ function patch_nginx() {
 	for patchfile in nginx.conf.web.http.default.template nginx.conf.web.https.default.template nginx.conf.web.http.template nginx.conf.web.https.template ; do
 		sed -i 's/^}/\n    # patched by certbot-zimbra.sh\n    location \^\~ \/.well-known\/acme-challenge { \n        root \/opt\/zimbra\/data\/nginx\/html;\n    }\n}/' /opt/zimbra/conf/nginx/templates/$patchfile
 	done;
-		
+
 	# reload nginx config
 	su - zimbra -c 'zmproxyctl restart'
 	if [ $? -ne 0 ]; then
@@ -315,7 +315,7 @@ while [[ $# -gt 0 ]]; do
         DETECT_PUBLIC_HOSTNAMES="no"
         shift # past argument
         ;;
-	    -h|--no-public-hostname-detection)
+	    -u|--no-public-hostname-detection)
         DETECT_PUBLIC_HOSTNAMES="no"
 	    ;;
 	    -x|--no-nginx)
