@@ -139,6 +139,8 @@ so that it will deploy the certificate in zimbra without patching nginx.
 
 ## Creating a patch
 
+**This is now obsolete** 
+
 Since v0.2 patches are embedded into the script. To produce a patch:
 
 1. make a fresh zimbra installation
