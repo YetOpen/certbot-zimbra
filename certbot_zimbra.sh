@@ -244,7 +244,7 @@ EOF
 # deploys certificate and restarts zimbra. ASSUMES prepare_certificate has been called already
 function deploy_certificate() {
 	# Backup old stuff
-	cp -a /opt/zimbra/ssl/zimbra /opt/zimbra/ssl/zimbra.$(date "+%Y%.m%.d-%H.%M")
+	cp -a /opt/zimbra/ssl/zimbra /opt/zimbra/ssl/zimbra.$(date "+%Y.%m.%d-%H.%M")
 
 	cp /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/zimbra/commercial/commercial.key
 	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
