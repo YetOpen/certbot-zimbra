@@ -115,7 +115,7 @@ function patch_nginx() {
 
 	# DO patch
 	for patchfile in nginx.conf.web.http.default.template nginx.conf.web.https.default.template nginx.conf.web.http.template nginx.conf.web.https.template ; do
-		sed -i 's/^}/\n    # patched by certbot-zimbra.sh\n    location \^\~ \/.well-known\/acme-challenge { \n        root \/opt\/zimbra\/data\/nginx\/html;\n    }\n}/' /opt/zimbra/conf/nginx/templates/$patchfile
+		sed -i "s#^}#\n    \# patched by certbot-zimbra.sh\n    location ^~ /.well-known/acme-challenge {\n root $WEBROOT;\n    }\n}#" /opt/zimbra/conf/nginx/templates/$patchfile
 	done;
 
 	# reload nginx config
