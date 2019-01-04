@@ -1,6 +1,8 @@
 # certbot-zimbra
 Automated letsencrypt/certbot certificate deploy script for Zimbra hosts.
 
+[![asciicast](https://asciinema.org/a/219713.svg)](https://asciinema.org/a/219713)
+
 The script tweaks zimbra's nginx config to allow access of *.well-known* webserver location from local files instead of redirecting upstream to jsp. So it **may not be used if there's no *zimbra-nginx* package installed**.
 
 Letsencrypt by default tries to verify a domain using https, so the script should work fine if [*zimbraReverseProxyMailMode*](https://wiki.zimbra.com/wiki/Enabling_Zimbra_Proxy_and_memcached#Protocol_Requirements_Including_HTTPS_Redirect)s is set to *both* or *https*. May not work for *http* only.
