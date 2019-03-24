@@ -111,7 +111,7 @@ function patch_nginx() {
 	# Let's make a backup of zimbra's original templates
 	BKDATE=$(date +"%Y%m%d_%H%M%S")
 	echo "Making a backup of nginx templates in /opt/zimbra/conf/nginx/templates.$BKDATE"
-	cp -r /opt/zimbra/conf/nginx/templates /opt/zimbra/conf/nginx/templates.$BKDATE
+	cp -a /opt/zimbra/conf/nginx/templates /opt/zimbra/conf/nginx/templates.$BKDATE
 
 	# DO patch
 	for patchfile in nginx.conf.web.http.default.template nginx.conf.web.https.default.template nginx.conf.web.http.template nginx.conf.web.https.template ; do
