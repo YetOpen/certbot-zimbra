@@ -36,6 +36,12 @@ So open `/etc/cron.d/certbot` with your favourite editor and **comment the last 
 USAGE: certbot_zimbra.sh < -n | -r | -p > [-d my.host.name] [-e extra.domain.tld] [-x] [-w /var/www]
 ```
 
+If no `-e` is given, the script will figure out the domain(s) to request certificate for via the following commands:
+* `zmhostname` 
+* `zmprov gd $domain zimbraPublicServiceHostname`
+
+Only one certificate will be issued including all the found hostnames. The primary host will always be `zmhostname`.
+
 ## Command options
 
 Either one of these action is mandatory:
