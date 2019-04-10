@@ -247,6 +247,7 @@ function deploy_certificate() {
 	cp -a /opt/zimbra/ssl/zimbra /opt/zimbra/ssl/zimbra.$(date "+%Y.%m.%d-%H.%M")
 
 	cp /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/zimbra/commercial/commercial.key
+    chown zimbra:zimbra /opt/zimbra/ssl/zimbra/commercial/commercial.key
 	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
 		su - zimbra -c "/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem -deploy ${SERVICES}"
 	else
