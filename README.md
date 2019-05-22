@@ -175,6 +175,25 @@ untested. ;)
 # Issues/FIXME
 The --new flag does nothing.
 
+# Certbot notes
+
+Certbot preserves the gid and the g:rwx and o:r permissions from old privkey files to the renewed ones. This is described in 
+https://github.com/certbot/certbot/blob/8b684e9b9543c015669844222b8960e1b9a71e97/certbot/storage.py#L1107
+
+If you have some old certificates you've been renewing for a long time, it may be possible your privkey is created with other read permissions. This may be bad if all the containing directories are also other-readable. In my case they were not (the archive dir was mode 700) so the contained private keys were also not readable. Still, you may consider checking your situation and chmod'ing the privkeys to something more sensible like 640:
+
+`chmod 640 /etc/letsencrypt/archive/*/privkey*.pem`
+
+The default for new privkeys is 600.
+
+If you want the keys in /etc/letsencrypt to be readable by some other programs, adjust the folder and file permissions as necessary, for example:
+```
+addgroup --system ssl-cert
+chmod g+rx /etc/letsencrypt/{live,archive}
+chgrp -R ssl-cert /etc/letsencrypt
+addgroup ssl-cert <user that needs key access>
+```
+
 # License
 
 See [LICENSE](LICENSE).
@@ -188,7 +207,12 @@ THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.
 &copy; Lorenzo Milesi <maxxer@yetopen.it>
 
 ## Contributors
-&copy; Jernej Jakob <jernej.jakob@gmail.com>
+- Jernej Jakob <jernej.jakob@gmail.com>
+- @eN0RM
+- Pavel Pulec @pulecp
+- Antonio Prado
+- @afrimberger
+- @mauriziomarini
 
 *if you are a contributor, add yourself here*
 
