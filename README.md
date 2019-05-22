@@ -5,18 +5,23 @@ Automated letsencrypt/certbot certificate deploy script for Zimbra hosts.
 
 The script tweaks zimbra's nginx config to allow access of *.well-known* webserver location from local files instead of redirecting upstream to jsp. So it **may not be used if there's no *zimbra-nginx* package installed**.
 
-Letsencrypt by default tries to verify a domain using https, so the script should work fine if [*zimbraReverseProxyMailMode*](https://wiki.zimbra.com/wiki/Enabling_Zimbra_Proxy_and_memcached#Protocol_Requirements_Including_HTTPS_Redirect)s is set to *both* or *https*. May not work for *http* only.
+Letsencrypt by default tries to verify a domain using https, so the script should work fine if [*zimbraReverseProxyMailMode*](https://wiki.zimbra.com/wiki/Enabling_Zimbra_Proxy_and_memcached#Protocol_Requirements_Including_HTTPS_Redirect) is set to *redirect*, *both* or *https*. May not work for *http* only.
 
 This is still a BETA script. Tested on:
 * 8.8.8_UBUNTU16
-* 8.7.11_RHEL7
-* 8.6_RHEL7
-* 8.6_UBUNTU12
 
-# Requirements
+### Limitations
 
-* zimbra-proxy package is required
-* either `certbot` or `letsencrypt` binary is required
+The script doesn't handle multiple domains configured with SNI (see #8). You can still request a single certificate for multiple hostnames.
+
+# Installation
+
+## Requirements
+
+- bash, su, patch, which, lsof or ss, openssl, grep, sed (GNU)
+- Zimbra: zmhostname, zmcontrol, zmproxyctrl, zmprov, zmcertmgr
+- `zimbra-proxy` installed and working
+- either `certbot` or `letsencrypt` binary in PATH
 
 ## Certbot installation
 
@@ -26,15 +31,39 @@ By installing Certbot via packages it automatically creates a cron schedule to r
 We must **disable this schedule** because after the renew we must deploy it in Zimbra. 
 So open `/etc/cron.d/certbot` with your favourite editor and **comment the last line**.
 
-# Limitations
+## certbot_zimbra installation
 
-* The script doesn't handle multiple domains configured with SNI (see #8). You can still request a single certificate for multiple hostnames.
+Download the latest release and install it (copy the URL from the Releases tab):
+
+`wget https://github.com/YetOpen/certbot-zimbra/archive/0.4.0-beta.tar.gz
+tar xzf 0.4.0-beta.tar.gz certbot_zimbra.sh
+mv certbot_zimbra.sh /usr/local/bin/
+chmod +x /usr/local/bin/certbot_zimbra.sh
+`
 
 # Usage
 
 ```bash
-USAGE: certbot_zimbra.sh < -n | -r | -p > [-d my.host.name] [-e extra.domain.tld] [-x] [-w /var/www]
+USAGE: certbot_zimbra.sh < -n | -r | -p > [-d my.host.name] [-e extra.domain.tld] [-x] [-w /var/www] [-a] [-c] [-s <service_names>] [-z] [-u] [-j] [-P port]`
+Options:
+         -n | --new: performs a request for a new certificate
+         -r | --renew: deploys certificate, assuming it has just been renewed
+         -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade
+
+        Optional arguments:
+         -d | --hostname: hostname being requested. If not passed uses \`zmhostname\`
+         -e | --extra-domain: additional domains being requested. Can be used multiple times
+         -x | --no-nginx: doesn't check and patch zimbra's nginx. Assumes some other webserver is listening on port 80
+         -w | --webroot: if there's another webserver on port 80 specify its webroot
+         -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
+         -c | --prompt-confirmation: ask for confirmation before proceding with cert request showing detected hostname
+         -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
+         -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
+         -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraServicePublicHostname. Enabled when -e is passed
+         -j | --no-port-check: disable nginx port check
+         -P | --port: HTTP port nginx is listening on (default 80)
 ```
+
 
 If no `-e` is given, the script will figure out the domain(s) to request certificate for via the following commands:
 * `zmhostname` 
@@ -42,26 +71,6 @@ If no `-e` is given, the script will figure out the domain(s) to request certifi
 
 Only one certificate will be issued including all the found hostnames. The primary host will always be `zmhostname`.
 
-## Command options
-
-Either one of these action is mandatory:
-
-* -n | --new: performs a request for a new certificate
-* -r | --renew: deploys certificate, assuming it has just been renewed
-* -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade
-
-Optional arguments:
-
-* -d | --hostname: hostname being requested. If not passed uses `zmhostname`
-* -e | --extra-domain: additional domains being requested. Can be used multiple times
-* -x | --no-nginx: doesn't check and patch zimbra's nginx. Assumes some other webserver is listening on port 80
-* -w | --webroot: if there's another webserver on port 80/443 specify its webroot
-* -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
-* -c | --prompt-confirmation: ask for confirmation before proceding with cert request showing detected hostname
-* -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
-* -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
-* -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraServicePublicHostname. Enabled when -e is passed
-* -j | --no-port-check: disable port 80 check
 
 ## Zimbra 8.6+ single server example
 
@@ -73,7 +82,10 @@ The domain of the certificate is obtained automatically by running `zmhostname`.
 
 The certificate can be requested with additional hostnames. By default the script loops though all Zimbra domains, fetches 
 the `zimbraPublicServiceHostname` attribute and adds the value to the request. If you want to disable this behavior use the `-u/--no-public-hostname-detection` option. 
+
 To indicate additional domains explicitly use the `-e/--extra-domain` option (can be specified multiple times). Note that `-e` disables additional hostname detection. 
+
+Use the `-c | --prompt-confirmation` option to ask for confirmation after detecting hostnames and before retrieving the certs and modifying your system.
 
 ## Renewal
 
@@ -145,18 +157,7 @@ Say you have apache in front of zimbra (or listening on port 80 only) just run `
 ```
 so that it will deploy the certificate in zimbra without patching nginx.
 
-## Creating a patch
 
-**This is now obsolete** 
-
-Since v0.2 patches are embedded into the script. To produce a patch:
-
-1. make a fresh zimbra installation
-1. make a copy of the vanilla `/opt/zimbra/conf/nginx/templates` location (i.e. `cp -r /opt/zimbra/conf/nginx/templates /opt/zimbra/conf/nginx/templates_ORIG`)
-1. patch the templates file by adding the `.well-known/acme-challenge` location with a webroot (see existing patches)
-1. produce a patchfile, making sure to have only one directory below: `cd /opt/zimbra/conf/nginx/ ; diff -Naur templates_ORIG templates > /tmp/zimbra_YOURVERSION.patch`
-1. embed the patch in the *patches* section
-1. add the version condition in `patch_nginx` function
 
 ## Upgrade from v0.1
 
@@ -171,6 +172,8 @@ before renewal. This is proven to work (by  him).
 A more *definitive* solution would be to try forcing the issue of a new certificate in *webroot* mode, so that it will work with newver versions of the scripts. But this is
 untested. ;)
 
+# Issues/FIXME
+The --new flag does nothing.
 
 # License
 
@@ -183,5 +186,11 @@ THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.
 # Author
 
 &copy; Lorenzo Milesi <maxxer@yetopen.it>
+
+## Contributors
+&copy; Jernej Jakob <jernej.jakob@gmail.com>
+
+*if you are a contributor, add yourself here*
+
 
 Feedback, bugs, PR are welcome on [GitHub](https://github.com/yetopen/certbot-zimbra).
