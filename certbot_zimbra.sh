@@ -245,7 +245,7 @@ function check_user () {
 
 function usage () {
 	cat <<EOF
-USAGE: $(basename $0) < -n | -r | -p > [-d my.host.name] [-e extra.domain.tld] [-x] [-w /var/www]
+USAGE: $(basename $0) < -n | -r | -p > [-d my.host.name] [-e extra.domain.tld] [-x] [-w /var/www] [-a] [-c] [-s <service_names>] [-z] [-u] [-j] [-P port]
   Options:
 	 -n | --new: performs a request for a new certificate
 	 -r | --renew: deploys certificate, assuming it has just been renewed
