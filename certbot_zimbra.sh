@@ -4,72 +4,62 @@
 # GPLv3 license
 
 AGREE_TOS=""
-NO_NGINX="no"
-RENEW_ONLY="no"
-NEW_CERT="no"
-WEBROOT="/opt/zimbra/data/nginx/html"
+NO_NGINX=false
+RENEW_ONLY=false
+NEW_CERT=false
+ZMPATH="/opt/zimbra"
+WEBROOT="$ZMPATH/data/nginx/html"
 SERVICES=all
-PATCH_ONLY="no"
-RESTART_ZIMBRA="yes"
+PATCH_ONLY=false
+RESTART_ZIMBRA=true
 EXTRA_DOMAIN=""
-PROMPT_CONFIRM="no"
-DETECT_PUBLIC_HOSTNAMES="yes"
-SKIP_PORT_CHECK="no"
+PROMPT_CONFIRM=false
+DETECT_PUBLIC_HOSTNAMES=true
+SKIP_PORT_CHECK=false
 
-## functions
+## functions begin ##
+
 # check executable certbot-auto / certbot / letsencrypt
 function check_executable() {
 	LEB_BIN=$(which certbot-auto certbot letsencrypt 2>/dev/null | head -n 1)
 	# No way
-	if [ -z "$LEB_BIN" ]; then
-		echo "No letsencrypt/certbot binary found in $PATH";
-		exit 1;
-	fi
+	[ -z "$LEB_BIN" ] && echo "No letsencrypt/certbot binary found in $PATH" && exit 1
 }
 
 # version compare from  http://stackoverflow.com/a/24067243/738852
 function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 
 function bootstrap() {
-    echo "Certbot-Zimbra v0.5 - https://github.com/YetOpen/certbot-zimbra"
+	[ ! -x "$ZMPATH/bin/zmcontrol" ] && echo "$ZMPATH/bin/zmcontrol not found or not executable" && exit 1
 
-	if [ ! -x "/opt/zimbra/bin/zmcontrol" ]; then
-		echo "/opt/zimbra/bin/zmcontrol not found"
-		exit 1;
-	fi
-	DETECTED_ZIMBRA_VERSION=$(su - zimbra -c '/opt/zimbra/bin/zmcontrol -v' | grep -Po '(\d+).(\d+).(\d+)' | head -n 1)
-	if [ -z "$DETECTED_ZIMBRA_VERSION" ]; then
-		echo "Unable to detect zimbra version"
-		exit 1;
-	fi
+	DETECTED_ZIMBRA_VERSION=$(su - zimbra -c '$ZMPATH/bin/zmcontrol -v' | grep -Po '(\d+).(\d+).(\d+)' | head -n 1)
+	[ -z "$DETECTED_ZIMBRA_VERSION" ] && echo "Unable to detect zimbra version" && exit 1
 	echo "Detected Zimbra $DETECTED_ZIMBRA_VERSION"
+
 	check_executable
 
-	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
-		NGINX_BIN="/opt/zimbra/common/sbin/nginx"
+	if version_gt "$DETECTED_ZIMBRA_VERSION" 8.7; then
+		NGINX_BIN="$ZMPATH/common/sbin/nginx"
 	else
-		NGINX_BIN="/opt/zimbra/nginx/sbin/nginx"
+		NGINX_BIN="$ZMPATH/nginx/sbin/nginx"
 	fi
 
 	if ! is_zimbra_on_port_80 ; then
 		echo "Zimbra's nginx doesn't seem to be listening on port 80"
 		echo "This script applies a patch to nginx, so it wouldn't work. Please check your config or pass -j"
-		exit 1;
+		exit 1
 	fi
 }
 
 # Check if nginx is listening on port 80 or return an error
 function is_zimbra_on_port_80 () {
-	if [ "$SKIP_PORT_CHECK" == "yes" ]; then
-		echo "Skipping port check"
-		return
-	fi
+	"$SKIP_PORT_CHECK" && echo "Skipping port check" && return
 
 	# Better check with lsof, if available
 	LSOF_BIN=$(which lsof 2>/dev/null)
-	if [ ! -z "$LSOF_BIN" ]; then
+	if [ -x "$LSOF_BIN" ]; then
 		NGINX_CNT=$($LSOF_BIN -i :80 -u zimbra -a | grep -v COMMAND | wc -l)
-		if [ $NGINX_CNT -lt 1 ]; then
+		if [ "$NGINX_CNT" -lt 1 ]; then
 			false
 			return
 		fi
@@ -77,9 +67,9 @@ function is_zimbra_on_port_80 () {
 
 	# Fallback to ss
 	SS_BIN=$(which ss 2>/dev/null)
-	if [ ! -z "$SS_BIN" ]; then
+	if [ -x "$SS_BIN" ]; then
 		NGINX_CNT=$($SS_BIN -lptn sport eq 80 | grep nginx | wc -l)
-		if [ $NGINX_CNT -lt 1 ]; then
+		if [ "$NGINX_CNT" -lt 1 ]; then
 			false
 			return
 		fi
@@ -89,73 +79,67 @@ function is_zimbra_on_port_80 () {
 	true
 }
 
-# Patch nginx, and check if it's installed
+# Check if nginx is installed and patch it
+# returns true if patch was applied or was already present, exits script if encountered an error
 function patch_nginx() {
-	if [ "$NO_NGINX" == "yes" ]; then
-		return
-	fi
+	"$NO_NGINX" && return
 
-	# check if nginx is installed
-	if [ ! -x $NGINX_BIN ]; then
-		echo "zimbra-proxy package not present"
-		exit 1;
-	fi
+	# Exit if nginx is not installed
+	[ ! -x $NGINX_BIN ] && echo "zimbra-proxy package not present" && exit 1
 
-	# Check if patch is already present
-	grep -q 'acme-challenge' /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
-	if [ $? -eq 0 ]; then
-		# No need to patch
-		return
-	fi
+	# Return if patch is already applied
+	grep -q 'acme-challenge' $ZMPATH/conf/nginx/includes/nginx.conf.web.http.default && return
 
 	# Let's make a backup of zimbra's original templates
 	BKDATE=$(date +"%Y%m%d_%H%M%S")
-	echo "Making a backup of nginx templates in /opt/zimbra/conf/nginx/templates.$BKDATE"
-	cp -a /opt/zimbra/conf/nginx/templates /opt/zimbra/conf/nginx/templates.$BKDATE
+	echo "Making a backup of nginx templates in $ZMPATH/conf/nginx/templates.$BKDATE"
+	cp -a $ZMPATH/conf/nginx/templates $ZMPATH/conf/nginx/templates.$BKDATE
 
-	# DO patch
-	for patchfile in nginx.conf.web.http.default.template nginx.conf.web.https.default.template nginx.conf.web.http.template nginx.conf.web.https.template ; do
-		sed -i "s#^}#\n    \# patched by certbot-zimbra.sh\n    location ^~ /.well-known/acme-challenge {\n root $WEBROOT;\n    }\n}#" /opt/zimbra/conf/nginx/templates/$patchfile
-	done;
+	# do patch
+	for file in http.default https.default http https ; do
+		sed -i "s#^}#\n    \# patched by certbot-zimbra.sh\n    location ^~ /.well-known/acme-challenge {\n        root $WEBROOT;\n    }\n}#" $ZMPATH/conf/nginx/templates/nginx.conf.web.$file.template
+	done
 
 	# reload nginx config
-	su - zimbra -c 'zmproxyctl restart'
-	if [ $? -ne 0 ]; then
-		echo "Something went wrong while restarting zimbra proxy component. Please file a bug with the output above to https://github.com/YetOpen/certbot-zimbra/issues/new"
-		exit 1;
+	su - zimbra -c 'zmproxyctl restart'; e=$?
+	if [ $e -ne 0 ]; then
+		echo "Error restarting zmproxy (zmproxydctl exit status $e). Please see $GITHUB_URL/issues if this issue has already been reported or file a new one including the output above."
+		exit 1
 	fi
 }
 
 # perform the letsencrypt request and prepares the certs
 function request_certificate() {
+	
 	# If we got no domain from command line try using zimbra hostname
 	if [ -z "$DOMAIN" ]; then
-		DOMAIN=$(/opt/zimbra/bin/zmhostname)
-        # Detect additional hostnames
-        find_additional_public_hostnames
-    fi
-    if [ -z "$DOMAIN" ]; then
-        echo "No domain detected! Please run with --hostname or check why zmhostname is not working"
-        exit 1;
-    fi
+		DOMAIN=$($ZMPATH/bin/zmhostname)
+		echo "Using $ZMHOSTNAME ('zmhostname') as domain for certificate."
+		# Detect additional hostnames
+		find_additional_public_hostnames
+	fi
+
+	if [ -z "$DOMAIN" ]; then
+		echo "No domain detected! Please run with --hostname or check why zmhostname is not working"
+		exit 1
+	fi
+
 	echo "Detected $DOMAIN as Zimbra hostname"
-    [ ! -z "$EXTRA_DOMAIN_OUTPUT" ] && echo "These additional domains will be part of the requested certificate: $EXTRA_DOMAIN_OUTPUT"
-    if [ "$PROMPT_CONFIRM" == "yes" ]; then
-		while true; do
-			read -p "Is this correct? " yn
-		    	case $yn in
+	[ ! -z "$EXTRA_DOMAIN_OUTPUT" ] && echo "These additional domains will be part of the requested certificate: $EXTRA_DOMAIN_OUTPUT"
+
+	if "$PROMPT_CONFIRM"; then
+		while read -p "Is this correct? " yn; do
+			case "$yn" in
 				[Yy]* ) break;;
-				[Nn]* ) echo "Please call $(basename $0) --hostname your.host.name"; exit;;
+				[Nn]* ) echo "Please call $(basename $0) --hostname your.host.name"; exit 1;;
 				* ) echo "Please answer yes or no.";;
-		    	esac
+			esac
 		done
 	fi
 
 	# Set variable for use in prepare_certificate
 	CERTPATH="/etc/letsencrypt/live/$DOMAIN"
-	if [ "$RENEW_ONLY" == "yes" ]; then
-		return
-	fi
+	"$RENEW_ONLY" && return
 
 	# <8.7 didn't have nginx webroot
 	if [ ! -d "$WEBROOT" ]; then
@@ -164,48 +148,49 @@ function request_certificate() {
 	fi
 
 	# Request our cert
-    # If Zimbra is in https only we can use port 80 for ourselves, otherwise go through nginx
+	# If Zimbra is in https only we can use port 80 for ourselves, otherwise go through nginx
 	$LEB_BIN certonly $AGREE_TOS --expand -a webroot -w $WEBROOT -d $DOMAIN $EXTRA_DOMAIN
 	if [ $? -ne 0 ] ; then
-		echo "letsencrypt returned an error";
-		exit 1;
+		echo "letsencrypt returned an error"
+		exit 1
 	fi
 }
 
 # detect additional public service hostnames from configured domains' zimbraPublicServiceHostname
 function find_additional_public_hostnames() {
-    # Useless during renew
-    [ "$RENEW_ONLY" == "yes" ] && return;
-    # If we already have them set leave alone
-    [ ! -z "$EXTRA_DOMAIN" ] && return;
-    # If it has been requested NOT to perform the search
-    [ "$DETECT_PUBLIC_HOSTNAME" == "no" ] && return;
-    for i in $(/opt/zimbra/bin/zmprov gad); do
-        ADDITIONAL_DOMAIN=$(/opt/zimbra/bin/zmprov gd $i zimbraPublicServiceHostname | grep zimbraPublicServiceHostname | cut -f 2 -d ' ')
-        [ -z "$ADDITIONAL_DOMAIN" ] && continue
-        # Skip our primary domain
-        [ "$ADDITIONAL_DOMAIN" == "$DOMAIN" ] && continue;
-        EXTRA_DOMAIN="${EXTRA_DOMAIN} -d $ADDITIONAL_DOMAIN"
-        # to be used at prompt
-        EXTRA_DOMAIN_OUTPUT="${EXTRA_DOMAIN_OUTPUT} $ADDITIONAL_DOMAIN"
-    done
+	# Useless during renew
+	"$RENEW_ONLY" && return
+
+	# If already set, leave them alone
+	[ ! -z "$EXTRA_DOMAIN" ] && return
+
+	# If it has been requested NOT to perform the search
+	"$DETECT_PUBLIC_HOSTNAME" || return
+
+	for i in $($ZMPATH/bin/zmprov gad); do
+		ADDITIONAL_DOMAIN=$($ZMPATH/bin/zmprov gd $i zimbraPublicServiceHostname | grep zimbraPublicServiceHostname | cut -f 2 -d ' ')
+		[ -z "$ADDITIONAL_DOMAIN" ] && continue
+		# Skip our primary domain
+		[ "$ADDITIONAL_DOMAIN" == "$DOMAIN" ] && continue
+		EXTRA_DOMAIN="${EXTRA_DOMAIN} -d $ADDITIONAL_DOMAIN"
+		# to be used at prompt
+		EXTRA_DOMAIN_OUTPUT="${EXTRA_DOMAIN_OUTPUT} $ADDITIONAL_DOMAIN"
+	done
 }
 
 # copies stuff ready for zimbra deployment and test them
 function prepare_certificate () {
-	if [ -z "$CERTPATH" ] ; then
-		echo "Empty CERTPATH"
-		exit 1;
+	[ -z "$CERTPATH" ] && echo "Empty CERTPATH" &&exit 1
 	fi
 	# Make zimbra accessible files
-	mkdir /opt/zimbra/ssl/letsencrypt 2>/dev/null
-	cp $CERTPATH/* /opt/zimbra/ssl/letsencrypt/
-	chown -R zimbra:zimbra /opt/zimbra/ssl/letsencrypt/
+	mkdir $ZMPATH/ssl/letsencrypt 2>/dev/null
+	cp $CERTPATH/* $ZMPATH/ssl/letsencrypt/
+	chown -R zimbra:zimbra $ZMPATH/ssl/letsencrypt/
 
 	# Now we should have the chain. Let's create the "patched" chain suitable for Zimbra
-	cat $CERTPATH/chain.pem > /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
+	cat $CERTPATH/chain.pem > $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
 	# The cert below comes from https://www.identrust.com/certificates/trustid/root-download-x3.html. It should be better to let the user fetch it?
-	cat << EOF >> /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
+	cat << EOF >> $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
 -----BEGIN CERTIFICATE-----
 MIIDSjCCAjKgAwIBAgIQRK+wgNajJ7qJMDmGLvhAazANBgkqhkiG9w0BAQUFADA/
 MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT
@@ -229,10 +214,10 @@ Ob8VZRzI9neWagqNdwvYkQsEjgfbKbYK7p2CNTUQ
 EOF
 
 	# Test cert. 8.6 and below must use root
-	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
-		su - zimbra -c '/opt/zimbra/bin/zmcertmgr verifycrt comm /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem'
+	if version_gt "$DETECTED_ZIMBRA_VERSION" 8.7; then
+		su - zimbra -c '$ZMPATH/bin/zmcertmgr verifycrt comm $ZMPATH/ssl/letsencrypt/privkey.pem $ZMPATH/ssl/letsencrypt/cert.pem $ZMPATH/ssl/letsencrypt/zimbra_chain.pem'
 	else
-		/opt/zimbra/bin/zmcertmgr verifycrt comm /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
+		$ZMPATH/bin/zmcertmgr verifycrt comm $ZMPATH/ssl/letsencrypt/privkey.pem $ZMPATH/ssl/letsencrypt/cert.pem $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
 	fi
 	if [ $? -eq 1 ]; then
 		echo "Unable to verify cert!"
@@ -244,30 +229,30 @@ EOF
 # deploys certificate and restarts zimbra. ASSUMES prepare_certificate has been called already
 function deploy_certificate() {
 	# Backup old stuff
-	cp -a /opt/zimbra/ssl/zimbra /opt/zimbra/ssl/zimbra.$(date "+%Y.%m.%d-%H.%M")
+	cp -a $ZMPATH/ssl/zimbra $ZMPATH/ssl/zimbra.$(date "+%Y.%m.%d-%H.%M")
 
-	cp /opt/zimbra/ssl/letsencrypt/privkey.pem /opt/zimbra/ssl/zimbra/commercial/commercial.key
-    chown zimbra:zimbra /opt/zimbra/ssl/zimbra/commercial/commercial.key
+	cp $ZMPATH/ssl/letsencrypt/privkey.pem $ZMPATH/ssl/zimbra/commercial/commercial.key
+	chown zimbra:zimbra $ZMPATH/ssl/zimbra/commercial/commercial.key
 	if version_gt $DETECTED_ZIMBRA_VERSION 8.7; then
-		su - zimbra -c "/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem -deploy ${SERVICES}"
+		su - zimbra -c "$ZMPATH/bin/zmcertmgr deploycrt comm $ZMPATH/ssl/letsencrypt/cert.pem $ZMPATH/ssl/letsencrypt/zimbra_chain.pem -deploy ${SERVICES}"
 	else
-		/opt/zimbra/bin/zmcertmgr deploycrt comm /opt/zimbra/ssl/letsencrypt/cert.pem /opt/zimbra/ssl/letsencrypt/zimbra_chain.pem
+		$ZMPATH/bin/zmcertmgr deploycrt comm $ZMPATH/ssl/letsencrypt/cert.pem $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
 	fi
 
 	# Set ownership of nginx config template
-        chown zimbra:zimbra /opt/zimbra/conf/nginx/includes/nginx.conf.web.http.default
+	chown zimbra:zimbra $ZMPATH/conf/nginx/includes/nginx.conf.web.http.default
 
 	# Finally apply cert!
-	[[ "${RESTART_ZIMBRA}" == "yes" ]] && su - zimbra -c 'zmcontrol restart'
+	"$RESTART_ZIMBRA" && su - zimbra -c 'zmcontrol restart'
 	# FIXME And hope that everything started fine! :)
 
 }
 
 function check_user () {
 	if [ "$EUID" -ne 0 ]; then
-   echo "This script must be run as root" 1>&2
-   exit 1
-fi
+		echo "This script must be run as root" 1>&2
+		exit 1
+	fi
 }
 
 function usage () {
@@ -297,94 +282,96 @@ Disclaimer:
 THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
 EOF
 }
-## end functions
+## functions end ##
 
 # main flow
+
+echo "Certbot-Zimbra v0.6 - https://github.com/YetOpen/certbot-zimbra"
+
 # parameters parsing http://stackoverflow.com/a/14203146/738852
 while [[ $# -gt 0 ]]; do
-	key="$1"
 
-	case $key in
-	    -d|--hostname)
-	    DOMAIN="$2"
-        DETECT_PUBLIC_HOSTNAMES="no"
-	    shift # past argument
-	    ;;
-        -e|--extra-domain)
-        EXTRA_DOMAIN="${EXTRA_DOMAIN} -d $2"
-        EXTRA_DOMAIN_OUTPUT="${EXTRA_DOMAIN_OUTPUT} $2"
-        DETECT_PUBLIC_HOSTNAMES="no"
-        shift # past argument
-        ;;
-	    -u|--no-public-hostname-detection)
-        DETECT_PUBLIC_HOSTNAMES="no"
-	    ;;
-	    -x|--no-nginx)
-	    NO_NGINX="yes"
-	    ;;
-	    -p|--patch-only)
-	    PATCH_ONLY="yes"
-	    ;;
+	case "$1" in
+		-d|--hostname)
+			DOMAIN="$2"
+			DETECT_PUBLIC_HOSTNAMES=false
+			shift # past argument
+		;;
+		-e|--extra-domain)
+			EXTRA_DOMAIN="${EXTRA_DOMAIN} -d $2"
+			EXTRA_DOMAIN_OUTPUT="${EXTRA_DOMAIN_OUTPUT} $2"
+			DETECT_PUBLIC_HOSTNAMES=false
+			shift # past argument
+			;;
+		-u|--no-public-hostname-detection)
+			DETECT_PUBLIC_HOSTNAMES=false
+			;;
+		-x|--no-nginx)
+			NO_NGINX=true
+			;;
+		-p|--patch-only)
+			PATCH_ONLY=true
+			;;
 		-n|--new)
-	  	NEW_CERT="yes"
-	    ;;
+			NEW_CERT=true
+			;;
 		-r|--renew)
-	  	RENEW_ONLY="yes"
-	    ;;
+			RENEW_ONLY=true
+			;;
 		-w|--webroot)
-	  	WEBROOT="$2"
-		shift
-	    ;;
+			WEBROOT="$2"
+			shift
+		;;
 		-a|--agree-tos)
-	  	AGREE_TOS="--text --agree-tos --non-interactive"
-        ;;
+			AGREE_TOS="--text --agree-tos --non-interactive"
+			;;
 		-s|--services)
-	  	SERVICES="$2"
-		shift
-	    ;;
+			SERVICES="$2"
+			shift
+		;;
 		-z|--no-zimbra-restart)
-	  	RESTART_ZIMBRA="no"
-	    ;;
+			RESTART_ZIMBRA=false
+			;;
 		-c|--prompt-confirmation)
-	  	PROMPT_CONFIRM="yes"
-	    ;;
+			PROMPT_CONFIRM=true
+			;;
 		-j|--no-port-check)
-	  	SKIP_PORT_CHECK="yes"
-	    ;;
-	    *)
-	  	# unknown option
+			SKIP_PORT_CHECK=true
+			;;
+		*)
+			echo "Unknown option: $key" >& 2
 			usage
-			exit 0
-	    ;;
+			exit 1
+			;;
 	esac
 	shift # past argument or value
 done
 
-if [ "$NEW_CERT" == "no" ] && [ "$RENEW_ONLY" == "no" ] && [ "$PATCH_ONLY" == "no" ]; then
+if "$NEW_CERT" && "$RENEW_ONLY" && "$PATCH_ONLY"; then
 	usage
-	exit 0
+	exit 1
 fi
 
-if [ "$PATCH_ONLY" == "yes" ] && [ "$NO_NGINX" == "yes" ]; then
+if "$PATCH_ONLY" && "$NO_NGINX"; then
 	echo "Incompatible nginx parameters"
-	exit 0
+	exit 1
 fi
 
 # If passed by --renew-hook, contains the path of the renewed cert which may differ from the default /etc/letsencrypt/live/$DOMAIN
 #CERTPATH=$RENEWED_LINEAGE
 #if [ -z "$CERTPATH" ]; then
-CERTPATH="/etc/letsencrypt/live/$DOMAIN"
+#CERTPATH="/etc/letsencrypt/live/$DOMAIN"
 #fi
 
 # actions
 bootstrap
 check_user
 patch_nginx
-if [ "$PATCH_ONLY" == "yes" ]; then
-    exit 0;
+if "$PATCH_ONLY"; then
+	exit 0
 fi
 request_certificate
 prepare_certificate
 deploy_certificate
 
-exit 0;
+exit 0
