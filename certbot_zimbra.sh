@@ -201,6 +201,8 @@ function prepare_certificate () {
 	cat /etc/ssl/certs/$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer_hash).0 >> $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
 	[ $? -ne 0 ] && echo ""
 
+	chmod 440 $ZMPATH/ssl/letsencrypt/*
+
 	# Test cert. 8.6 and below must use root
 	if version_gt "$DETECTED_ZIMBRA_VERSION" 8.7; then
 		su - zimbra -c "$ZMPATH/bin/zmcertmgr verifycrt comm $ZMPATH/ssl/letsencrypt/privkey.pem $ZMPATH/ssl/letsencrypt/cert.pem $ZMPATH/ssl/letsencrypt/zimbra_chain.pem"
