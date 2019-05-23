@@ -4,6 +4,9 @@
 # contributions: Jernej Jakob <jernej.jakob@gmail.com>
 # GPLv3 license
 
+PROGNAME="certbot-zimbra"
+VERSION="0.7"
+GITHUB_URL="https://github.com/YetOpen/certbot-zimbra"
 AGREE_TOS=""
 NO_NGINX=false
 RENEW_ONLY=false
@@ -14,10 +17,13 @@ SERVICES=all
 PATCH_ONLY=false
 RESTART_ZIMBRA=true
 EXTRA_DOMAIN=""
-PROMPT_CONFIRM=false
+PROMPT_CONFIRM=true
 DETECT_PUBLIC_HOSTNAMES=true
 SKIP_PORT_CHECK=false
 PORT=80
+QUIET=false
+IACT=false
+CERTPATH="/etc/letsencrypt/live" # the domain will be appended to this path so the full path is $CERTPATH/$DOMAIN
 
 ## functions begin ##
 
@@ -114,60 +120,8 @@ function find_certbot () {
 	[ -z "$LEB_BIN" ] && echo "No letsencrypt/certbot binary found in $PATH" && exit 1
 }
 
-# perform the letsencrypt request and prepares the certs
-function request_certificate() {
-	find_certbot	
-
-	# If we got no domain from command line try using zimbra hostname
-	if [ -z "$DOMAIN" ]; then
-		DOMAIN=$($ZMPATH/bin/zmhostname)
-		echo "Using $ZMHOSTNAME ('zmhostname') as domain for certificate."
-		# Detect additional hostnames
-		find_additional_public_hostnames
-	fi
-
-	if [ -z "$DOMAIN" ]; then
-		echo "No domain detected! Please run with --hostname or check why zmhostname is not working"
-		exit 1
-	fi
-
-	echo "Detected $DOMAIN as Zimbra hostname"
-	[ ! -z "$EXTRA_DOMAIN_OUTPUT" ] && echo "These additional domains will be part of the requested certificate: $EXTRA_DOMAIN_OUTPUT"
-
-	if "$PROMPT_CONFIRM"; then
-		while read -p "Is this correct? " yn; do
-			case "$yn" in
-				[Yy]* ) break;;
-				[Nn]* ) echo "Please call $(basename $0) --hostname your.host.name"; exit 1;;
-				* ) echo "Please answer yes or no.";;
-			esac
-		done
-	fi
-
-	# Set variable for use in prepare_certificate
-	CERTPATH="/etc/letsencrypt/live/$DOMAIN"
-	"$RENEW_ONLY" && return
-
-	# <8.7 didn't have nginx webroot
-	if [ ! -d "$WEBROOT" ]; then
-		mkdir -p $WEBROOT
-		chown -R zimbra:zimbra $WEBROOT
-	fi
-
-	# Request our cert
-	# If Zimbra is in https only we can use port 80 for ourselves, otherwise go through nginx
-	$LEB_BIN certonly $AGREE_TOS --expand -a webroot -w $WEBROOT -d $DOMAIN $EXTRA_DOMAIN
-	if [ $? -ne 0 ] ; then
-		echo "letsencrypt returned an error"
-		exit 1
-	fi
-}
-
 # detect additional public service hostnames from configured domains' zimbraPublicServiceHostname
 function find_additional_public_hostnames() {
-	# Useless during renew
-	"$RENEW_ONLY" && return
-
 	# If already set, leave them alone
 	[ ! -z "$EXTRA_DOMAIN" ] && return
 
@@ -184,6 +138,76 @@ function find_additional_public_hostnames() {
 		EXTRA_DOMAIN_OUTPUT="${EXTRA_DOMAIN_OUTPUT} $ADDITIONAL_DOMAIN"
 	done
 }
+
+function get_domain () {
+	# If we got no domain from command line try using zimbra hostname
+	if [ -z "$DOMAIN" ]; then
+		DOMAIN=$($ZMPATH/bin/zmhostname)
+		! "$QUIET" && echo "Using $ZMHOSTNAME ('zmhostname') as domain for certificate."
+		# Detect additional hostnames
+		"$RENEW_ONLY" || find_additional_public_hostnames
+	fi
+
+	if [ -z "$DOMAIN" ]; then
+		! "$QUIET" && echo "No domain detected! Please run with -d/--hostname or check why zmhostname is not working"
+		exit 1
+	fi
+
+	! "$QUIET" && echo "Main certificate domain: $DOMAIN"
+	[ ! -z "$EXTRA_DOMAIN_OUTPUT" ] && ! "$QUIET" && echo "Additional certificate domains: $EXTRA_DOMAIN_OUTPUT"
+
+	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
+		while read -p "Is this correct? " yn; do
+			case "$yn" in
+				[Yy]* ) break;;
+				[Nn]* ) echo "Please call $(basename $0) --hostname your.host.name"; exit 1;;
+				* ) echo "Please answer yes or no.";;
+			esac
+		done
+	fi
+}
+
+# perform the letsencrypt request and prepares the certs
+function request_certificate() {
+	[ -z "$CERTPATH" ] && echo "CERTPATH not set. Exiting." && exit 1
+	[ -z "$DOMAIN" ] && echo "DOMAIN not set. Exiting." && exit 1
+	# Set variable for use in prepare_certificate
+	CERTPATH="$CERTPATH/$DOMAIN"
+
+	# <8.7 didn't have nginx webroot
+	if [ ! -d "$WEBROOT" ]; then
+		if ! "$QUIET" && "$PROMPT_CONFIRM"; then
+			while read -p "Create $WEBROOT? " yn; do
+                        case "$yn" in
+                                [Yy]* ) mkdir -p "$WEBROOT";;
+                                [Nn]* ) echo "Cannot proceed."; exit 1;;
+                                * ) echo "Please answer yes or no.";;
+                        esac
+                done
+		fi
+		echo "$WEBROOT does not exist, cannot proceed. Please create it manually or rerun this script with -c." && exit 1
+	fi
+	
+	#TODO: dry-run
+	
+	LE_PARAMS=""
+	"$NONIACT" && LE_PARAMS="--non-interactive"
+	"$QUIET" && LE_PARAMS="$LE_PARAMS --quiet"
+	LE_PARAMS="$LE_PARAMS $AGREE_TOS"
+
+	# Request our cert
+	if "$NEW_CERT"; then
+		$LE_BIN certonly $LE_PARAMS --expand -a webroot -w $WEBROOT -d $DOMAIN $EXTRA_DOMAIN
+	else
+		$LE_BIN renew $LE_PARAMS -a webroot -w $WEBROOT
+	fi
+	if [ $? -ne 0 ] ; then
+		echo "letsencrypt returned an error"
+		exit 1
+	fi
+}
+
+
 
 # copies stuff ready for zimbra deployment and test them
 function prepare_certificate () {
@@ -245,24 +269,25 @@ function check_user () {
 
 function usage () {
 	cat <<EOF
-USAGE: $(basename $0) < -n | -r | -p > [-d my.host.name] [-e extra.domain.tld] [-x] [-w /var/www] [-a] [-c] [-s <service_names>] [-z] [-u] [-j] [-P port]
+USAGE: $(basename $0) < -d | -n | -p > [-xaczuj] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port]
   Options:
-	 -n | --new: performs a request for a new certificate
-	 -r | --renew: deploys certificate, assuming it has just been renewed
-	 -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade
-
-	Optional arguments:
-	 -d | --hostname: hostname being requested. If not passed uses \`zmhostname\`
-	 -e | --extra-domain: additional domains being requested. Can be used multiple times
-	 -x | --no-nginx: doesn't check and patch zimbra's nginx. Assumes some other webserver is listening on port 80
+	 -d | --deploy-only: Just deploys certificates. Assumes valid certificates are in $CERTPATH. Incompatible with -n, -p.
+	 -n | --new: performs a request for a new certificate. The default is to renew. Incompatible with -d, -p.
+	 -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade. Incompatible with -d, -n, -x.
+	 -x | --no-nginx: doesn't check and patch zimbra's nginx. Incompatible with -p.
+	 
+	 -H | --hostname: hostname being requested. If not passed it's automatically detected using "zmhostname".
+	 -e | --extra-domain: additional domains being requested. Can be used multiple times. Implies -u.
 	 -w | --webroot: if there's another webserver on port 80 specify its webroot
 	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
-	 -c | --prompt-confirmation: ask for confirmation before proceding with cert request showing detected hostname
+	 -c | --prompt-confirmation: ask for confirmation before proceding with cert request showing detected hostnames. Incompatible with -q.
 	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
 	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
-	 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraServicePublicHostname. Enabled when -e is passed
+	 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraServicePublicHostname.
 	 -j | --no-port-check: disable nginx port check
 	 -P | --port: HTTP port nginx is listening on (default 80)
+	 -q | --quiet: Do not output on stdout. Useful for scripts. Incompatible with -c.
+	 -i | --interactive: Pass --interactive to certbot/letsencrypt. Implies -c, incompatible with -q.
 
 Author: Lorenzo Milesi <maxxer@yetopen.it>
 Feedback, bugs and PR are welcome on GitHub: https://github.com/yetopen/certbot-zimbra.
@@ -275,18 +300,31 @@ EOF
 
 # main flow
 
-echo "Certbot-Zimbra v0.6 - https://github.com/YetOpen/certbot-zimbra"
+echo "$PROGNAME v$VERSION - $GITHUB_URL"
 
 # parameters parsing http://stackoverflow.com/a/14203146/738852
 while [[ $# -gt 0 ]]; do
 
 	case "$1" in
-		-d|--hostname)
-			[ -z "$2" ] && echo "missing hostname argument" && exit 1
-			DOMAIN="$2"
-			DETECT_PUBLIC_HOSTNAMES=false
-			shift
-		;;
+		# flow-modifying parameters
+		-d|--deploy-only)
+			DEPLOY_ONLY=true
+			;;
+		-n|--new)
+			NEW_CERT=true
+			;;
+		-p|--patch-only)
+			PATCH_ONLY=true
+			;;
+		# optional parameters
+		# letsencrypt
+		-a|--agree-tos)
+			AGREE_TOS="--text --agree-tos --non-interactive"
+			;;
+		-c|--prompt-confirm)
+			PROMPT_CONFIRM=true
+			;;
+		# domain
 		-e|--extra-domain)
 			[ -z "$2" ] && echo "missing extra domain argument" && exit 1
 			EXTRA_DOMAIN="${EXTRA_DOMAIN} -d $2"
@@ -294,40 +332,16 @@ while [[ $# -gt 0 ]]; do
 			DETECT_PUBLIC_HOSTNAMES=false
 			shift
 			;;
+		-H|--hostname)
+			[ -z "$2" ] && echo "missing hostname argument" && exit 1
+			DOMAIN="$2"
+			DETECT_PUBLIC_HOSTNAMES=false
+			shift
+			;;
 		-u|--no-public-hostname-detection)
 			DETECT_PUBLIC_HOSTNAMES=false
 			;;
-		-x|--no-nginx)
-			NO_NGINX=true
-			;;
-		-p|--patch-only)
-			PATCH_ONLY=true
-			;;
-		-n|--new)
-			NEW_CERT=true
-			;;
-		-r|--renew)
-			RENEW_ONLY=true
-			;;
-		-w|--webroot)
-			[ -z "$2" ] && echo "missing webroot argument" && exit 1
-			WEBROOT="$2"
-			shift
-		;;
-		-a|--agree-tos)
-			AGREE_TOS="--text --agree-tos --non-interactive"
-			;;
-		-s|--services)
-			[ -z "$2" ] && echo "missing services argument" && exit 1
-			SERVICES="$2"
-			shift
-		;;
-		-z|--no-zimbra-restart)
-			RESTART_ZIMBRA=false
-			;;
-		-c|--prompt-confirmation)
-			PROMPT_CONFIRM=true
-			;;
+		# port check
 		-j|--no-port-check)
 			SKIP_PORT_CHECK=true
 			;;
@@ -335,6 +349,32 @@ while [[ $# -gt 0 ]]; do
 			[ -z "$2" ] && echo "missing port argument" && exit 1
 			PORT="$2"
 			shift
+			;;
+		# nginx
+		-x|--no-nginx)
+			NO_NGINX=true
+			
+			;;
+		-w|--webroot)
+			[ -z "$2" ] && echo "missing webroot argument" && exit 1
+			WEBROOT="$2"
+			shift
+			;;
+		# zimbra
+		-s|--services)
+			[ -z "$2" ] && echo "missing services argument" && exit 1
+			SERVICES="$2"
+			shift
+			;;
+		-z|--no-zimbra-restart)
+			RESTART_ZIMBRA=false
+			;;
+		# other
+		-N|--non-interactive)
+			NONIACT=true
+			;;
+		-q|--quiet)
+			QUIET=true
 			;;
 		*)
 			echo "Unknown option: $1" >& 2
@@ -345,16 +385,13 @@ while [[ $# -gt 0 ]]; do
 	shift
 done
 
-if "$NEW_CERT" && "$RENEW_ONLY" && "$PATCH_ONLY"; then
-	usage
-	exit 1
-fi
+# exit if an invalid option combination was passed
+"$QUIET" && ("$IACT" || "$PROMPT_CONFIRM") && echo "Incompatible parameters: -q -c" && exit 1
 
-if "$PATCH_ONLY" && "$NO_NGINX"; then
-	echo "Incompatible nginx parameters"
-	usage
-	exit 1
-fi
+"$DEPLOY_ONLY" && ("$NEW_CERT" || "$PATCH_ONLY") && echo "Incompatible option combination" && exit 1
+"$NEW_CERT" && ("$DEPLOY_ONLY" || "$PATCH_ONLY") && echo "Incompatible option combination" && exit 1
+"$PATCH_ONLY" && ("$DEPLOY_ONLY" || "$NEW_CERT" || "$NO_NGINX") && echo "Incompatible option combination" && exit 1
+
 
 # If passed by --renew-hook, contains the path of the renewed cert which may differ from the default /etc/letsencrypt/live/$DOMAIN
 #CERTPATH=$RENEWED_LINEAGE
@@ -365,10 +402,11 @@ fi
 # actions
 check_user
 bootstrap
-"$NO_NGINX" || patch_nginx
+"$NO_NGINX" || "$DEPLOY_ONLY" || patch_nginx
 "$PATCH_ONLY" && exit 0
-request_certificate
-prepare_certificate
-deploy_certificate
+get_domain
+"$DEPLOY_ONLY" || find_certbot && request_cert
+prepare_cert
+deploy_cert
 
 exit 0
