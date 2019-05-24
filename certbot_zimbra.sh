@@ -350,8 +350,9 @@ check_user () {
 
 usage () {
 	cat <<EOF
-USAGE: $(basename $0) < -d | -n | -p > [-xaczuj] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port]
-  Mandatory options (only one may be specified):
+USAGE: $(basename $0) < -d | -n | -p > [-acjNquxz] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--letsencrypt-parameters ..."] 
+  Only one option at a time can be supplied. Options cannot be chained.
+  Mandatory options (only one can be specified):
 	 -d | --deploy-only: Just deploys certificates. Assumes valid certificates are in $CERTPATH. Incompatible with -n, -p.
 	 -n | --new: performs a request for a new certificate ("certonly"). Can be used to update the domains in an existing certificate. Incompatible with -d, -p.
 	 -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade. Incompatible with -d, -n, -x.
