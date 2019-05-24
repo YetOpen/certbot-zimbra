@@ -43,11 +43,12 @@ So open `/etc/cron.d/certbot` with your favourite editor and **comment the last 
 
 Download the latest release and install it (copy the latest URL from the Releases tab):
 
-`wget https://github.com/YetOpen/certbot-zimbra/archive/0.4.0-beta.tar.gz
+```
+wget https://github.com/YetOpen/certbot-zimbra/archive/0.4.0-beta.tar.gz
 tar xzf 0.4.0-beta.tar.gz certbot_zimbra.sh
 mv certbot_zimbra.sh /usr/local/bin/
 chmod +x /usr/local/bin/certbot_zimbra.sh
-`
+```
 
 # Usage
 
