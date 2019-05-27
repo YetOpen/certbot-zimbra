@@ -13,6 +13,14 @@ This is still a BETA script. Tested on:
 * 8.6_RHEL7
 * 8.6_UBUNTU12
 
+# CALL FOR TESTING
+
+Thanks to the awesome job of @jjakob the script has undergone a considerable rewrite. We're calling people for testing the new version!
+
+You can download the new version from [rewrite-0.7](https://github.com/YetOpen/certbot-zimbra/blob/rewrite-0.7/certbot_zimbra.sh) branch. 
+Make sure you **read the [updated README](https://github.com/YetOpen/certbot-zimbra/tree/rewrite-0.7#warning)** as some parameters have changed.
+If you encounter any problem please [open an issue](https://github.com/YetOpen/certbot-zimbra/issues/new).
+
 # Requirements
 
 * zimbra-proxy package is required
