@@ -1,0 +1,24 @@
+Tested:
+-first run with "-n -c" renewing an existing cert
+-"-n -L -u"
+-"-p" "-p -q" "-p -c"
+-"-d -c"
+-L
+-u
+-z
+-q (still does some output, needs more redirecting)
+-invalid combinations as specified in usage
+-Zimbra versions/OSs: 8.8.8_UBUNTU16
+
+Untested:
+-first run with "-n -c" to obtain a new cert interactively
+-N
+-a
+-e,H
+-s
+-j,p
+-w,x
+
+To do:
+-verify presence of /etc/ssl/certs and give guidance on ca-certificates installation
+-when run with certbot --renew-hook, certbot runs the hook once for each renewed certificate. The script needs to check the RENEWED_DOMAIN passed by certbot and only deploy the certificates if it matches the domain obtained with "zmhostname" or passed via -d. We don't want to deploy multiple different certificates to Zimbra that may not even match its hostname. This will happen if some other unrelated certificates were also obtained on the same server we're running on.
