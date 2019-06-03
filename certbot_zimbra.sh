@@ -95,7 +95,7 @@ check_nginx_port () {
 	# Fallback to ss
 	SS_BIN=$(which ss 2>/dev/null)
 	if [ -x "$SS_BIN" ]; then
-		NGINX_CNT="$($SS_BIN -lptn \"sport eq :$PORT\" | grep nginx | wc -l)"
+		NGINX_CNT="$($SS_BIN -lptn sport eq :$PORT | grep nginx | wc -l)"
 		(( "$NGINX_CNT" < 1 )) && return 1
 		return 0
 	fi
