@@ -58,7 +58,7 @@ version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 bootstrap() {
 	# check for dependencies
 	# do not check for lsof or ss here as we'll do that later
-	for name in "su openssl grep head cut sed chmod chown cat cp $ZMPATH/bin/zmcertmgr $ZMPATH/bin/zmcontrol $ZMPATH/bin/zmprov"; do
+	for name in su openssl grep head cut sed chmod chown cat cp $ZMPATH/bin/zmcertmgr $ZMPATH/bin/zmcontrol $ZMPATH/bin/zmprov; do
 		! which "$name" >/dev/null && echo "$name not found or executable" && exit 1
 	done
 
