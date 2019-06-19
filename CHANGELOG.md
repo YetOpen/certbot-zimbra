@@ -1,3 +1,8 @@
+## v0.7.0-beta
+
+* This is a HUGE rewrite! The most notably changes are two parameters rename: `-r/--renew-only` has become `-d/--deploy-only`, 
+and `-d` is now `-H`. Features should be the same
+
 ## v0.5.0-beta
 
 * Patch nginx using sed instead of patch strings! Thanks to @eN0RM
