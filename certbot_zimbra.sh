@@ -5,7 +5,7 @@
 # GPLv3 license
 
 PROGNAME="certbot-zimbra"
-VERSION="0.7"
+VERSION="0.7.1"
 GITHUB_URL="https://github.com/YetOpen/certbot-zimbra"
 # paths
 ZMPATH="/opt/zimbra"
@@ -87,7 +87,7 @@ check_nginx_port () {
 	# Better check with lsof, if available
 	LSOF_BIN="$(which lsof 2>/dev/null)"
 	if [ -x "$LSOF_BIN" ]; then
-		NGINX_CNT="$($LSOF_BIN -i :$PORT -u zimbra -a | grep -v COMMAND | wc -l)"
+		NGINX_CNT="$($LSOF_BIN -i :$PORT -s TCP:LISTEN -u zimbra -a | grep -v COMMAND | wc -l)"
 		(( "$NGINX_CNT" < 1 )) && return 1
 		return 0
 	fi
@@ -95,7 +95,7 @@ check_nginx_port () {
 	# Fallback to ss
 	SS_BIN=$(which ss 2>/dev/null)
 	if [ -x "$SS_BIN" ]; then
-		NGINX_CNT="$($SS_BIN -lptn sport eq $PORT | grep nginx | wc -l)"
+		NGINX_CNT="$($SS_BIN -lptn sport eq :$PORT | grep nginx | wc -l)"
 		(( "$NGINX_CNT" < 1 )) && return 1
 		return 0
 	fi
