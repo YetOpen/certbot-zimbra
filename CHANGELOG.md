@@ -1,4 +1,17 @@
-## v0.7.0-beta
+## v0.7.3-beta
+
+* Fix typo, --deploy tested working on Ubuntu
+* Update README.md, TESTING
+* Implement proper deploy hook domain env var checking (#17, jjakob#4), fix --extra-domain typos, update usage, add --help
+* fix #79: support RHEL/CentOS pki-base, add dependency check
+
+## v0.7.2-alpha
+
+* Improve cron and systemd documentation
+* Fix dependency check not working (#8)
+* Fix ss syntax (#74), limit lsof check to listening state only
+
+## v0.7.0-alpha
 
 * This is a HUGE rewrite! The most notably changes are two parameters rename: `-r/--renew-only` has become `-d/--deploy-only`, 
 and `-d` is now `-H`. Features should be the same
