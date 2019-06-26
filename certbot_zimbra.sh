@@ -547,7 +547,7 @@ bootstrap
 get_domain
 "$DEPLOY_ONLY" || find_certbot 
 "$DEPLOY_ONLY" || request_cert
-get_certpath
+set_certpath
 prepare_cert
 deploy_cert
 
