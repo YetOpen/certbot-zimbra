@@ -10,8 +10,9 @@ GITHUB_URL="https://github.com/YetOpen/certbot-zimbra"
 # paths
 ZMPATH="/opt/zimbra"
 WEBROOT="$ZMPATH/data/nginx/html"
-CERTPATH="/etc/letsencrypt/live" # the domain will be appended to this path so the full path is $CERTPATH/$DOMAIN
-# Do not modify anything after this line.
+LE_LIVE_PATH="/etc/letsencrypt/live" # the domain will be appended to this path
+# Do NOT modify anything after this line.
+CERTPATH=""
 LE_PARAMS=""
 LE_AGREE_TOS=false
 LE_NONIACT=false
@@ -188,7 +189,7 @@ find_additional_public_hostnames() {
 		[ -z "$getdomain" ] && continue
 		# Skip our primary domain
 		[ "$getdomain" == "$DOMAIN" ] && continue
-		EXTRA_DOMAINS="${EXTRA_DOMAIN} $getdomain"
+		EXTRA_DOMAINS="${EXTRA_DOMAINS} $getdomain"
 	done
 	return 0
 }
@@ -212,6 +213,25 @@ get_domain () {
 		(( $? == 1 )) && echo "Please call $(basename $0) --hostname your.host.name" && exit 1
 	fi
 	return 0
+}
+
+set_certpath() {
+	# must be run after get_domain
+	[ -z "$DOMAIN" ] && echo "Unexpected error (set_certpath DOMAIN not set)" && exit 1
+
+	# when run as --deploy-hook, check if any of RENEWED_DOMAINS match zimbra's domain.
+	# RENEWED_DOMAINS and RENEWED_LINEAGE are passed by certbot as env vars to --deploy-hook
+	if [ -n "$RENEWED_DOMAINS" ]; then
+		# we were run as --deploy-hook
+		for renewed_domain in $RENEWED_DOMAINS; do
+			[ "$renewed_domain" == "$DOMAIN" ] && CERTPATH="$RENEWED_LINEAGE"
+		done
+		# exit gracefully if no matching domains were found. We must be running for some other cert, not ours.
+		[ -z "$CERTPATH" ] && exit 0
+	else
+		# we were run standalone
+		CERTPATH="$LE_LIVE_PATH/$DOMAIN"
+	fi
 }
 
 check_webroot () {
@@ -271,15 +291,10 @@ request_cert() {
 prepare_cert() {
 	! "$QUIET" && echo "Preparing certificates for deployment."
 
-	[ -z "$CERTPATH" ] && echo "CERTPATH not set. Exiting." && exit 1
-	[ -z "$DOMAIN" ] && echo "DOMAIN not set. Exiting." && exit 1
+	[ -z "$CERTPATH" ] && echo "Unexpected error (prepare_cert CERTPATH not set). Exiting." && exit 1
+	[ -z "$DOMAIN" ] && echo "Unexpected error (prepare_cert DOMAIN not set). Exiting." && exit 1
 
-	# When run as --post-hook, RENEWED_LINEAGE will contain the actual path as used by certbot
-	if [ ! -z "$RENEWED_LINEAGE" ]; then
-		CERTPATH="$RENEWED_LINEAGE"
-	else
-		CERTPATH="$CERTPATH/$DOMAIN"
-	fi
+
 	
 	# Make zimbra accessible files
 	# save old umask
@@ -383,29 +398,29 @@ check_user () {
 
 usage () {
 	cat <<EOF
-USAGE: $(basename $0) < -d | -n | -p > [-acjNquxz] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--letsencrypt-parameters ..."] 
+USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameters ..."]
   Only one option at a time can be supplied. Options cannot be chained.
   Mandatory options (only one can be specified):
-	 -d | --deploy-only: Just deploys certificates. Assumes valid certificates are in $CERTPATH. Incompatible with -n, -p.
+	 -d | --deploy-only: Just deploys certificates. Can be run as --deploy-hook. If run standalone, assumes valid certificates are in $LE_LIVE_PATH. Incompatible with -n, -p.
 	 -n | --new: performs a request for a new certificate ("certonly"). Can be used to update the domains in an existing certificate. Incompatible with -d, -p.
 	 -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade. Incompatible with -d, -n, -x.
 
   Options only used with -n/--new:
 	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
-	 -L | --letsencrypt-params: Additional parameters to pass to certbot/letsencrypt
+	 -L | --letsencrypt-params "--extra-le-parameters ...": Additional parameters to pass to certbot/letsencrypt
 	 -N | --noninteractive: Pass --noninteractive to certbot/letsencrypt.
   Domain options:
-	 -e | --extra-domain: additional domains being requested. Can be used multiple times. Implies -u.
-	 -H | --hostname: hostname being requested. If not passed it's automatically detected using "zmhostname".
+	 -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u.
+	 -H | --hostname <my.host.name>: hostname being requested. If not passed it's automatically detected using "zmhostname".
 	 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraServicePublicHostname.
   Deploy options:
 	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
 	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
   Port check:
 	 -j | --no-port-check: disable nginx port check
-	 -P | --port: HTTP port web server is listening on (default 80)
+	 -P | --port <port>: HTTP port web server is listening on (default 80)
   Nginx options:
-	 -w | --webroot: if there's another webserver on port 80 specify its webroot
+	 -w | --webroot "/path/to/www": if there's another webserver on port 80 specify its webroot
 	 -x | --no-nginx: doesn't check and patch zimbra's nginx. Incompatible with -p.
   Output options:
 	 -c | --prompt-confirm: ask for confirmation. Incompatible with -q.
@@ -453,8 +468,7 @@ while [[ $# -gt 0 ]]; do
 		# domain
 		-e|--extra-domain)
 			[ -z "$2" ] && echo "missing extra domain argument" && exit 1
-			EXTRA_DOMAIN="${EXTRA_DOMAIN} -d $2"
-			EXTRA_DOMAIN_OUTPUT="${EXTRA_DOMAIN_OUTPUT} $2"
+			EXTRA_DOMAINS="${EXTRA_DOMAINS} -d $2"
 			DETECT_PUBLIC_HOSTNAMES=false
 			shift
 			;;
@@ -502,9 +516,12 @@ while [[ $# -gt 0 ]]; do
 			QUIET=true
 			LE_NONIACT=true
 			;;
-		*)
-			echo "Unknown option: $1" >& 2
+		-h|--help)
 			usage
+			exit 0
+			;;
+		*)
+			echo "Unknown option: $1. Try --help for usage." >& 2
 			exit 1
 			;;
 	esac
@@ -530,6 +547,7 @@ bootstrap
 get_domain
 "$DEPLOY_ONLY" || find_certbot 
 "$DEPLOY_ONLY" || request_cert
+get_certpath
 prepare_cert
 deploy_cert
 
