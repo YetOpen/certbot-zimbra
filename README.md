@@ -124,14 +124,14 @@ the `zimbraPublicServiceHostname` attribute and if present, adds it to the certi
 
 To indicate additional domains explicitly use the `-e/--extra-domain` option (can be specified multiple times). Note that `-e` also disables additional hostname detection. 
 
-Additional options can be passed directly to certbot/letsencrypt with `-L | --letsencrypt-params`. For example, if you want 4096-bit certificates, add `-L "--rsa-key-size 4096"`. Refer to certbot's documentation for more information.
+Additional options can be passed directly to certbot/letsencrypt with `-L | --letsencrypt-params`. For example, if you want 4096-bit certificates, add `-L "--rsa-key-size 4096"` (note: this is the default for newer certbot). Refer to certbot's documentation for more information.
 
 ### Running noninteractively
 
 When retrieving a new certificate using -n, certbot runs interactively. If you want to run it noninteractively, you can pass `-N/--noninteractive` which will be passed on to certbot. Also passing `-q/--quiet` will suppress the status output of the script.
 Only do this if you're absolutely sure what you're doing, as this leaves you with no option to verify the detected hostnames, specify the certificate e-mail etc. `-N/--noninteractive` may be combined with `-q | --quiet` and/or `-L | --letsencrypt-params` to pass all the parameters to certbot directly, e.g. in scripts to do automated testing with staging certificates. 
 
-## Renewal
+## Renewal using crontab
 
 EFF suggest to run *renew* twice a day. Since this would imply restarting zimbra, once a day outside workhours should be fine. So in your favourite place (like `/etc/cron.d/zimbracrontab` or with `sudo crontab -e`) schedule the command below, as suitable for your setup:
 
@@ -148,8 +148,13 @@ It has been added since certbot 0.7.0, so check your version before using it. If
 
 The domain to renew is automatically obtained with `zmhostname`. If you need customized domain name pass the `-H` parameter after `-d`.
 
+**Make sure you have a working mail setup (valid aliases for root or similar) to get crontab failure notifications.**
+
 ## Renewal using Systemd
+
+If you prefer systemd you can use these instructions.
 The example below uses the renew-hook which will only rerun the script if a renewal was successful and thus only reloading zimbra when needed.
+Sadly, systemd doesn't have a built-in on-failure mail notification function like cron does. One could write a service to do that via "OnFailure=".
 
 Create a service file eg: /etc/systemd/system/renew-letsencrypt.service
 
