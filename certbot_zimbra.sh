@@ -5,7 +5,7 @@
 # GPLv3 license
 
 PROGNAME="certbot-zimbra"
-VERSION="0.7.2"
+VERSION="0.7.3"
 GITHUB_URL="https://github.com/YetOpen/certbot-zimbra"
 # paths
 ZMPATH="/opt/zimbra"
@@ -52,15 +52,35 @@ prompt(){
 	done
 }
 
+check_depends_ca() {
+	# Debian/Ubuntu provided by ca-certificates
+	[ -f /etc/ssl/certs/ca-certificates.crt ] && return
+	# RHEL/CentOS provided by pki-base
+	[ -f /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem ] && return
+
+	echo "Installed CA certificates not found. Please check if you have installed:"
+	echo "Debian/Ubuntu: ca-certificates (if you do, you might have to run \"update-ca-certificates\")"
+	echo "RHEL/CentOS: pki-base (if you do, you might have to run \"update-ca-trust\")"
+	exit 1
+}
+
+check_depends() {
+	# check for dependencies
+	! $QUIET && echo "Checking for dependencies..."
+
+	# do not check for lsof or ss here as we'll do that later
+	for name in su openssl grep head cut sed chmod chown cat cp $ZMPATH/bin/zmcertmgr $ZMPATH/bin/zmcontrol $ZMPATH/bin/zmprov; do
+		! which "$name" >/dev/null && echo "\"$name\" not found or executable" && exit 1
+	done
+
+	check_depends_ca
+}
+
 # version compare from  http://stackoverflow.com/a/24067243/738852
 version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 
 bootstrap() {
-	# check for dependencies
-	# do not check for lsof or ss here as we'll do that later
-	for name in su openssl grep head cut sed chmod chown cat cp $ZMPATH/bin/zmcertmgr $ZMPATH/bin/zmcontrol $ZMPATH/bin/zmprov; do
-		! which "$name" >/dev/null && echo "$name not found or executable" && exit 1
-	done
+	check_depends
 
 	DETECTED_ZIMBRA_VERSION="$(su - zimbra -c "$ZMPATH/bin/zmcontrol -v" | grep -Po '(\d+).(\d+).(\d+)' | head -n 1)"
 	[ -z "$DETECTED_ZIMBRA_VERSION" ] && echo "Unable to detect zimbra version" && exit 1
@@ -230,6 +250,7 @@ request_cert() {
 	"$LE_NONIACT" && LE_PARAMS="--non-interactive"
 	"$QUIET" && LE_PARAMS="$LE_PARAMS --quiet"
 	"$LE_AGREE_TOS" && LE_PARAMS="$LE_PARAMS --agree-tos"
+	# use --cert-name instead of --expand as it allows also removing domains? https://github.com/certbot/certbot/issues/4275
 	LE_PARAMS="$LE_PARAMS --webroot -w $WEBROOT --expand -d $DOMAIN"
 	for d in "$EXTRA_DOMAINS"; do
 		[ -z "$d" ] && continue
@@ -239,7 +260,6 @@ request_cert() {
 	! "$QUIET" && echo "Running $LE_BIN certonly $LE_PARAMS"
 	"$QUIET" && exec > /dev/null
 	# Request our cert
-	# use --cert-name instead of --expand as it allows also removing domains? https://github.com/certbot/certbot/issues/4275
 	$LE_BIN certonly $LE_PARAMS
 	e=$?
 	"$QUIET" && exec > /dev/tty
@@ -249,7 +269,7 @@ request_cert() {
 
 # copies stuff ready for zimbra deployment and test them
 prepare_cert() {
-	! "$QUIET" && echo "Preparing certificates."
+	! "$QUIET" && echo "Preparing certificates for deployment."
 
 	[ -z "$CERTPATH" ] && echo "CERTPATH not set. Exiting." && exit 1
 	[ -z "$DOMAIN" ] && echo "DOMAIN not set. Exiting." && exit 1
@@ -277,11 +297,23 @@ prepare_cert() {
 	chown -R zimbra:root "$ZMPATH/ssl/letsencrypt"
 	chmod 550 "$ZMPATH/ssl/letsencrypt"
 	
-
 	# Create the "patched" chain suitable for Zimbra
 	cat "$CERTPATH/chain.pem" > $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
-	# use the issuer_hash of the LE chain cert to find the root CA in /etc/ssl/certs
-	cat "/etc/ssl/certs/$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer_hash).0" >> $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
+	if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
+	        # Debian/Ubuntu
+		# use the issuer_hash of the LE chain cert to find the root CA in /etc/ssl/certs
+		cat "/etc/ssl/certs/$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer_hash).0" >> $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
+	elif [ -f /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem ]; then
+		# RHEL/CentOS
+		# extract CA by CN in tls-ca-bundle.pem
+		issuer="$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer | sed -n 's/.*CN=//;s/\/.*$//;p')"
+		[ -z $issuer ] && exit 1
+		# the following awk script extracts the CA cert from the bundle or exits 1 if not found
+		awk "BEGIN {e=1}; /^# $isuer$/{e=0} /^# $issuer$/,/END CERTIFICATE/; END {exit e}" /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem >> $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
+	else
+		# we shouldn't be here
+		echo "Unexpected error (problem in check_depends_ca)" && exit 1
+	fi
 
 	chmod 440 $ZMPATH/ssl/letsencrypt/*
 	$oldumask
@@ -297,6 +329,7 @@ prepare_cert() {
 	fi
 	"$QUIET" && exec > /dev/tty
 
+	# undo set -e
 	set +e
 	return 0
 }
@@ -393,7 +426,6 @@ EOF
 
 # parameters parsing http://stackoverflow.com/a/14203146/738852
 while [[ $# -gt 0 ]]; do
-
 	case "$1" in
 		# flow-modifying parameters
 		-d|--deploy-only)
