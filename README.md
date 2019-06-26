@@ -7,9 +7,10 @@ The script tweaks zimbra's nginx config to allow access of *.well-known* webserv
 
 Letsencrypt by default tries to verify a domain using http, so the script should work fine if [*zimbraReverseProxyMailMode*](https://wiki.zimbra.com/wiki/Enabling_Zimbra_Proxy_and_memcached#Protocol_Requirements_Including_HTTPS_Redirect) is set to *http*, *both* or *redirect*. It won't work if set to *https* only. This is due to certbot deprecating the *tls-sni-01* authentication method and switching to *HTTP-01*. https://letsencrypt.org/docs/challenge-types/
 
-This is still a BETA script. Partially tested on:
+This is still a BETA script. Tested on:
 * 8.8.8_UBUNTU16
 * 8.8.12_UBUNTU16
+* 8.8.11_RHEL7 (CentOS)
 
 # WARNING - Breaking changes ahead
 
@@ -66,33 +67,33 @@ mv certbot_zimbra.sh /usr/local/bin/
 # Usage
 
 ```bash
-USAGE: certbot_zimbra.sh < -d | -n | -p > [-xaczuj] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port]
-  Mandatory options (only one may be specified):
-	 -d | --deploy-only: Just deploys certificates. Assumes valid certificates are in /etc/letsencrypt/live. Incompatible with -n, -p.
+USAGE: certbot_zimbra.sh < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameters ..."] 
+  Only one option at a time can be supplied. Options cannot be chained.
+  Mandatory options (only one can be specified):
+	 -d | --deploy-only: Just deploys certificates. Can be run as --deploy-hook. If run standalone, assumes valid certificates are in /etc/letsencrypt/live. Incompatible with -n, -p.
 	 -n | --new: performs a request for a new certificate ("certonly"). Can be used to update the domains in an existing certificate. Incompatible with -d, -p.
 	 -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade. Incompatible with -d, -n, -x.
 
   Options only used with -n/--new:
 	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
-	 -L | --letsencrypt-params: Additional parameters to pass to certbot/letsencrypt
+	 -L | --letsencrypt-params "--extra-le-parameters ...": Additional parameters to pass to certbot/letsencrypt
 	 -N | --noninteractive: Pass --noninteractive to certbot/letsencrypt.
   Domain options:
-	 -e | --extra-domain: additional domains being requested. Can be used multiple times. Implies -u.
-	 -H | --hostname: hostname being requested. If not passed it's automatically detected using "zmhostname".
+	 -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u.
+	 -H | --hostname <my.host.name>: hostname being requested. If not passed it's automatically detected using "zmhostname".
 	 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraServicePublicHostname.
   Deploy options:
 	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
 	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
   Port check:
 	 -j | --no-port-check: disable nginx port check
-	 -P | --port: HTTP port web server is listening on (default 80)
+	 -P | --port <port>: HTTP port web server is listening on (default 80)
   Nginx options:
-	 -w | --webroot: if there's another webserver on port 80 specify its webroot
+	 -w | --webroot "/path/to/www": if there's another webserver on port 80 specify its webroot
 	 -x | --no-nginx: doesn't check and patch zimbra's nginx. Incompatible with -p.
   Output options:
 	 -c | --prompt-confirm: ask for confirmation. Incompatible with -q.
 	 -q | --quiet: Do not output on stdout. Useful for scripts. Implies -N, incompatible with -c.
-
 ```
 
 
