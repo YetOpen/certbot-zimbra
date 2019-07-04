@@ -1,3 +1,7 @@
+## v0.7.4-beta
+
+* fix #84, add missing quotes around $issuer
+
 ## v0.7.3-beta
 
 * Fix typo, --deploy tested working on Ubuntu
