@@ -322,7 +322,7 @@ prepare_cert() {
 		# RHEL/CentOS
 		# extract CA by CN in tls-ca-bundle.pem
 		issuer="$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer | sed -n 's/.*CN=//;s/\/.*$//;p')"
-		[ -z $issuer ] && exit 1
+		[ -z "$issuer" ] && exit 1
 		# the following awk script extracts the CA cert from the bundle or exits 1 if not found
 		awk "BEGIN {e=1}; /^# $isuer$/{e=0} /^# $issuer$/,/END CERTIFICATE/; END {exit e}" /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem >> $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
 	else
