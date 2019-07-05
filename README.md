@@ -10,7 +10,7 @@ Letsencrypt by default tries to verify a domain using http, so the script should
 This is still a BETA script. Tested on:
 * 8.8.8_UBUNTU16
 * 8.8.12_UBUNTU16
-* 8.8.11_RHEL7 (CentOS)
+* 8.8.12_RHEL7 (CentOS)
 
 # WARNING - Breaking changes ahead
 

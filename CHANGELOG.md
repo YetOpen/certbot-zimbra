@@ -1,3 +1,7 @@
+## v0.7.5-beta
+
+* fix #84, further fixes to CentOS
+
 ## v0.7.4-beta
 
 * fix #84, add missing quotes around $issuer
