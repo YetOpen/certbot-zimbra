@@ -5,7 +5,7 @@
 # GPLv3 license
 
 PROGNAME="certbot-zimbra"
-VERSION="0.7.3"
+VERSION="0.7.5"
 GITHUB_URL="https://github.com/YetOpen/certbot-zimbra"
 # paths
 ZMPATH="/opt/zimbra"
@@ -293,8 +293,6 @@ prepare_cert() {
 
 	[ -z "$CERTPATH" ] && echo "Unexpected error (prepare_cert CERTPATH not set). Exiting." && exit 1
 	[ -z "$DOMAIN" ] && echo "Unexpected error (prepare_cert DOMAIN not set). Exiting." && exit 1
-
-
 	
 	# Make zimbra accessible files
 	# save old umask
@@ -309,8 +307,9 @@ prepare_cert() {
 	set -e
 
 	cp "$CERTPATH"/{privkey.pem,cert.pem} "$ZMPATH/ssl/letsencrypt/"
-	chown -R zimbra:root "$ZMPATH/ssl/letsencrypt"
+	chown -R root:zimbra "$ZMPATH/ssl/letsencrypt"
 	chmod 550 "$ZMPATH/ssl/letsencrypt"
+	chmod g+r $ZMPATH/ssl/letsencrypt/*
 	
 	# Create the "patched" chain suitable for Zimbra
 	cat "$CERTPATH/chain.pem" > $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
@@ -324,7 +323,7 @@ prepare_cert() {
 		issuer="$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer | sed -n 's/.*CN=//;s/\/.*$//;p')"
 		[ -z "$issuer" ] && exit 1
 		# the following awk script extracts the CA cert from the bundle or exits 1 if not found
-		awk "BEGIN {e=1}; /^# $isuer$/{e=0} /^# $issuer$/,/END CERTIFICATE/; END {exit e}" /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem >> $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
+		awk "BEGIN {e=1}; /^# $issuer$/{e=0} /^# $issuer$/,/END CERTIFICATE/; END {exit e}" /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem >> $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
 	else
 		# we shouldn't be here
 		echo "Unexpected error (problem in check_depends_ca)" && exit 1
