@@ -11,6 +11,7 @@ GITHUB_URL="https://github.com/YetOpen/certbot-zimbra"
 ZMPATH="/opt/zimbra"
 WEBROOT="$ZMPATH/data/nginx/html"
 LE_LIVE_PATH="/etc/letsencrypt/live" # the domain will be appended to this path
+TEMPPATH="/run/$PROGNAME"
 # Do NOT modify anything after this line.
 CERTPATH=""
 LE_PARAMS=""
@@ -43,6 +44,23 @@ trap exitfunc EXIT
 
 ## functions begin ##
 
+check_user () {
+	if [ "$EUID" -ne 0 ]; then
+		echo "This script must be run as root" 1>&2
+		exit 1
+	fi
+}
+
+make_temp() {
+	mkdir --mode=750 -p $TEMPPATH || ( echo "Error: Can't create temporary directory $TEMPPATH" && exit 1 )
+	chown root:zimbra $TEMPPATH
+}
+
+get_lock(){
+	exec 200 > "$TEMPPATH/$PROGNAME.lck"
+	flock -n 200 || ( echo "Error: can't get exclusive lock. Another instance of this script may be running." && exit 1 )
+}
+
 prompt(){
 	while read -p "$1 " yn; do
 		case "$yn" in
@@ -73,15 +91,18 @@ check_depends() {
 	for name in su openssl grep head cut sed chmod chown cat cp $ZMPATH/bin/zmcertmgr $ZMPATH/bin/zmcontrol $ZMPATH/bin/zmprov; do
 		! which "$name" >/dev/null && echo "\"$name\" not found or executable" && exit 1
 	done
-
-	check_depends_ca
 }
 
 # version compare from  http://stackoverflow.com/a/24067243/738852
 version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 
 bootstrap() {
+	check_user
+	make_temp
+	get_lock
+
 	check_depends
+	check_depends_ca
 
 	DETECTED_ZIMBRA_VERSION="$(su - zimbra -c "$ZMPATH/bin/zmcontrol -v" | grep -Po '(\d+).(\d+).(\d+)' | head -n 1)"
 	[ -z "$DETECTED_ZIMBRA_VERSION" ] && echo "Unable to detect zimbra version" && exit 1
@@ -388,13 +409,6 @@ deploy_cert() {
 	return 0
 }
 
-check_user () {
-	if [ "$EUID" -ne 0 ]; then
-		echo "This script must be run as root" 1>&2
-		exit 1
-	fi
-}
-
 usage () {
 	cat <<EOF
 USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameters ..."]
@@ -539,7 +553,6 @@ done
 ! "$QUIET" && echo "$PROGNAME v$VERSION - $GITHUB_URL"
 
 # actions
-check_user
 bootstrap
 "$NO_NGINX" || "$DEPLOY_ONLY" || patch_nginx
 "$PATCH_ONLY" && exit 0
