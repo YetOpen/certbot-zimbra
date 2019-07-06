@@ -357,7 +357,7 @@ deploy_cert() {
 	# Backup old stuff
 	cp -a "$ZMPATH/ssl/zimbra" "$ZMPATH/ssl/zimbra.$(date +'%Y%m%d_%H%M%S')"
 
-	cp "$ZMPATH/ssl/letsencrypt/privkey.pem" "$ZMPATH/ssl/zimbra/commercial/commercial.key"
+	cp -a "$ZMPATH/ssl/letsencrypt/privkey.pem" "$ZMPATH/ssl/zimbra/commercial/commercial.key"
 	
 	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
 		prompt "Deploy certificates to Zimbra?"
