@@ -1,3 +1,19 @@
+## v0.7.6-beta
+
+* fix file perms being lost when copying privkey to commercial.key (#84)
+* make tempdir in /run, obtain exclusive lock, move init funcs into bootstrap
+* Add more comprehensive checks for zimbra-proxy (#83)
+* add platform detection to bootstrap using zimbra's get_plat_tag.sh
+* use ZMPROV_OPTS for all zmprov with "-l" (LDAP is faster than SOAP)
+* prefix all error messages with "Error:"
+* Add additional constraint checks for --port, --no-port-check and --no-nginx
+* show long and short options in all messages
+* Update README.md
+* move certificate staging to TEMPDIR, don't prompt for zimbra restart if -z is set
+* add some status output when run as --deploy-hook
+* fix #85
+* add more status output during public service hostname detection
+
 ## v0.7.5-beta
 
 * fix #84, further fixes to CentOS
