@@ -186,6 +186,8 @@ patch_nginx() {
 		return
 	fi
 
+	[ -z $WEBROOT ] && echo "Unexpected error: patch_nginx WEbROOT not set. Exiting." && exit 1
+
 	! "$QUIET" && echo "Patching nginx templates."
 	
 	set -e
@@ -604,10 +606,10 @@ if ! "$DEPLOY_ONLY"; then
 	if "$NO_NGINX"; then
 		! check_port "$PORT" && echo "Error: port check failed. A web server to use for letsencrypt authentication of the domain $DOMAIN must be listening on the port specified with --port." && exit 1
 	else
+		WEBROOT="$ZMWEBROOT"
 		check_zimbra_proxy
 		! check_port "$PORT" nginx zimbra && echo "Error: port check failed. If you have overridden the port with --port, a web server to use for letsencrypt authentication of the domain $DOMAIN must be listening on it." && exit 1
 		patch_nginx
-		WEBROOT="$ZMWEBROOT"
 	fi
 
 	"$PATCH_ONLY" && exit 0
