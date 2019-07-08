@@ -268,7 +268,12 @@ set_certpath() {
 			[ "$renewed_domain" == "$DOMAIN" ] && CERTPATH="$RENEWED_LINEAGE"
 		done
 		# exit gracefully if no matching domains were found. We must be running for some other cert, not ours.
-		[ -z "$CERTPATH" ] && exit 0
+		if [ -z "$CERTPATH" ]; then
+			! "$QUIET" && echo "Detected --deploy-hook but no matching domain found. Nothing to do."
+			exit 0
+		else
+			! "$QUIET" && echo "Detected --deploy-hook and matching domain found"
+		fi
 	else
 		# we were run standalone
 		CERTPATH="$LE_LIVE_PATH/$DOMAIN"
