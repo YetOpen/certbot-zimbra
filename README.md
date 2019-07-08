@@ -13,11 +13,11 @@ This is still a BETA script. Tested on:
 # WARNING - Breaking changes ahead
 
 Thanks to the awesome job of @jjakob the script has undergone a considerable rewrite. 
-Some things changed, some parameters have been renamed, so **if you're upgrading please read the [WARNING chapter](##-WARNING) below**.
+Some things changed, some parameters have been renamed, so **if you're upgrading please read the [WARNING chapter](#warning) below**.
 
-We encourage you in testing the script and reporting back any issues you might encounter. The latest version can be downloaded from the [Releases tab](/YetOpen/certbot-zimbra/releases), or if you prefer bleeding edge (may be broken) from the [master branch directly](certbot-zimbra/blob/master/certbot_zimbra.sh).
+We encourage you to test the script and report back any issues you might encounter. The latest version can be downloaded from the [Releases tab](https://github.com/YetOpen/certbot-zimbra/releases), or if you prefer bleeding edge (may be broken) from the [master branch directly](/../../raw/master/certbot_zimbra.sh).
 
-If you're in a hurry and cannot wait our feedback on an issue you can download the last *stable* version from [0.5.0 tag](https://github.com/YetOpen/certbot-zimbra/tree/0.5.0-beta).
+If you're in a hurry and cannot wait for our feedback on an issue you can download the last *stable* version from [0.5.0 tag](https://github.com/YetOpen/certbot-zimbra/tree/0.5.0-beta).
 
 If you encounter any problem please [open an issue](https://github.com/YetOpen/certbot-zimbra/issues/new).
 
@@ -58,7 +58,7 @@ chmod +x certbot_zimbra.sh
 chown root: certbot_zimbra.sh
 mv certbot_zimbra.sh /usr/local/bin/
 ```
-Or from the master branch: [certbot_zimbra.sh](certbot-zimbra/blob/master/certbot_zimbra.sh)
+Or from the master branch: [certbot_zimbra.sh](/../../raw/master/certbot_zimbra.sh)
 
 # Usage
 
@@ -99,38 +99,37 @@ This can be skipped with `-u/--no-public-hostname-detection`, in which case only
 Only one certificate will be issued including all the found hostnames. The primary host will always be `zmhostname`.
 
 
-## Zimbra 8.6+ single server example
+# Zimbra 8.6+ single server example
 
-### Preparation
+## Preparation
 
-The script needs some prerequisites. They are listed under Installation/Requirements.
+The script needs some prerequisites. They are listed under Installation/Requirements. The script will run a prerequisite check on startup and exit if anthing is missing.
+
 In addition, there are different modes of operation, depending on your environment (proxy server):
 
-#### Zimbra-proxy mode (the default)
+### Zimbra-proxy mode (the default)
 
 Uses zimbra-proxy for the letsencrypt authentication. Zimbra-proxy must be enabled and running. This is the preferred mode.
+
 When starting, the script checks the status of zmproxyctl and checks if a process with the name "nginx" and user "zimbra" is listening on port zimbraMailProxyPort (obtained via zmprov).
+
 The port can optionally be overridden with -P/--port or the port check skipped entirely with -j/--no-port-check if you are absolutely sure everything is set up correctly. The zmproxyctl status check can't be skipped.
+
 Patches are applied to nginx's templates to pass .well-known to the webroot to make letsencrypt work, after which nginx is restarted.
+
 Everything, including new certificate requests, can be done via certbot-zimbra in this mode.
 
-#### Alternate webserver mode
+### Alternate webserver mode
 
-Is selected with -x/--no-nginx. Can be used in case you don't have zimbra-proxy enabled but have a different webserver as a reverse proxy in front of Zimbra. You'll have to configure the webserver for letsencrypt (to serve /.well-known from a webroot somewhere in the filesystem), some examples for this can be found [here.](https://www.hiawatha-webserver.org/forum/topic/2275)
-Requires -P/--port and -w/--webroot. --port is checked for listening status.
+Is selected with -x/--no-nginx. Requires -P/--port and -w/--webroot. --port is checked for listening status. All zimbra-proxy checks are skipped.
+
+Can be used in case you don't have zimbra-proxy enabled but have a different webserver as a reverse proxy in front of Zimbra. 
+
+You'll have to configure the webserver for letsencrypt (to serve /.well-known from a webroot somewhere in the filesystem), some examples for this can be found [here.](https://www.hiawatha-webserver.org/forum/topic/2275)
+
 Renewal can be done as per instructions below, but --pre-hook can be omitted.
 
-#### Alternate webserver, manual certbot new certificate request
-
-As above, but the first certificate can be obtained manually with certbot outside of this script with the authenticator plugin of your choice. Refer to the letsencrypt documentation for first certificate request information.
-After the certificate has been obtained, -d/--deploy-only can be used to deploy the certificate in Zimbra (to use it in services other than HTTP also) and renewal can be done as usual with --deploy-hook.
-
-#### No proxy server (complete manual mode)
-
-Since the HTTP authenticator can't be used, an alternate authenticator like DNS will have to be used. Refer to the letsencrypt documentation on obtaining certificates without HTTP.
-Deployment and renewal can be done as above Alternate webserver manual mode.
-
-### First run
+## First run
 
 If you don't yet have a letsencrypt certificate, you'll need to obtain one first. The script can do everything for you, including deploying the certificate and restarting zimbra.
 
@@ -150,14 +149,14 @@ To indicate additional domains explicitly use the `-e/--extra-domain` option (ca
 
 Additional options can be passed directly to certbot/letsencrypt with `-L | --letsencrypt-params`. For example, if you want 4096-bit certificates, add `-L "--rsa-key-size 4096"` (note: this is the default for newer certbot). Refer to certbot's documentation for more information.
 
-### Running noninteractively
+## Running noninteractively
 
 When retrieving a new certificate using -n, certbot runs interactively. If you want to run it noninteractively, you can pass `-N/--noninteractive` which will be passed on to certbot. Also passing `-q/--quiet` will suppress the status output of the script.
 Only do this if you're absolutely sure what you're doing, as this leaves you with no option to verify the detected hostnames, specify the certificate e-mail etc. `-N/--noninteractive` may be combined with `-q | --quiet` and/or `-L | --letsencrypt-params` to pass all the parameters to certbot directly, e.g. in scripts to do automated testing with staging certificates. 
 
-### Renewal
+## Renewal
 
-#### Renewal using crontab
+### Renewal using crontab
 
 EFF suggest to run *renew* twice a day. Since this would imply restarting zimbra, once a day outside workhours should be fine. So in your favourite place (like `/etc/cron.d/zimbracrontab` or with `sudo crontab -e`) schedule the command below, as suitable for your setup:
 
@@ -176,7 +175,7 @@ The domain to renew is automatically obtained with `zmhostname`. If you need cus
 
 **Make sure you have a working mail setup (valid aliases for root or similar) to get crontab failure notifications.**
 
-#### Renewal using Systemd
+### Renewal using Systemd
 
 If you prefer systemd you can use these instructions.
 The example below uses the renew-hook which will only rerun the script if a renewal was successful and thus only reloading zimbra when needed.
@@ -226,12 +225,23 @@ systemctl list-timers renew-letsencrypt.timer
 ```
 
 
-### Alternate webserver mode
+## Alternate webserver mode
 
-See also above [Preparation](###-Preparation): [Alternate webserver](####-Alternate-webserver), [Alternate webserver, manual certbot new certificate request](####-Alternate-webserver,-manual-certbot-new-certificate-request)
-*(It may happen even in the best families)*
+See [Preparation](#preparation): [Alternate webserver](#alternate-webserver)
 
-#### Manual certificate request
+### Alternate webserver, manual certbot new certificate request
+
+As above, but the first certificate can be obtained manually with certbot outside of this script with the authenticator plugin of your choice. Refer to the letsencrypt documentation for first certificate request information.
+
+After the certificate has been obtained, -d/--deploy-only can be used to deploy the certificate in Zimbra (to use it in services other than HTTP also) and renewal can be done as usual with --deploy-hook.
+
+### No proxy server (manual certificate request with alternate authentication method)
+
+Since the HTTP authentication method can't be used, an alternate method like DNS will have to be used. Refer to the letsencrypt documentation on obtaining certificates without HTTP.
+
+Deployment and renewal can be done as in the [Alternate webserver manual mode](#alternate-webserver-manual-certbot-new-certificate-request).
+
+### Manual certificate request example
 
 Say you have apache in front of zimbra (or listening on port 80 only) just run `certbot-auto` to request the certificate for apache, and when done run
 ```
@@ -241,9 +251,11 @@ so that it will deploy the certificate in zimbra.
 
 Set up renewal as above, but without --pre-hook.
 
+# Notes
+
 ## Notes on zimbraReverseProxyMailMode 
 
-Letsencrypt by default tries to verify a domain using http, so the script should work fine if [*zimbraReverseProxyMailMode*](https://wiki.zimbra.com/wiki/Enabling_Zimbra_Proxy_and_memcached#Protocol_Requirements_Including_HTTPS_Redirect) is set to *http*, *both* or *redirect*. It won't work if set to *https* only. This is due to certbot deprecating the *tls-sni-01* authentication method and switching to *HTTP-01*. https://letsencrypt.org/docs/challenge-types/
+Letsencrypt by default tries to verify a domain using http, so the script should work fine if [zimbraReverseProxyMailMode](https://wiki.zimbra.com/wiki/Enabling_Zimbra_Proxy_and_memcached#Protocol_Requirements_Including_HTTPS_Redirect) is set to http, both, redirect or mixed. It won't work if set to https only. This is due to certbot deprecating the tls-sni-01 authentication method and switching to HTTP-01. https://letsencrypt.org/docs/challenge-types/
 
 ## Limitations
 
@@ -258,10 +270,10 @@ To check if you have the old method, run `grep authenticator /etc/letsencrypt/re
 
 To update to the new "webroot" method you can simply run `certbot-zimbra.sh -n -c -L "--cert-name [yourcertname] --force-renewal"`. This will force renew your existing certificate and save the new authentication method. It'll also ask you for deploying the new certificate in Zimbra. You can also manually modify the config file in /etc/letsencrypt/renewal/, while not recommended, is detailed here: https://community.letsencrypt.org/t/how-to-change-certbot-verification-method/56735
 
-# How it works
+## How it works
 TODO: explain the nginx patching mathod, etc.
 
-# Certbot notes
+## Certbot notes
 
 Certbot preserves the gid and the g:rwx and o:r permissions from old privkey files to the renewed ones. This is described in 
 https://github.com/certbot/certbot/blob/8b684e9b9543c015669844222b8960e1b9a71e97/certbot/storage.py#L1107
