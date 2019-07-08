@@ -450,11 +450,11 @@ USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.d
 	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
 	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
   Port check:
-	 -j | --no-port-check: disable port check
-	 -P | --port <port>: HTTP port web server to use for letsencrypt authentication is listening on. Is detected from zimbraMailProxyPort. Mandatory with -x/--no-nginx.
+	 -j | --no-port-check: disable port check. Incompatible with -P/--port.
+	 -P | --port <port>: HTTP port the web server to use for letsencrypt authentication is listening on. Is detected from zimbraMailProxyPort. Mandatory with -x/--no-nginx.
   Nginx options:
 	 -w | --webroot "/path/to/www": path to the webroot of alternate webserver. Valid only with -x/--no-nginx.
-	 -x | --no-nginx: don't check and patch zimbra-proxy's nginx. Must also specify -P/--port and -w/--webroot. Incompatible with -p/--patch-only.
+	 -x | --no-nginx: Alternate webserver mode. Don't check and patch zimbra-proxy's nginx. Must also specify -P/--port and -w/--webroot. Incompatible with -p/--patch-only.
   Output options:
 	 -c | --prompt-confirm: ask for confirmation. Incompatible with -q.
 	 -q | --quiet: Do not output on stdout. Useful for scripts. Implies -N, incompatible with -c.
@@ -570,7 +570,9 @@ done
 "$PATCH_ONLY" && ("$DEPLOY_ONLY" || "$NEW_CERT" || "$NO_NGINX") && echo "Incompatible option combination" && exit 1
 ! ("$DEPLOY_ONLY" || "$NEW_CERT" || "$PATCH_ONLY") && echo "Nothing to do. Please specify one of: -d -n -p. Exiting." && exit 1
 
-"$NO_NGINX" && [ -z "$WEBROOT" -o \( -z "$PORT" -a ! "$SKIP_PORT_CHECK" \) ] && echo "Error: --no-nginx requires --webroot and --port or --skip-port-check. Exiting." && exit 1
+"$NO_NGINX" && [ -z "$WEBROOT" -o \( -z "$PORT" -a ! "$SKIP_PORT_CHECK" \) ] && echo "Error: --no-nginx requires --webroot and --port or --no-port-check. Exiting." && exit 1
+! "$NO_NGINX" && [ -n "$WEBROOT" ] && echo "Error: -w/--webroot can't be used in zimbra-proxy mode. Please use -x/--no-nginx (alternate webserver mode). Exiting." && exit 1
+"$SKIP_PORT_CHECK" && [ -n "$PORT" ] && echo "Error: -j/--no-port-check can't be used with -P/--port. Exiting." && exit 1
 
 ! "$QUIET" && echo "$PROGNAME v$VERSION - $GITHUB_URL"
 
