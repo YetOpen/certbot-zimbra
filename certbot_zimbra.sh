@@ -340,52 +340,57 @@ prepare_cert() {
 	oldumask="$(umask -p)"
 	# make files u=rwx g=rx o=
 	umask 0027
-	
-	# this will complain if the dir already exists so send stderr to /dev/null	
-	mkdir "$ZMPATH/ssl/letsencrypt" 2>/dev/null
-	
+
 	# exit on error
 	set -e
 
-	cp "$CERTPATH"/{privkey.pem,cert.pem} "$ZMPATH/ssl/letsencrypt/"
-	chown -R root:zimbra "$ZMPATH/ssl/letsencrypt"
-	chmod 550 "$ZMPATH/ssl/letsencrypt"
-	chmod g+r $ZMPATH/ssl/letsencrypt/*
-	
+	tmpcerts="$(mktemp -d --tmpdir="$TEMPPATH" certs-XXXXXXXX)"
+
+	cp "$CERTPATH"/{privkey.pem,cert.pem} "$tmpcerts/"
+
 	# Create the "patched" chain suitable for Zimbra
-	cat "$CERTPATH/chain.pem" > $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
+	cat "$CERTPATH/chain.pem" > "$tmpcerts/zimbra_chain.pem"
 	if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
 	        # Debian/Ubuntu
 		# use the issuer_hash of the LE chain cert to find the root CA in /etc/ssl/certs
-		cat "/etc/ssl/certs/$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer_hash).0" >> $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
+		cat "/etc/ssl/certs/$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer_hash).0" >> $tmpcerts/zimbra_chain.pem
 	elif [ -f /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem ]; then
 		# RHEL/CentOS
 		# extract CA by CN in tls-ca-bundle.pem
 		issuer="$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer | sed -n 's/.*CN=//;s/\/.*$//;p')"
 		[ -z "$issuer" ] && exit 1
 		# the following awk script extracts the CA cert from the bundle or exits 1 if not found
-		awk "BEGIN {e=1}; /^# $issuer$/{e=0} /^# $issuer$/,/END CERTIFICATE/; END {exit e}" /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem >> $ZMPATH/ssl/letsencrypt/zimbra_chain.pem
+		awk "BEGIN {e=1}; /^# $issuer$/{e=0} /^# $issuer$/,/END CERTIFICATE/; END {exit e}" /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem >> $tmpcerts/zimbra_chain.pem
 	else
 		# we shouldn't be here
 		echo "Unexpected error (problem in check_depends_ca)" && exit 1
 	fi
 
-	chmod 440 $ZMPATH/ssl/letsencrypt/*
 	$oldumask
-	
+
+	# set permissions so that zimbra can read the certs
+	chown -R root:zimbra "$tmpcerts"
+	chmod 550 "$tmpcerts"
+	chmod 440 $tmpcerts/*
+
 	! "$QUIET" && echo "Testing with zmcertmgr."
 
+	# redirect stdout to /dev/null if quiet
 	"$QUIET" && exec > /dev/null
+
 	# Test cert. 8.6 and below must use root
 	if version_gt "$DETECTED_ZIMBRA_VERSION" "8.7"; then
-		su - zimbra -c "$ZMPATH/bin/zmcertmgr verifycrt comm $ZMPATH/ssl/letsencrypt/privkey.pem $ZMPATH/ssl/letsencrypt/cert.pem $ZMPATH/ssl/letsencrypt/zimbra_chain.pem"
+		su - zimbra -c "$ZMPATH/bin/zmcertmgr verifycrt comm $tmpcerts/privkey.pem $tmpcerts/cert.pem $tmpcerts/zimbra_chain.pem"
 	else
-		$ZMPATH/bin/zmcertmgr verifycrt comm "$ZMPATH/ssl/letsencrypt/privkey.pem" "$ZMPATH/ssl/letsencrypt/cert.pem" "$ZMPATH/ssl/letsencrypt/zimbra_chain.pem"
+		$ZMPATH/bin/zmcertmgr verifycrt comm "$tmpcerts/privkey.pem" "$tmpcerts/cert.pem" "$tmpcerts/zimbra_chain.pem"
 	fi
+
+	# undo quiet
 	"$QUIET" && exec > /dev/tty
 
 	# undo set -e
 	set +e
+
 	return 0
 }
 
@@ -398,7 +403,8 @@ deploy_cert() {
 	# Backup old stuff
 	cp -a "$ZMPATH/ssl/zimbra" "$ZMPATH/ssl/zimbra.$(date +'%Y%m%d_%H%M%S')"
 
-	cp -a "$ZMPATH/ssl/letsencrypt/privkey.pem" "$ZMPATH/ssl/zimbra/commercial/commercial.key"
+	# copy privkey
+	cp -a "$tmpcerts/privkey.pem" "$ZMPATH/ssl/zimbra/commercial/commercial.key"
 	
 	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
 		prompt "Deploy certificates to Zimbra?"
@@ -408,24 +414,33 @@ deploy_cert() {
 	"$QUIET" && exec > /dev/null
 	# this is it, deploy the cert.
 	if version_gt "$DETECTED_ZIMBRA_VERSION" "8.7"; then
-		su - zimbra -c "$ZMPATH/bin/zmcertmgr deploycrt comm $ZMPATH/ssl/letsencrypt/cert.pem $ZMPATH/ssl/letsencrypt/zimbra_chain.pem -deploy ${SERVICES}"
+		su - zimbra -c "$ZMPATH/bin/zmcertmgr deploycrt comm $tmpcerts/cert.pem $tmpcerts/zimbra_chain.pem -deploy ${SERVICES}"
 	else
-		$ZMPATH/bin/zmcertmgr deploycrt comm "$ZMPATH/ssl/letsencrypt/cert.pem" "$ZMPATH/ssl/letsencrypt/zimbra_chain.pem"
+		$ZMPATH/bin/zmcertmgr deploycrt comm "$tmpcerts/cert.pem" "$tmpcerts/zimbra_chain.pem"
 	fi
-	"$QUIET" && exec > /dev/tty	
-
-	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
-		prompt "Restart Zimbra?"
-		(( $? == 1 )) && echo "Cannot proceed. Exiting." && exit 1
-	fi
-
-	! "$QUIET" && echo "Restarting Zimbra."
-	"$QUIET" && exec > /dev/null	
-	# Finally apply cert!
-	"$RESTART_ZIMBRA" && su - zimbra -c 'zmcontrol restart'
-	# FIXME And hope that everything started fine! :)
 	"$QUIET" && exec > /dev/tty
+
+	! "$QUIET" && echo "Removing temporary files in $tmpcerts"
+	# this is kind of sketchy
+	[ -n "$tmpcerts" ] && rm -r "$tmpcerts"
+
+	if "$RESTART_ZIMBRA"; then
+		if ! "$QUIET" && "$PROMPT_CONFIRM"; then
+			prompt "Restart Zimbra?"
+			(( $? == 1 )) && echo "Cannot proceed. Exiting." && exit 1
+		fi
+
+		! "$QUIET" && echo "Restarting Zimbra."
+
+		"$QUIET" && exec > /dev/null
+		# Finally apply cert!
+		su - zimbra -c 'zmcontrol restart'
+		# FIXME And hope that everything started fine! :)
+		"$QUIET" && exec > /dev/tty
+	fi
+
 	set +e
+
 	return 0
 }
 
