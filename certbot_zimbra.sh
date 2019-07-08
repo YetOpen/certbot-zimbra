@@ -290,7 +290,7 @@ check_webroot () {
 				exit 1
 			fi
 		fi
-		echo "Error: $WEBROOT does not exist, cannot proceed. Please create it manually or rerun this script with -c and without -q. Exiting."
+		echo "Error: $WEBROOT does not exist, cannot proceed. Please create it manually or rerun this script with -c/--prompt-confirm and without -q/--quiet. Exiting."
 		exit 1
 	fi
 }
@@ -434,16 +434,16 @@ usage () {
 USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameters ..."]
   Only one option at a time can be supplied. Options cannot be chained.
   Mandatory options (only one can be specified):
-	 -d | --deploy-only: Just deploys certificates. Can be run as --deploy-hook. If run standalone, assumes valid certificates are in $LE_LIVE_PATH. Incompatible with -n, -p.
-	 -n | --new: performs a request for a new certificate ("certonly"). Can be used to update the domains in an existing certificate. Incompatible with -d, -p.
-	 -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade. Incompatible with -d, -n, -x.
+	 -d | --deploy-only: Just deploys certificates. Can be run as --deploy-hook. If run standalone, assumes valid certificates are in $LE_LIVE_PATH. Incompatible with -n/--new, -p/--patch-only.
+	 -n | --new: performs a request for a new certificate ("certonly"). Can be used to update the domains in an existing certificate. Incompatible with -d/--deploy-only, -p/--patch-only.
+	 -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade. Incompatible with -d/--deploy-only, -n/--new, -x/--no-nginx.
 
   Options only used with -n/--new:
 	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
 	 -L | --letsencrypt-params "--extra-le-parameters ...": Additional parameters to pass to certbot/letsencrypt
 	 -N | --noninteractive: Pass --noninteractive to certbot/letsencrypt.
   Domain options:
-	 -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u.
+	 -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u/--no-public-hostname-detection.
 	 -H | --hostname <my.host.name>: hostname being requested. If not passed it's automatically detected using "zmhostname".
 	 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraServicePublicHostname.
   Deploy options:
@@ -456,8 +456,8 @@ USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.d
 	 -w | --webroot "/path/to/www": path to the webroot of alternate webserver. Valid only with -x/--no-nginx.
 	 -x | --no-nginx: Alternate webserver mode. Don't check and patch zimbra-proxy's nginx. Must also specify -P/--port and -w/--webroot. Incompatible with -p/--patch-only.
   Output options:
-	 -c | --prompt-confirm: ask for confirmation. Incompatible with -q.
-	 -q | --quiet: Do not output on stdout. Useful for scripts. Implies -N, incompatible with -c.
+	 -c | --prompt-confirm: ask for confirmation. Incompatible with -q/--quiet.
+	 -q | --quiet: Do not output on stdout. Useful for scripts. Implies -N/--noninteractive, incompatible with -c/--prompt-confirm.
 
 Author: Lorenzo Milesi <maxxer@yetopen.it>
 Contributors: Jernej Jakob <jernej.jakob@gmail.com> @jjakob
