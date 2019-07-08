@@ -127,7 +127,7 @@ check_zimbra_proxy() {
 	! "$QUIET" && echo "Checking zimbra-proxy is running and enabled"
 
 	# no need if we check if it's running later
-	#su - zimbra -c "$ZMPATH/bin/zmprov gs $DOMAIN zimbraServiceEnabled | grep -q proxy" || ( echo "Error: zimbra-proxy is not enabled" && exit 1 )
+	#su - zimbra -c "$ZMPATH/bin/zmprov $ZMPROV_OPTS gs $DOMAIN zimbraServiceEnabled | grep -q proxy" || ( echo "Error: zimbra-proxy is not enabled" && exit 1 )
 
 	# TODO: check if path to zmproxyctl is different on <8.7
 	! su - zimbra -c "$ZMPATH/bin/zmproxyctl status > /dev/null" && echo "Error: zimbra-proxy is not running" && exit 1
@@ -225,8 +225,8 @@ find_additional_public_hostnames() {
 	# If it has been requested NOT to perform the search
 	"$DETECT_PUBLIC_HOSTNAMES" || return
 
-	for i in $($ZMPATH/bin/zmprov gad); do
-		getdomain="$($ZMPATH/bin/zmprov gd $i zimbraPublicServiceHostname | grep zimbraPublicServiceHostname | cut -f 2 -d ' ')"
+	for i in $($ZMPATH/bin/zmprov $ZMPROV_OPTS gad); do
+		getdomain="$($ZMPATH/bin/zmprov $ZMPROV_OPTS gd $i zimbraPublicServiceHostname | grep zimbraPublicServiceHostname | cut -f 2 -d ' ')"
 		[ -z "$getdomain" ] && continue
 		# Skip our primary domain
 		[ "$getdomain" == "$DOMAIN" ] && continue
