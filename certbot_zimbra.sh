@@ -49,7 +49,7 @@ trap exitfunc EXIT
 
 check_user () {
 	if [ "$EUID" -ne 0 ]; then
-		echo "This script must be run as root" 1>&2
+		echo "Error: This script must be run as root" 1>&2
 		exit 1
 	fi
 }
@@ -92,7 +92,7 @@ check_depends() {
 
 	# do not check for lsof or ss here as we'll do that later
 	for name in su openssl grep head cut sed chmod chown cat cp $ZMPATH/bin/zmcertmgr $ZMPATH/bin/zmcontrol $ZMPATH/bin/zmprov $ZMPATH/libexec/get_plat_tag.sh; do
-		! which "$name" >/dev/null && echo "\"$name\" not found or executable" && exit 1
+		! which "$name" >/dev/null && echo "Error: \"$name\" not found or executable" && exit 1
 	done
 }
 
@@ -114,7 +114,7 @@ bootstrap() {
 	PLATFORM="$($ZMPATH/libexec/get_plat_tag.sh)"
 
 	DETECTED_ZIMBRA_VERSION="$(su - zimbra -c "$ZMPATH/bin/zmcontrol -v" | grep -Po '(\d+).(\d+).(\d+)' | head -n 1)"
-	[ -z "$DETECTED_ZIMBRA_VERSION" ] && echo "Unable to detect zimbra version" && exit 1
+	[ -z "$DETECTED_ZIMBRA_VERSION" ] && echo "Error: Unable to detect zimbra version" && exit 1
 	! "$QUIET" && echo "Detected Zimbra $DETECTED_ZIMBRA_VERSION on $PLATFORM"
 
 	return 0
@@ -162,7 +162,7 @@ check_port () {
 	elif [ -x "$SS_BIN" ]; then
 		CHECK_BIN="$SS_BIN -lptn sport eq :$1"
 	else
-		echo 'Neither "lsof" nor "ss" were found in PATH. Unable to continue, exiting.'
+		echo 'Error: Neither "lsof" nor "ss" were found in PATH. Unable to continue, exiting.'
 		exit 1
 	fi
 
@@ -178,7 +178,7 @@ check_port () {
 # zimbra-proxy must be running (checked with check_zimbra_proxy) or zmproxyctl restart will fail
 # returns true if patch was applied or was already present, exits script if encountered an error
 patch_nginx() {
-	[ ! -d $ZMPATH/conf/nginx/includes ] && echo "$ZMPATH/conf/nginx/includes not found, exiting" && exit 1
+	[ ! -d $ZMPATH/conf/nginx/includes ] && echo "Error: $ZMPATH/conf/nginx/includes not found, exiting" && exit 1
 
 	# Return if patch is already applied
 	if grep -r -q 'acme-challenge' "$ZMPATH/conf/nginx/includes"; then
@@ -244,14 +244,14 @@ get_domain () {
 		"$DEPLOY_ONLY" || find_additional_public_hostnames
 	fi
 
-	[ -z "$DOMAIN" ] && echo "No domain found! Please run with -d/--hostname or check why zmhostname is not working" && exit 1
+	[ -z "$DOMAIN" ] && echo "Error: No domain found! Please run with -d/--hostname or check why zmhostname is not working" && exit 1
 	
 	! "$QUIET" && echo "Using domain $DOMAIN (as certificate DN)"
 	[ ! -z "$EXTRA_DOMAINS" ] && ! "$QUIET" && echo "Found domains to use as certificate SANs: $EXTRA_DOMAINS"
 
 	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
 		prompt "Is this correct?"
-		(( $? == 1 )) && echo "Please call $(basename $0) --hostname your.host.name" && exit 1
+		(( $? == 1 )) && echo "Error: Please call $(basename $0) --hostname your.host.name" && exit 1
 	fi
 	return 0
 }
@@ -276,7 +276,7 @@ set_certpath() {
 }
 
 check_webroot () {
-	[ -z "$WEBROOT" ] && echo "WEBROOT not set. Exiting." && exit 1
+	[ -z "$WEBROOT" ] && echo "Unexpected error: check_webroot WEBROOT not set. Exiting." && exit 1
 		
 	# <8.7 didn't have nginx webroot
 	if [ ! -d "$WEBROOT" ]; then
@@ -290,7 +290,7 @@ check_webroot () {
 				exit 1
 			fi
 		fi
-		echo "$WEBROOT does not exist, cannot proceed. Please create it manually or rerun this script with -c and without -q. Exiting."
+		echo "Error: $WEBROOT does not exist, cannot proceed. Please create it manually or rerun this script with -c and without -q. Exiting."
 		exit 1
 	fi
 }
@@ -298,7 +298,7 @@ check_webroot () {
 find_certbot () {
 	# check for executable certbot-auto / certbot / letsencrypt
 	LE_BIN="$(which certbot-auto certbot letsencrypt 2>/dev/null | head -n 1)"
-	[ -z "$LE_BIN" ] && echo "No letsencrypt/certbot binary found in $PATH" && exit 1
+	[ -z "$LE_BIN" ] && echo "Error: No letsencrypt/certbot binary found in $PATH" && exit 1
 	return 0
 }
 
