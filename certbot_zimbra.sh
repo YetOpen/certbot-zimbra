@@ -225,15 +225,21 @@ find_additional_public_hostnames() {
 	[ ! -z "$EXTRA_DOMAINS" ] && return
 
 	# If it has been requested NOT to perform the search
-	"$DETECT_PUBLIC_HOSTNAMES" || return
+	if ! "$DETECT_PUBLIC_HOSTNAMES"; then
+		! "$QUIET" && echo "Skipping additional public service hostname detection"
+		return
+	fi
 
+	! "$QUIET" && echo -n "Detecting additional public service hostnames..."
 	for i in $($ZMPATH/bin/zmprov $ZMPROV_OPTS gad); do
 		getdomain="$($ZMPATH/bin/zmprov $ZMPROV_OPTS gd $i zimbraPublicServiceHostname | grep zimbraPublicServiceHostname | cut -f 2 -d ' ')"
 		[ -z "$getdomain" ] && continue
 		# Skip our primary domain
 		[ "$getdomain" == "$DOMAIN" ] && continue
 		EXTRA_DOMAINS="${EXTRA_DOMAINS} $getdomain"
+		! "$QUIET" && echo -n " $getdomain"
 	done
+	! "$QUIET" && echo
 	return 0
 }
 
