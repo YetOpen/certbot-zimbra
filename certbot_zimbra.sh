@@ -9,10 +9,13 @@ VERSION="0.7.5"
 GITHUB_URL="https://github.com/YetOpen/certbot-zimbra"
 # paths
 ZMPATH="/opt/zimbra"
-WEBROOT="$ZMPATH/data/nginx/html"
+ZMWEBROOT="$ZMPATH/data/nginx/html"
 LE_LIVE_PATH="/etc/letsencrypt/live" # the domain will be appended to this path
 TEMPPATH="/run/$PROGNAME"
+# other options
+ZMPROV_OPTS="-l" # use ldap (faster)
 # Do NOT modify anything after this line.
+WEBROOT=""
 CERTPATH=""
 LE_PARAMS=""
 LE_AGREE_TOS=false
@@ -27,7 +30,7 @@ RESTART_ZIMBRA=true
 PROMPT_CONFIRM=false
 DETECT_PUBLIC_HOSTNAMES=true
 SKIP_PORT_CHECK=false
-PORT=80
+PORT=""
 QUIET=false
 
 # set up a trap on exit
@@ -52,13 +55,13 @@ check_user () {
 }
 
 make_temp() {
-	mkdir --mode=750 -p $TEMPPATH || ( echo "Error: Can't create temporary directory $TEMPPATH" && exit 1 )
-	chown root:zimbra $TEMPPATH
+	! mkdir --mode=750 -p "$TEMPPATH" && echo "Error: Can't create temporary directory $TEMPPATH" && exit 1
+	chown root:zimbra "$TEMPPATH"
 }
 
 get_lock(){
-	exec 200 > "$TEMPPATH/$PROGNAME.lck"
-	flock -n 200 || ( echo "Error: can't get exclusive lock. Another instance of this script may be running." && exit 1 )
+	exec 200> "$TEMPPATH/$PROGNAME.lck"
+	! flock -n 200 && echo "Error: can't get exclusive lock. Another instance of this script may be running." && exit 1
 }
 
 prompt(){
@@ -88,7 +91,7 @@ check_depends() {
 	! $QUIET && echo "Checking for dependencies..."
 
 	# do not check for lsof or ss here as we'll do that later
-	for name in su openssl grep head cut sed chmod chown cat cp $ZMPATH/bin/zmcertmgr $ZMPATH/bin/zmcontrol $ZMPATH/bin/zmprov; do
+	for name in su openssl grep head cut sed chmod chown cat cp $ZMPATH/bin/zmcertmgr $ZMPATH/bin/zmcontrol $ZMPATH/bin/zmprov $ZMPATH/libexec/get_plat_tag.sh; do
 		! which "$name" >/dev/null && echo "\"$name\" not found or executable" && exit 1
 	done
 }
@@ -104,64 +107,81 @@ bootstrap() {
 	check_depends
 	check_depends_ca
 
+	# Detect OS and Zimbra version
+
+	# use zimbra's get_plat_tag.sh to find OS and version (this is only for display and not used elsewhere in the script)
+	# returns $OS$ver for 32-bit or $OS$ver_64 for 64-bit, where OS is the os name (UBUNTU,DEBIAN,RHEL,CentOS,F,FC,SLES,openSUSE,UCS,MANDRIVA,SOLARIS,MACOSx)
+	PLATFORM="$($ZMPATH/libexec/get_plat_tag.sh)"
+
 	DETECTED_ZIMBRA_VERSION="$(su - zimbra -c "$ZMPATH/bin/zmcontrol -v" | grep -Po '(\d+).(\d+).(\d+)' | head -n 1)"
 	[ -z "$DETECTED_ZIMBRA_VERSION" ] && echo "Unable to detect zimbra version" && exit 1
-	! "$QUIET" && echo "Detected Zimbra $DETECTED_ZIMBRA_VERSION"
+	! "$QUIET" && echo "Detected Zimbra $DETECTED_ZIMBRA_VERSION on $PLATFORM"
 
-	if ! check_nginx_port; then
-		echo "Zimbra's nginx doesn't seem to be listening on port $PORT."
-		echo "This script uses nginx to verify the letsencrypt certificate retrieval so it needs Zimbra to be publically accessible from port 80."
-		echo "Please pass --port or -j to skip if you're sure this is okay."
-		exit 1
-	fi
 	return 0
 }
 
-# Check if nginx is listening on port 80 or return an error
-check_nginx_port () {
+check_zimbra_proxy() {
+	# must be run after get_domain
+	[ -z "$DOMAIN" ] && echo "Unexpected error (check_zimbra_proxy DOMAIN not set)" && exit 1
+
+	! "$QUIET" && echo "Checking zimbra-proxy is running and enabled"
+
+	# no need if we check if it's running later
+	#su - zimbra -c "$ZMPATH/bin/zmprov gs $DOMAIN zimbraServiceEnabled | grep -q proxy" || ( echo "Error: zimbra-proxy is not enabled" && exit 1 )
+
+	# TODO: check if path to zmproxyctl is different on <8.7
+	! su - zimbra -c "$ZMPATH/bin/zmproxyctl status > /dev/null" && echo "Error: zimbra-proxy is not running" && exit 1
+	! su - zimbra -c "$ZMPATH/bin/zmprov $ZMPROV_OPTS gs $DOMAIN zimbraReverseProxyHttpEnabled | grep -q TRUE" && echo "Error: http reverse proxy not enabled (zimbraReverseProxyHttpEnabled: FALSE)" && exit 1
+
+	if [ -z "$PORT" ]; then
+		! "$QUIET" && echo "Detecting port from zimbraMailProxyPort"
+		PORT="$(su - zimbra -c "$ZMPATH/bin/zmprov $ZMPROV_OPTS gs $DOMAIN zimbraMailProxyPort | sed -n 's/zimbraMailProxyPort: //p'")"
+		[ -z "$PORT" ] && echo "Error: zimbraMailProxyPort not found" && exit 1
+	else
+		echo "Skipping port detection from zimbraMailProxyPort due to --port override"
+	fi
+}
+
+# Check if process is listening on port $1 (optionally with name $2 and/or user $3) or return an error
+check_port () {
 	if "$SKIP_PORT_CHECK"; then
 		! "$QUIET" && echo "Skipping port check"
-		return
+		return 0
 	fi
+
+	[ -z "$1" ] && echo 'Unexpected error: check_port empty $1 (port)' && exit 1
 	
-	! "$QUIET" && echo "Checking if nginx is listening on port $PORT"
+	! "$QUIET" && echo "Checking if process is listening on port $1 ${2:+"with name \"$2\" "}${3:+"user \"$3\""}"
 
-	# Better check with lsof, if available
+	# check with lsof if available, or fall back to ss
 	LSOF_BIN="$(which lsof 2>/dev/null)"
+	SS_BIN="$(which ss 2>/dev/null)"
+	CHECK_BIN=""
 	if [ -x "$LSOF_BIN" ]; then
-		NGINX_CNT="$($LSOF_BIN -i :$PORT -s TCP:LISTEN -u zimbra -a | grep -v COMMAND | wc -l)"
-		(( "$NGINX_CNT" < 1 )) && return 1
-		return 0
+		CHECK_BIN="$LSOF_BIN -i :$1 -s TCP:LISTEN -a -n"
+	elif [ -x "$SS_BIN" ]; then
+		CHECK_BIN="$SS_BIN -lptn sport eq :$1"
+	else
+		echo 'Neither "lsof" nor "ss" were found in PATH. Unable to continue, exiting.'
+		exit 1
 	fi
 
-	# Fallback to ss
-	SS_BIN=$(which ss 2>/dev/null)
-	if [ -x "$SS_BIN" ]; then
-		NGINX_CNT="$($SS_BIN -lptn sport eq :$PORT | grep nginx | wc -l)"
-		(( "$NGINX_CNT" < 1 )) && return 1
-		return 0
-	fi
+	# return false if count of matched processes is 0
+	# optionally $2 and $3 are process name and process user
+	(( "$($CHECK_BIN | grep -c "$2.*$3")" == 0 )) && return 1
 
-	echo 'Neither "lsof" nor "ss" were found in PATH. Unable to continue, exiting.'
-	exit 1
+	return 0
 }
 
 
-# Check if nginx is installed and patch it
+# Patch zimbra proxy nginx and restart it if successful
+# zimbra-proxy must be running (checked with check_zimbra_proxy) or zmproxyctl restart will fail
 # returns true if patch was applied or was already present, exits script if encountered an error
 patch_nginx() {
-	if version_gt "$DETECTED_ZIMBRA_VERSION" 8.7; then
-		NGINX_BIN="$ZMPATH/common/sbin/nginx"
-	else
-		NGINX_BIN="$ZMPATH/nginx/sbin/nginx"
-	fi
-
-	# Exit if nginx is not installed
-	[ ! -x "$NGINX_BIN" ] && echo "$NGINX_BIN not found or executable (zimbra-proxy package not installed?), exiting." && exit 1
 	[ ! -d $ZMPATH/conf/nginx/includes ] && echo "$ZMPATH/conf/nginx/includes not found, exiting" && exit 1
 
 	# Return if patch is already applied
-	if grep -q 'acme-challenge' "$ZMPATH/conf/nginx/includes/nginx.conf.web.http.default"; then
+	if grep -r -q 'acme-challenge' "$ZMPATH/conf/nginx/includes"; then
 		! "$QUIET" && echo "Nginx templates already patched."
 		return
 	fi
@@ -191,7 +211,7 @@ patch_nginx() {
 	# reload nginx config
 	su - zimbra -c 'zmproxyctl restart'; e="$?"
 	if [ "$e" -ne 0 ]; then
-		echo "Error restarting zmproxy (zmproxydctl exit status $e). Exiting."
+		echo "Error restarting zmproxy (zmproxyctl exit status $e). Exiting."
 		exit 1
 	fi
 	return 0
@@ -430,11 +450,11 @@ USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.d
 	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
 	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
   Port check:
-	 -j | --no-port-check: disable nginx port check
-	 -P | --port <port>: HTTP port web server is listening on (default 80)
+	 -j | --no-port-check: disable port check
+	 -P | --port <port>: HTTP port web server to use for letsencrypt authentication is listening on. Is detected from zimbraMailProxyPort. Mandatory with -x/--no-nginx.
   Nginx options:
-	 -w | --webroot "/path/to/www": if there's another webserver on port 80 specify its webroot
-	 -x | --no-nginx: doesn't check and patch zimbra's nginx. Incompatible with -p.
+	 -w | --webroot "/path/to/www": path to the webroot of alternate webserver. Valid only with -x/--no-nginx.
+	 -x | --no-nginx: don't check and patch zimbra-proxy's nginx. Must also specify -P/--port and -w/--webroot. Incompatible with -p/--patch-only.
   Output options:
 	 -c | --prompt-confirm: ask for confirmation. Incompatible with -q.
 	 -q | --quiet: Do not output on stdout. Useful for scripts. Implies -N, incompatible with -c.
@@ -550,15 +570,30 @@ done
 "$PATCH_ONLY" && ("$DEPLOY_ONLY" || "$NEW_CERT" || "$NO_NGINX") && echo "Incompatible option combination" && exit 1
 ! ("$DEPLOY_ONLY" || "$NEW_CERT" || "$PATCH_ONLY") && echo "Nothing to do. Please specify one of: -d -n -p. Exiting." && exit 1
 
+"$NO_NGINX" && [ -z "$WEBROOT" -o \( -z "$PORT" -a ! "$SKIP_PORT_CHECK" \) ] && echo "Error: --no-nginx requires --webroot and --port or --skip-port-check. Exiting." && exit 1
+
 ! "$QUIET" && echo "$PROGNAME v$VERSION - $GITHUB_URL"
 
-# actions
+## actions
 bootstrap
-"$NO_NGINX" || "$DEPLOY_ONLY" || patch_nginx
-"$PATCH_ONLY" && exit 0
 get_domain
-"$DEPLOY_ONLY" || find_certbot 
-"$DEPLOY_ONLY" || request_cert
+
+if ! "$DEPLOY_ONLY"; then
+	if "$NO_NGINX"; then
+		! check_port "$PORT" && echo "Error: port check failed. A web server to use for letsencrypt authentication of the domain $DOMAIN must be listening on the port specified with --port." && exit 1
+	else
+		check_zimbra_proxy
+		! check_port "$PORT" nginx zimbra && echo "Error: port check failed. If you have overridden the port with --port, a web server to use for letsencrypt authentication of the domain $DOMAIN must be listening on it." && exit 1
+		patch_nginx
+		WEBROOT="$ZMWEBROOT"
+	fi
+
+	"$PATCH_ONLY" && exit 0
+
+	find_certbot
+	request_cert
+fi
+
 set_certpath
 prepare_cert
 deploy_cert
