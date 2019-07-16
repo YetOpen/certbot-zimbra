@@ -20,7 +20,7 @@ CERTPATH=""
 LE_PARAMS=""
 LE_AGREE_TOS=false
 LE_NONIACT=false
-EXTRA_DOMAINS=""
+EXTRA_DOMAINS=()
 NO_NGINX=false
 DEPLOY_ONLY=false
 NEW_CERT=false
@@ -222,7 +222,7 @@ patch_nginx() {
 # detect additional public service hostnames from configured domains' zimbraPublicServiceHostname
 find_additional_public_hostnames() {
 	# If already set, leave them alone
-	[ ! -z "$EXTRA_DOMAINS" ] && return
+	[ -n "$EXTRA_DOMAINS" ] && return
 
 	# If it has been requested NOT to perform the search
 	if ! "$DETECT_PUBLIC_HOSTNAMES"; then
@@ -236,7 +236,7 @@ find_additional_public_hostnames() {
 		[ -z "$getdomain" ] && continue
 		# Skip our primary domain
 		[ "$getdomain" == "$DOMAIN" ] && continue
-		EXTRA_DOMAINS="${EXTRA_DOMAINS} $getdomain"
+		EXTRA_DOMAINS=("${EXTRA_DOMAINS[@]}" "$getdomain")
 		! "$QUIET" && echo -n " $getdomain"
 	done
 	! "$QUIET" && echo
@@ -255,7 +255,7 @@ get_domain () {
 	[ -z "$DOMAIN" ] && echo "Error: No domain found! Please run with -d/--hostname or check why zmhostname is not working" && exit 1
 	
 	! "$QUIET" && echo "Using domain $DOMAIN (as certificate DN)"
-	[ ! -z "$EXTRA_DOMAINS" ] && ! "$QUIET" && echo "Found domains to use as certificate SANs: $EXTRA_DOMAINS"
+	[ -n "$EXTRA_DOMAINS" ] && ! "$QUIET" && echo "Found domains to use as certificate SANs: ${EXTRA_DOMAINS[@]}"
 
 	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
 		prompt "Is this correct?"
@@ -326,7 +326,7 @@ request_cert() {
 	"$LE_AGREE_TOS" && LE_PARAMS="$LE_PARAMS --agree-tos"
 	# use --cert-name instead of --expand as it allows also removing domains? https://github.com/certbot/certbot/issues/4275
 	LE_PARAMS="$LE_PARAMS --webroot -w $WEBROOT --expand -d $DOMAIN"
-	for d in "$EXTRA_DOMAINS"; do
+	for d in ${EXTRA_DOMAINS[@]}; do
 		[ -z "$d" ] && continue
 		LE_PARAMS="$LE_PARAMS -d $d"
 	done
@@ -529,7 +529,7 @@ while [[ $# -gt 0 ]]; do
 		# domain
 		-e|--extra-domain)
 			[ -z "$2" ] && echo "missing extra domain argument" && exit 1
-			EXTRA_DOMAINS="${EXTRA_DOMAINS} -d $2"
+			EXTRA_DOMAINS=("${EXTRA_DOMAINS[@]}" "$2")
 			DETECT_PUBLIC_HOSTNAMES=false
 			shift
 			;;
