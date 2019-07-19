@@ -1,3 +1,7 @@
+## v0.7.7-beta
+
+* fix --extra-domain parsing and additional domain detection (#87)
+
 ## v0.7.6-beta
 
 * fix file perms being lost when copying privkey to commercial.key (#84)

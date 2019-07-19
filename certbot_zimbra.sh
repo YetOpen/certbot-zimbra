@@ -5,7 +5,7 @@
 # GPLv3 license
 
 PROGNAME="certbot-zimbra"
-VERSION="0.7.6"
+VERSION="0.7.7"
 GITHUB_URL="https://github.com/YetOpen/certbot-zimbra"
 # paths
 ZMPATH="/opt/zimbra"
