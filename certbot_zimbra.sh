@@ -41,6 +41,10 @@ exitfunc(){
 		echo "An error seems to have occurred. Please read the output above for clues and try to rectify the situation."
 		echo "If you believe this is an error with the script, please file an issue at $GITHUB_URL."
 	fi
+
+	# close fd used for locking, workaround for issue #89
+	exec 200>&-
+
 	exit "$e"
 }
 trap exitfunc EXIT
