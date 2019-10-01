@@ -44,6 +44,7 @@ exitfunc(){
 
 	# close fd used for locking, workaround for issue #89
 	exec 200>&-
+	rm "$TEMPPATH/$PROGNAME.lck"
 
 	exit "$e"
 }
