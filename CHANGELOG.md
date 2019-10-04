@@ -1,3 +1,8 @@
+## v0.7.8-beta - in progress
+
+* fix --extra-domain parsing and additional domain detection (#87)
+* fix ss check (#91)
+
 ## v0.7.7-beta
 
 * fix --extra-domain parsing and additional domain detection (#87)
