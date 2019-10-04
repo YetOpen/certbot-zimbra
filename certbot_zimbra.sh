@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # author: Lorenzo Milesi <maxxer@yetopen.it>
-# contributions: Jernej Jakob <jernej.jakob@gmail.com>
+# author: Jernej Jakob <jernej.jakob@gmail.com>
 # GPLv3 license
 
 PROGNAME="certbot-zimbra"
-VERSION="0.7.7"
+VERSION="0.7.8"
 GITHUB_URL="https://github.com/YetOpen/certbot-zimbra"
 # paths
 ZMPATH="/opt/zimbra"
@@ -150,17 +150,21 @@ check_port () {
 	fi
 
 	[ -z "$1" ] && echo 'Unexpected error: check_port empty $1 (port)' && exit 1
-	
+
 	! "$QUIET" && echo "Checking if process is listening on port $1 ${2:+"with name \"$2\" "}${3:+"user \"$3\""}"
 
 	# check with lsof if available, or fall back to ss
 	LSOF_BIN="$(which lsof 2>/dev/null)"
 	SS_BIN="$(which ss 2>/dev/null)"
 	CHECK_BIN=""
+	GREP_FILTER=""
 	if [ -x "$LSOF_BIN" ]; then
 		CHECK_BIN="$LSOF_BIN -i :$1 -s TCP:LISTEN -a -n"
+		GREP_FILTER="$2.*$3"
 	elif [ -x "$SS_BIN" ]; then
 		CHECK_BIN="$SS_BIN -lptn sport eq :$1"
+		# ss doesn't return process user, so don't use it for count
+		GREP_FILTER="$2"
 	else
 		echo 'Error: Neither "lsof" nor "ss" were found in PATH. Unable to continue, exiting.'
 		exit 1
@@ -168,7 +172,7 @@ check_port () {
 
 	# return false if count of matched processes is 0
 	# optionally $2 and $3 are process name and process user
-	(( "$($CHECK_BIN | grep -c "$2.*$3")" == 0 )) && return 1
+	(( "$($CHECK_BIN | grep -c "$GREP_FILTER")" == 0 )) && return 1
 
 	return 0
 }
@@ -189,7 +193,7 @@ patch_nginx() {
 	[ -z $WEBROOT ] && echo "Unexpected error: patch_nginx WEbROOT not set. Exiting." && exit 1
 
 	! "$QUIET" && echo "Patching nginx templates."
-	
+
 	set -e
 
 	# Let's make a backup of zimbra's original templates
@@ -253,7 +257,7 @@ get_domain () {
 	fi
 
 	[ -z "$DOMAIN" ] && echo "Error: No domain found! Please run with -d/--hostname or check why zmhostname is not working" && exit 1
-	
+
 	! "$QUIET" && echo "Using domain $DOMAIN (as certificate DN)"
 	[ -n "$EXTRA_DOMAINS" ] && ! "$QUIET" && echo "Found domains to use as certificate SANs: ${EXTRA_DOMAINS[@]}"
 
@@ -290,7 +294,7 @@ set_certpath() {
 
 check_webroot () {
 	[ -z "$WEBROOT" ] && echo "Unexpected error: check_webroot WEBROOT not set. Exiting." && exit 1
-		
+	
 	# <8.7 didn't have nginx webroot
 	if [ ! -d "$WEBROOT" ]; then
 		if ! "$QUIET" && "$PROMPT_CONFIRM"; then
@@ -318,9 +322,9 @@ find_certbot () {
 # perform the letsencrypt request
 request_cert() {
 	check_webroot
-	
+
 	#TODO: dry-run
-	
+
 	"$LE_NONIACT" && LE_PARAMS="--non-interactive"
 	"$QUIET" && LE_PARAMS="$LE_PARAMS --quiet"
 	"$LE_AGREE_TOS" && LE_PARAMS="$LE_PARAMS --agree-tos"
@@ -347,7 +351,7 @@ prepare_cert() {
 
 	[ -z "$CERTPATH" ] && echo "Unexpected error (prepare_cert CERTPATH not set). Exiting." && exit 1
 	[ -z "$DOMAIN" ] && echo "Unexpected error (prepare_cert DOMAIN not set). Exiting." && exit 1
-	
+
 	# Make zimbra accessible files
 	# save old umask
 	oldumask="$(umask -p)"
@@ -418,12 +422,12 @@ deploy_cert() {
 
 	# copy privkey
 	cp -a "$tmpcerts/privkey.pem" "$ZMPATH/ssl/zimbra/commercial/commercial.key"
-	
+
 	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
 		prompt "Deploy certificates to Zimbra?"
 		(( $? == 1 )) && echo "Cannot proceed. Exiting." && exit 1
 	fi
-	
+
 	"$QUIET" && exec > /dev/null
 	# this is it, deploy the cert.
 	if version_gt "$DETECTED_ZIMBRA_VERSION" "8.7"; then
@@ -487,8 +491,7 @@ USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.d
 	 -c | --prompt-confirm: ask for confirmation. Incompatible with -q/--quiet.
 	 -q | --quiet: Do not output on stdout. Useful for scripts. Implies -N/--noninteractive, incompatible with -c/--prompt-confirm.
 
-Author: Lorenzo Milesi <maxxer@yetopen.it>
-Contributors: Jernej Jakob <jernej.jakob@gmail.com> @jjakob
+Authors: Lorenzo Milesi <maxxer@yetopen.it>, Jernej Jakob <jernej.jakob@gmail.com> @jjakob
 Feedback, bugs and PR are welcome on GitHub: https://github.com/yetopen/certbot-zimbra.
 
 Disclaimer:
