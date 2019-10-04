@@ -41,6 +41,11 @@ exitfunc(){
 		echo "An error seems to have occurred. Please read the output above for clues and try to rectify the situation."
 		echo "If you believe this is an error with the script, please file an issue at $GITHUB_URL."
 	fi
+
+	# close fd used for locking, workaround for issue #89
+	exec 200>&-
+	rm "$TEMPPATH/$PROGNAME.lck"
+
 	exit "$e"
 }
 trap exitfunc EXIT
@@ -61,7 +66,8 @@ make_temp() {
 
 get_lock(){
 	exec 200> "$TEMPPATH/$PROGNAME.lck"
-	! flock -n 200 && echo "Error: can't get exclusive lock. Another instance of this script may be running." && exit 1
+	! flock -n 200 && echo "Error: can't get exclusive lock. Another instance of this script may be running.
+If you are sure there is no other instance of this script running (check with \"ps afx\") you can remove $TEMPPATH/$PROGNAME.lck and try again." && exit 1
 }
 
 prompt(){
