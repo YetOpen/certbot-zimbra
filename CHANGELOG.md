@@ -2,6 +2,8 @@
 
 * fix --extra-domain parsing and additional domain detection (#87)
 * fix ss check (#91)
+* Close fd used for locking on exit, workaround for issue #89
+* Remove lock file too (fixes issue #89)
 
 ## v0.7.7-beta
 
