@@ -181,7 +181,7 @@ If you want to suppress status output and only receive notifications on errors, 
 
 If you prefer systemd you can use these instructions.
 The example below uses the deploy-hook which will only rerun the script if a renewal was successful and thus only reloading zimbra when needed.
-Sadly, systemd doesn't have a built-in on-failure mail notification function like cron does. One could write a service to do that via "OnFailure=".
+Sadly, systemd doesn't have a built-in on-failure mail notification function like cron does so you won't be notified of failed renewals. One could write a service to do that via "OnFailure=".
 
 Create a service file eg: /etc/systemd/system/renew-letsencrypt.service
 
@@ -252,6 +252,20 @@ Say you have apache in front of zimbra (or listening on port 80 only) just run `
 so that it will deploy the certificate in zimbra.
 
 Set up renewal as above, but without --pre-hook.
+
+# Troubleshooting
+
+## Error: port check failed
+
+This usually means zimbra-proxy is misconfigured. In the default case (without port overrides) the script checks if zimbra-proxy's nginx is listening on "zimbraMailProxyPort" (can be read with zmprov, port 80 in most cases). If this check fails, zimbra-proxy is misconfigured, not enabled, not started or you have a custom port configuration and didn't tell the script via port override parameters.
+
+Zimbra's proxy guide ([Zimbra Proxy Guide](https://wiki.zimbra.com/wiki/Zimbra_Proxy_Guide)) is usually quite confusing for a novice and may be difficult to learn. For this we have a quick [Zimbra oroxy configuration for certbot-zimbra guide](https://github.com/YetOpen/certbot-zimbra/wiki/Zimbra-proxy-configuration-for-Certbot-Zimbra) to get you up and running quickly. Still, you should get to know zimbra-proxy and configure it according to your own needs.
+
+## certbot failures
+
+Check that you have an updated version of certbot installed. If you have installed certbot from your operating system's repositories, they may be out of date. Use the way that certbot recommends for your operating system on their installation page, or install certbot-auto (will auto-update on each invocation). Remove the old certbot packages first.
+
+Check that ports 80 and 443 are open and accessible from the outside and check that your domain points to the server's IP. Basically troubleshoot Letsencrypt as if you weren't using certbot-zimbra.
 
 # Notes
 
