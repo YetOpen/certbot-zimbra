@@ -287,7 +287,24 @@ To check if you have the old method, run `grep authenticator /etc/letsencrypt/re
 To update to the new "webroot" method you can simply run `certbot-zimbra.sh -n -c -L "--cert-name [yourcertname] --force-renewal"`. This will force renew your existing certificate and save the new authentication method. It'll also ask you for deploying the new certificate in Zimbra. You can also manually modify the config file in /etc/letsencrypt/renewal/, while not recommended, is detailed here: https://community.letsencrypt.org/t/how-to-change-certbot-verification-method/56735
 
 ## How it works
-TODO: explain the nginx patching mathod, etc.
+This script uses zimbra-proxy's nginx to intercept requests to .well-known/acme-challenge and pass them to a custom webroot folder. To do this, we patch the templates Zimbra uses to build nginx's configuration files.
+The patch is simple, we add this new section to the end of the templates:
+```
+    # patched by certbot-zimbra.sh
+    location ^~ /.well-known/acme-challenge {
+        root $WEBROOT;
+    }
+```
+$WEBROOT is either /opt/zimbra/data/nginx/html (default) or the path specified by the command line option.
+After this we restart zmproxy to apply the patches.
+
+We then pass this webroot to certbot with the webroot plugin to obtain the certificate.
+
+After the certificate has been obtained successfully we stage the certificates in a temporary directory, find the correct CA certificates from the system's certificate store and build the certificate files in a way Zimbra expects them. If verification with zmcertmgr succeeds we deploy the new certificates, restart Zimbra and clean up the temporary files.
+
+After the first patching the script will check if the templates have been already patched and if so, it skips the patching and zmproxy restart steps. This is useful in cron jobs where even if we upgrade Zimbra and wipe out the patched templates they'll be repatched automatically.
+
+The use of --deploy-only from --deploy-hook in cron jobs will only deploy the certificates if a renewal was successful. Thus Zimbra won't be unnecessarily restarted if no renewal was done.
 
 ## Certbot notes
 
