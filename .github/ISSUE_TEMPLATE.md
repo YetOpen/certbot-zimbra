@@ -1,9 +1,9 @@
 * If you have upgraded to v0.7+ from older versions, please check that you have also changed your command line options in crontabs or systemd units and that you are using the correct post-0.7 options if running manually (read the [readme](https://github.com/YetOpen/certbot-zimbra)).
 
 * Copy-paste the complete output of the failing command and put it into a code block:
-    ```
-    place command output here
-    ```
+```
+place command output here
+```
 
 * List the versions of your operating system, Zimbra and Certbot-zimbra if not included in the output of certbot-zimbra you copy-pasted.
 
