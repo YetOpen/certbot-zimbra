@@ -32,6 +32,7 @@ DETECT_PUBLIC_HOSTNAMES=true
 SKIP_PORT_CHECK=false
 PORT=""
 QUIET=false
+MIN_CERTBOT_VERSION="0.19.0"
 
 # set up a trap on exit
 exitfunc(){
@@ -322,6 +323,14 @@ find_certbot () {
 	# check for executable certbot-auto / certbot / letsencrypt
 	LE_BIN="$(which certbot-auto certbot letsencrypt 2>/dev/null | head -n 1)"
 	[ -z "$LE_BIN" ] && echo "Error: No letsencrypt/certbot binary found in $PATH" && exit 1
+
+	DETECTED_CERTBOT_VERSION="$($LE_BIN --version 2>&1)"
+	! "$QUIET" && echo "Detected $DETECTED_CERTBOT_VERSION"
+	if ! version_gt $(echo $DETECTED_CERTBOT_VERSION | grep -Po '(\d+).(\d+).(\d+)') $MIN_CERTBOT_VERSION; then
+		echo "Error: certbot is too old, please upgrade to certbot >=$MIN_CERTBOT_VERSION. Exiting."
+		exit 1
+	fi
+
 	return 0
 }
 
