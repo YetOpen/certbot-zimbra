@@ -33,6 +33,7 @@ SKIP_PORT_CHECK=false
 PORT=""
 QUIET=false
 MIN_CERTBOT_VERSION="0.19.0"
+LOCKED=false
 
 # set up a trap on exit
 exitfunc(){
@@ -45,7 +46,9 @@ exitfunc(){
 
 	# close fd used for locking, workaround for issue #89
 	exec 200>&-
-	rm "$TEMPPATH/$PROGNAME.lck"
+	if $LOCKED; then
+		rm "$TEMPPATH/$PROGNAME.lck"
+	fi
 
 	exit "$e"
 }
@@ -69,6 +72,7 @@ get_lock(){
 	exec 200> "$TEMPPATH/$PROGNAME.lck"
 	! flock -n 200 && echo "Error: can't get exclusive lock. Another instance of this script may be running.
 If you are sure there is no other instance of this script running (check with \"ps afx\") you can remove $TEMPPATH/$PROGNAME.lck and try again." && exit 1
+	LOCKED=true
 }
 
 prompt(){
