@@ -356,10 +356,12 @@ request_cert() {
 
 	! "$QUIET" && echo "Running $LE_BIN certonly $LE_PARAMS"
 	"$QUIET" && exec > /dev/null
+	"$QUIET" && exec 2>/dev/null
 	# Request our cert
 	$LE_BIN certonly $LE_PARAMS
 	e=$?
-	"$QUIET" && exec > /dev/tty
+	"$QUIET" && exec > /dev/stdout
+	"$QUIET" && exec 2> /dev/stderr
 	[ "$e" -ne 0 ] && echo "Error: $LE_BIN exit status $e. Cannot proceed, exiting." && exit 1
 	return 0
 }
@@ -413,6 +415,7 @@ prepare_cert() {
 
 	# redirect stdout to /dev/null if quiet
 	"$QUIET" && exec > /dev/null
+	"$QUIET" && exec 2>/dev/null
 
 	# Test cert. 8.6 and below must use root
 	if version_gt "$DETECTED_ZIMBRA_VERSION" "8.7"; then
@@ -422,7 +425,8 @@ prepare_cert() {
 	fi
 
 	# undo quiet
-	"$QUIET" && exec > /dev/tty
+	"$QUIET" && exec > /dev/stdout
+	"$QUIET" && exec 2> /dev/stderr
 
 	# undo set -e
 	set +e
@@ -448,13 +452,15 @@ deploy_cert() {
 	fi
 
 	"$QUIET" && exec > /dev/null
+	"$QUIET" && exec 2>/dev/null
 	# this is it, deploy the cert.
 	if version_gt "$DETECTED_ZIMBRA_VERSION" "8.7"; then
 		su - zimbra -c "$ZMPATH/bin/zmcertmgr deploycrt comm $tmpcerts/cert.pem $tmpcerts/zimbra_chain.pem -deploy ${SERVICES}"
 	else
 		$ZMPATH/bin/zmcertmgr deploycrt comm "$tmpcerts/cert.pem" "$tmpcerts/zimbra_chain.pem"
 	fi
-	"$QUIET" && exec > /dev/tty
+	"$QUIET" && exec > /dev/stdout
+	"$QUIET" && exec 2> /dev/stderr
 
 	! "$QUIET" && echo "Removing temporary files in $tmpcerts"
 	# this is kind of sketchy
@@ -469,10 +475,12 @@ deploy_cert() {
 		! "$QUIET" && echo "Restarting Zimbra."
 
 		"$QUIET" && exec > /dev/null
+		"$QUIET" && exec 2> /dev/null
 		# Finally apply cert!
 		su - zimbra -c 'zmcontrol restart'
 		# FIXME And hope that everything started fine! :)
-		"$QUIET" && exec > /dev/tty
+		"$QUIET" && exec > /dev/stdout
+		"$QUIET" && exec 2> /dev/stderr
 	fi
 
 	set +e
