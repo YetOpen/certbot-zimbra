@@ -226,7 +226,7 @@ patch_nginx() {
 
 	! "$QUIET" && echo "Running zmproxyctl restart."
 	# reload nginx config
-	su - zimbra -c 'zmproxyctl restart'; e="$?"
+	su - zimbra -c 'zmproxyctl restart' 200>&-; e="$?"
 	if [ "$e" -ne 0 ]; then
 		echo "Error restarting zmproxy (zmproxyctl exit status $e). Exiting."
 		exit 1
@@ -479,7 +479,7 @@ deploy_cert() {
 		"$QUIET" && exec > /dev/null
 		"$QUIET" && exec 2> /dev/null
 		# Finally apply cert!
-		su - zimbra -c 'zmcontrol restart'
+		su - zimbra -c 'zmcontrol restart' 200>&-
 		# FIXME And hope that everything started fine! :)
 		"$QUIET" && exec > /dev/stdout
 		"$QUIET" && exec 2> /dev/stderr
