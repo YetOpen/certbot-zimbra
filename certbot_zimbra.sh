@@ -44,9 +44,9 @@ exitfunc(){
 		echo "If you believe this is an error with the script, please file an issue at $GITHUB_URL."
 	fi
 
-	# close fd used for locking, workaround for issue #89
+	# close fd used for locking
 	exec 200>&-
-	if $LOCKED; then
+	if "$LOCKED"; then
 		rm "$TEMPPATH/$PROGNAME.lck"
 	fi
 
@@ -193,7 +193,7 @@ check_port () {
 # zimbra-proxy must be running (checked with check_zimbra_proxy) or zmproxyctl restart will fail
 # returns true if patch was applied or was already present, exits script if encountered an error
 patch_nginx() {
-	[ ! -d $ZMPATH/conf/nginx/includes ] && echo "Error: $ZMPATH/conf/nginx/includes not found, exiting" && exit 1
+	[ ! -d "$ZMPATH/conf/nginx/includes" ] && echo "Error: $ZMPATH/conf/nginx/includes not found, exiting" && exit 1
 
 	# Return if patch is already applied
 	if grep -r -q 'acme-challenge' "$ZMPATH/conf/nginx/includes"; then
@@ -346,7 +346,7 @@ request_cert() {
 
 	#TODO: dry-run
 
-	"$LE_NONIACT" && LE_PARAMS="--non-interactive"
+	"$LE_NONIACT" && LE_PARAMS="$LE_PARAMS --non-interactive"
 	"$QUIET" && LE_PARAMS="$LE_PARAMS --quiet"
 	"$LE_AGREE_TOS" && LE_PARAMS="$LE_PARAMS --agree-tos"
 	# use --cert-name instead of --expand as it allows also removing domains? https://github.com/certbot/certbot/issues/4275
@@ -360,7 +360,7 @@ request_cert() {
 	"$QUIET" && exec > /dev/null
 	"$QUIET" && exec 2>/dev/null
 	# Request our cert
-	$LE_BIN certonly $LE_PARAMS
+	"$LE_BIN" certonly $LE_PARAMS
 	e=$?
 	"$QUIET" && exec > /dev/stdout
 	"$QUIET" && exec 2> /dev/stderr
@@ -393,14 +393,14 @@ prepare_cert() {
 	if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
 	        # Debian/Ubuntu
 		# use the issuer_hash of the LE chain cert to find the root CA in /etc/ssl/certs
-		cat "/etc/ssl/certs/$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer_hash).0" >> $tmpcerts/zimbra_chain.pem
+		cat "/etc/ssl/certs/$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer_hash).0" >> "$tmpcerts/zimbra_chain.pem"
 	elif [ -f /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem ]; then
 		# RHEL/CentOS
 		# extract CA by CN in tls-ca-bundle.pem
 		issuer="$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer | sed -n 's/.*CN=//;s/\/.*$//;p')"
 		[ -z "$issuer" ] && exit 1
 		# the following awk script extracts the CA cert from the bundle or exits 1 if not found
-		awk "BEGIN {e=1}; /^# $issuer$/{e=0} /^# $issuer$/,/END CERTIFICATE/; END {exit e}" /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem >> $tmpcerts/zimbra_chain.pem
+		awk "BEGIN {e=1}; /^# $issuer$/{e=0} /^# $issuer$/,/END CERTIFICATE/; END {exit e}" /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem >> "$tmpcerts/zimbra_chain.pem"
 	else
 		# we shouldn't be here
 		echo "Unexpected error (problem in check_depends_ca)" && exit 1
@@ -423,7 +423,7 @@ prepare_cert() {
 	if version_gt "$DETECTED_ZIMBRA_VERSION" "8.7"; then
 		su - zimbra -c "$ZMPATH/bin/zmcertmgr verifycrt comm $tmpcerts/privkey.pem $tmpcerts/cert.pem $tmpcerts/zimbra_chain.pem"
 	else
-		$ZMPATH/bin/zmcertmgr verifycrt comm "$tmpcerts/privkey.pem" "$tmpcerts/cert.pem" "$tmpcerts/zimbra_chain.pem"
+		"$ZMPATH/bin/zmcertmgr" verifycrt comm "$tmpcerts/privkey.pem" "$tmpcerts/cert.pem" "$tmpcerts/zimbra_chain.pem"
 	fi
 
 	# undo quiet
@@ -459,7 +459,7 @@ deploy_cert() {
 	if version_gt "$DETECTED_ZIMBRA_VERSION" "8.7"; then
 		su - zimbra -c "$ZMPATH/bin/zmcertmgr deploycrt comm $tmpcerts/cert.pem $tmpcerts/zimbra_chain.pem -deploy ${SERVICES}"
 	else
-		$ZMPATH/bin/zmcertmgr deploycrt comm "$tmpcerts/cert.pem" "$tmpcerts/zimbra_chain.pem"
+		"$ZMPATH/bin/zmcertmgr" deploycrt comm "$tmpcerts/cert.pem" "$tmpcerts/zimbra_chain.pem"
 	fi
 	"$QUIET" && exec > /dev/stdout
 	"$QUIET" && exec 2> /dev/stderr
