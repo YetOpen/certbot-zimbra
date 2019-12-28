@@ -245,16 +245,11 @@ find_additional_public_hostnames() {
 		return
 	fi
 
-	! "$QUIET" && echo -n "Detecting additional public service hostnames..."
-	for i in $($ZMPATH/bin/zmprov $ZMPROV_OPTS gad); do
-		getdomain="$($ZMPATH/bin/zmprov $ZMPROV_OPTS gd $i zimbraPublicServiceHostname | grep zimbraPublicServiceHostname | cut -f 2 -d ' ')"
-		[ -z "$getdomain" ] && continue
-		# Skip our primary domain
-		[ "$getdomain" == "$DOMAIN" ] && continue
-		EXTRA_DOMAINS=("${EXTRA_DOMAINS[@]}" "$getdomain")
-		! "$QUIET" && echo -n " $getdomain"
-	done
-	! "$QUIET" && echo
+	! "$QUIET" && echo -n "Detecting additional public service hostnames... "
+
+	EXTRA_DOMAINS=($(su - zimbra -c "zmprov $ZMPROV_OPTS gad" | awk '{printf "gd %s zimbraPublicServiceHostname\n", $0}' | su - zimbra -c "zmprov $ZMPROV_OPTS -" | sed "/prov>/d;/# name/d;/$DOMAIN/d;/^$/d;s/zimbraPublicServiceHostname: \(.*\)/\1/"))
+	! "$QUIET" && echo "Found ${#EXTRA_DOMAINS[@]} zimbraPublicServiceHostnames through auto-detection"
+
 	return 0
 }
 
@@ -263,19 +258,26 @@ get_domain () {
 	if [ -z "$DOMAIN" ]; then
 		! "$QUIET" && echo "Using zmhostname to detect domain."
 		DOMAIN="$($ZMPATH/bin/zmhostname)"
-		# Find additional domains
-		"$DEPLOY_ONLY" || find_additional_public_hostnames
 	fi
 
 	[ -z "$DOMAIN" ] && echo "Error: No domain found! Please run with -d/--hostname or check why zmhostname is not working" && exit 1
 
 	! "$QUIET" && echo "Using domain $DOMAIN (as certificate DN)"
-	[ -n "$EXTRA_DOMAINS" ] && ! "$QUIET" && echo "Found domains to use as certificate SANs: ${EXTRA_DOMAINS[@]}"
 
 	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
 		prompt "Is this correct?"
 		(( $? == 1 )) && echo "Error: Please call $(basename $0) --hostname your.host.name" && exit 1
 	fi
+
+	# Find additional domains
+	"$NEW_CERT" && find_additional_public_hostnames
+
+	if [ -n "$EXTRA_DOMAINS" ] && ! "$QUIET"; then
+		echo "Got ${#EXTRA_DOMAINS[@]} domains to use as certificate SANs: ${EXTRA_DOMAINS[@]}"
+		prompt "Proceed?"
+		(( $? == 1 )) && echo "Exiting." && exit 1
+	fi
+
 	return 0
 }
 
