@@ -142,8 +142,9 @@ Certbot will also ask you some information about the certificate interactively, 
 
 The domain of the certificate is obtained automatically using `zmhostname`. If you want to request a specific hostname use the `-H/--hostname` option. This domain will be the DN of the certificate.
 
-The certificate can be requested with additional hostnames/SANs. By default the script loops though all Zimbra domains, fetches 
-the `zimbraPublicServiceHostname` attribute and if present, adds it to the certificate SANs to be requested. This automatic detection may take several minutes depending on the number of domains you have. If you want to disable this behavior use the `-u/--no-public-hostname-detection` option. 
+The certificate can be requested with additional hostnames/SANs. By default the script fetches the `zimbraPublicServiceHostname` attribute from all domains and if present, adds it to the certificate SANs to be requested. If you want to disable this behavior use the `-u/--no-public-hostname-detection` option.
+
+**Note:** Let's Encrypt has a limit of a maximum of 100 domains per certificate at the time of this writing: [Rate Limits](https://letsencrypt.org/docs/rate-limits/)
 
 To indicate additional domains explicitly use the `-e/--extra-domain` option (can be specified multiple times). Note that `-e` also disables additional hostname detection. 
 
