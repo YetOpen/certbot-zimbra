@@ -362,8 +362,7 @@ request_cert() {
 	"$LE_NONIACT" && LE_PARAMS="$LE_PARAMS --non-interactive"
 	"$QUIET" && LE_PARAMS="$LE_PARAMS --quiet"
 	"$LE_AGREE_TOS" && LE_PARAMS="$LE_PARAMS --agree-tos"
-	# use --cert-name instead of --expand as it allows also removing domains? https://github.com/certbot/certbot/issues/4275
-	LE_PARAMS="$LE_PARAMS --webroot -w $WEBROOT --expand -d $DOMAIN"
+	LE_PARAMS="$LE_PARAMS --webroot -w $WEBROOT --cert-name $DOMAIN -d $DOMAIN"
 	for d in ${EXTRA_DOMAINS[@]}; do
 		[ -z "$d" ] && continue
 		LE_PARAMS="$LE_PARAMS -d $d"
