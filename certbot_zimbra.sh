@@ -357,6 +357,11 @@ find_certbot () {
 request_cert() {
 	check_webroot
 
+	if "$PROMPT_CONFIRM"; then
+		prompt "We will now run certbot to request the certificate. Proceed?"
+		(( $? == 1 )) && echo "Exiting." && exit 0
+	fi
+
 	#TODO: dry-run
 
 	"$LE_NONIACT" && LE_PARAMS="$LE_PARAMS --non-interactive"
