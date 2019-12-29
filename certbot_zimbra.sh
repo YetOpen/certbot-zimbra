@@ -137,9 +137,6 @@ check_zimbra_proxy() {
 
 	! "$QUIET" && echo "Checking zimbra-proxy is running and enabled"
 
-	# no need if we check if it's running later
-	#su - zimbra -c "$ZMPATH/bin/zmprov $ZMPROV_OPTS gs $DOMAIN zimbraServiceEnabled | grep -q proxy" || ( echo "Error: zimbra-proxy is not enabled" && exit 1 )
-
 	# TODO: check if path to zmproxyctl is different on <8.7
 	! su - zimbra -c "$ZMPATH/bin/zmproxyctl status > /dev/null" && echo "Error: zimbra-proxy is not running" && exit 1
 	! su - zimbra -c "$ZMPATH/bin/zmprov $ZMPROV_OPTS gs $DOMAIN zimbraReverseProxyHttpEnabled | grep -q TRUE" && echo "Error: http reverse proxy not enabled (zimbraReverseProxyHttpEnabled: FALSE)" && exit 1
