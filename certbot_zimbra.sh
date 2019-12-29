@@ -231,7 +231,7 @@ patch_nginx() {
 
 	set +e
 
-	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
+	if "$PROMPT_CONFIRM"; then
                 prompt "Restart zmproxy?"
                 (( $? == 1 )) && echo "Cannot continue. Exiting." && exit 0
         fi
@@ -277,7 +277,7 @@ get_domain () {
 
 	! "$QUIET" && echo "Using domain $DOMAIN (as certificate DN)"
 
-	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
+	if "$PROMPT_CONFIRM"; then
 		prompt "Is this correct?"
 		(( $? == 1 )) && echo "Error: Please call $(basename $0) --hostname your.host.name" && exit 0
 	fi
@@ -323,7 +323,7 @@ check_webroot () {
 	
 	# <8.7 didn't have nginx webroot
 	if [ ! -d "$WEBROOT" ]; then
-		if ! "$QUIET" && "$PROMPT_CONFIRM"; then
+		if "$PROMPT_CONFIRM"; then
 			prompt "Create $WEBROOT?"
 			if (( $? == 0 )); then
 				mkdir -p "$WEBROOT"
@@ -465,7 +465,7 @@ deploy_cert() {
 	# copy privkey
 	cp -a "$tmpcerts/privkey.pem" "$ZMPATH/ssl/zimbra/commercial/commercial.key"
 
-	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
+	if "$PROMPT_CONFIRM"; then
 		prompt "Deploy certificates to Zimbra? This may restart some services."
 		(( $? == 1 )) && echo "Cannot proceed. Exiting." && exit 0
 	fi
@@ -486,7 +486,7 @@ deploy_cert() {
 	[ -n "$tmpcerts" ] && rm -r "$tmpcerts"
 
 	if "$RESTART_ZIMBRA"; then
-		if ! "$QUIET" && "$PROMPT_CONFIRM"; then
+		if "$PROMPT_CONFIRM"; then
 			prompt "Restart Zimbra?"
 			(( $? == 1 )) && echo "Cannot proceed. Exiting." && exit 0
 		fi
