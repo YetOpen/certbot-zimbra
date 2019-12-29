@@ -1,9 +1,31 @@
-## v0.7.8-beta - in progress
+## v0.7.8-beta
 
-* fix --extra-domain parsing and additional domain detection (#87)
-* fix ss check (#91)
 * Close fd used for locking on exit, workaround for issue #89
-* Remove lock file too (fixes issue #89)
+* Remove lock file too (#89)
+* Tell user he can remove the lockfile
+* Custom ss check, as it doesn't contain the user. Fix #91
+* Add troubleshooting section to readme
+* Add issue template
+* Fix formatting of issue template
+* Add "how it works" explanation
+* Add certbot version check
+* Remove lock file only if we successfully obtained a lock (#89)
+* On quiet redirect to /dev/stdout instead of /dev/tty, also redirect stderr
+* Rewrite find_additional_public_hostnames to be much faster (#95)
+* README: update section describing additional hostname detection
+* Some extra quoting where possible
+* Close locking fd when running zmproxyctl/zmcontrol restart (fix #89)
+* Remove unneeded commented proxy service check
+* Add nonstandard zimbraMailProxyPort warning with prompt (issue #90)
+* Wrap very long lines
+* Update TESTING: moved -e to tested
+* certbot: use --cert-name instead of --expand (issue #97)
+* Change exit status for prompts, fix typos
+* Changed prompt to allow not including detected SANs
+* Add prompt before running certbot
+* Remove redundant QUIET check before prompts
+* Fix prompts exit status in deploy stage
+* Create webroot even without prompt confirm enabled
 
 ## v0.7.7-beta
 
