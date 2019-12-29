@@ -148,6 +148,19 @@ check_zimbra_proxy() {
 	else
 		echo "Skipping port detection from zimbraMailProxyPort due to --port override"
 	fi
+
+	if [ "$PORT" != "80" ] && ! "$QUIET"; then
+		echo "WARNING: non-standard zimbraMailProxyPort $PORT. 
+This needs to be 80 from the internet for Let's Encrypt (certbot) to work. 
+If you have NAT set up to do the translation this is likely fine. 
+If not, your Zimbra proxy is misconfigured and certbot will fail."
+		if "$PROMPT_CONFIRM"; then
+			prompt "Proceed?"
+			(( $? == 1 )) && echo "Cannot continue. Exiting." && exit 1
+		else
+			echo "WARNING: Prompt disabled, proceeding anyway."
+		fi
+	fi
 }
 
 # Check if process is listening on port $1 (optionally with name $2 and/or user $3) or return an error
