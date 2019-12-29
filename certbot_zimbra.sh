@@ -139,7 +139,8 @@ check_zimbra_proxy() {
 
 	# TODO: check if path to zmproxyctl is different on <8.7
 	! su - zimbra -c "$ZMPATH/bin/zmproxyctl status > /dev/null" && echo "Error: zimbra-proxy is not running" && exit 1
-	! su - zimbra -c "$ZMPATH/bin/zmprov $ZMPROV_OPTS gs $DOMAIN zimbraReverseProxyHttpEnabled | grep -q TRUE" && echo "Error: http reverse proxy not enabled (zimbraReverseProxyHttpEnabled: FALSE)" && exit 1
+	! su - zimbra -c "$ZMPATH/bin/zmprov $ZMPROV_OPTS gs $DOMAIN zimbraReverseProxyHttpEnabled | grep -q TRUE" \
+			&& echo "Error: http reverse proxy not enabled (zimbraReverseProxyHttpEnabled: FALSE)" && exit 1
 
 	if [ -z "$PORT" ]; then
 		! "$QUIET" && echo "Detecting port from zimbraMailProxyPort"
@@ -224,7 +225,8 @@ patch_nginx() {
 
 	# do patch
 	for file in http.default https.default http https ; do
-		sed -i "s#^}#\n    \# patched by certbot-zimbra.sh\n    location ^~ /.well-known/acme-challenge {\n        root $WEBROOT;\n    }\n}#" "$ZMPATH/conf/nginx/templates/nginx.conf.web.$file.template"
+		sed -i "s#^}#\n    \# patched by certbot-zimbra.sh\n    location ^~ /.well-known/acme-challenge {\n        root $WEBROOT;\n    }\n}#" \
+			"$ZMPATH/conf/nginx/templates/nginx.conf.web.$file.template"
 	done
 
 	set +e
@@ -257,7 +259,8 @@ find_additional_public_hostnames() {
 
 	! "$QUIET" && echo -n "Detecting additional public service hostnames... "
 
-	EXTRA_DOMAINS=($(su - zimbra -c "zmprov $ZMPROV_OPTS gad" | awk '{printf "gd %s zimbraPublicServiceHostname\n", $0}' | su - zimbra -c "zmprov $ZMPROV_OPTS -" | sed "/prov>/d;/# name/d;/$DOMAIN/d;/^$/d;s/zimbraPublicServiceHostname: \(.*\)/\1/"))
+	EXTRA_DOMAINS=($(su - zimbra -c "zmprov $ZMPROV_OPTS gad" | awk '{printf "gd %s zimbraPublicServiceHostname\n", $0}' \
+			| su - zimbra -c "zmprov $ZMPROV_OPTS -" | sed "/prov>/d;/# name/d;/$DOMAIN/d;/^$/d;s/zimbraPublicServiceHostname: \(.*\)/\1/"))
 	! "$QUIET" && echo "Found ${#EXTRA_DOMAINS[@]} zimbraPublicServiceHostnames through auto-detection"
 
 	return 0
@@ -652,11 +655,13 @@ get_domain
 
 if ! "$DEPLOY_ONLY"; then
 	if "$NO_NGINX"; then
-		! check_port "$PORT" && echo "Error: port check failed. A web server to use for letsencrypt authentication of the domain $DOMAIN must be listening on the port specified with --port." && exit 1
+		! check_port "$PORT" && echo "Error: port check failed. A web server to use for letsencrypt authentication of the domain $DOMAIN must be listening on the port specified with --port." \
+				&& exit 1
 	else
 		WEBROOT="$ZMWEBROOT"
 		check_zimbra_proxy
-		! check_port "$PORT" nginx zimbra && echo "Error: port check failed. If you have overridden the port with --port, a web server to use for letsencrypt authentication of the domain $DOMAIN must be listening on it." && exit 1
+		! check_port "$PORT" nginx zimbra && echo "Error: port check failed. If you have overridden the port with --port, a web server to use for letsencrypt authentication \
+				of the domain $DOMAIN must be listening on it." && exit 1
 		patch_nginx
 	fi
 
