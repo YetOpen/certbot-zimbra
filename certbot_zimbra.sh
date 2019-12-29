@@ -157,7 +157,7 @@ If you have NAT set up to do the translation this is likely fine.
 If not, your Zimbra proxy is misconfigured and certbot will fail."
 		if "$PROMPT_CONFIRM"; then
 			prompt "Proceed?"
-			(( $? == 1 )) && echo "Cannot continue. Exiting." && exit 1
+			(( $? == 1 )) && echo "Cannot continue. Exiting." && exit 0
 		else
 			echo "WARNING: Prompt disabled, proceeding anyway."
 		fi
@@ -212,7 +212,7 @@ patch_nginx() {
 		return
 	fi
 
-	[ -z $WEBROOT ] && echo "Unexpected error: patch_nginx WEbROOT not set. Exiting." && exit 1
+	[ -z $WEBROOT ] && echo "Unexpected error: patch_nginx WEBROOT not set. Exiting." && exit 1
 
 	! "$QUIET" && echo "Patching nginx templates."
 
@@ -233,7 +233,7 @@ patch_nginx() {
 
 	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
                 prompt "Restart zmproxy?"
-                (( $? == 1 )) && echo "Cannot continue. Exiting." && exit 1
+                (( $? == 1 )) && echo "Cannot continue. Exiting." && exit 0
         fi
 
 	! "$QUIET" && echo "Running zmproxyctl restart."
@@ -279,7 +279,7 @@ get_domain () {
 
 	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
 		prompt "Is this correct?"
-		(( $? == 1 )) && echo "Error: Please call $(basename $0) --hostname your.host.name" && exit 1
+		(( $? == 1 )) && echo "Error: Please call $(basename $0) --hostname your.host.name" && exit 0
 	fi
 
 	# Find additional domains
@@ -288,7 +288,7 @@ get_domain () {
 	if [ -n "$EXTRA_DOMAINS" ] && ! "$QUIET"; then
 		echo "Got ${#EXTRA_DOMAINS[@]} domains to use as certificate SANs: ${EXTRA_DOMAINS[@]}"
 		prompt "Proceed?"
-		(( $? == 1 )) && echo "Exiting." && exit 1
+		(( $? == 1 )) && echo "Exiting." && exit 0
 	fi
 
 	return 0
@@ -330,7 +330,7 @@ check_webroot () {
 				return 0
 			else
 				echo "Cannot proceed, exiting."
-				exit 1
+				exit 0
 			fi
 		fi
 		echo "Error: $WEBROOT does not exist, cannot proceed. Please create it manually or rerun this script with -c/--prompt-confirm and without -q/--quiet. Exiting."
@@ -461,8 +461,8 @@ deploy_cert() {
 	cp -a "$tmpcerts/privkey.pem" "$ZMPATH/ssl/zimbra/commercial/commercial.key"
 
 	if ! "$QUIET" && "$PROMPT_CONFIRM"; then
-		prompt "Deploy certificates to Zimbra?"
-		(( $? == 1 )) && echo "Cannot proceed. Exiting." && exit 1
+		prompt "Deploy certificates to Zimbra? This may restart some services."
+		(( $? == 1 )) && echo "Cannot proceed. Exiting." && exit 0
 	fi
 
 	"$QUIET" && exec > /dev/null
@@ -483,7 +483,7 @@ deploy_cert() {
 	if "$RESTART_ZIMBRA"; then
 		if ! "$QUIET" && "$PROMPT_CONFIRM"; then
 			prompt "Restart Zimbra?"
-			(( $? == 1 )) && echo "Cannot proceed. Exiting." && exit 1
+			(( $? == 1 )) && echo "Cannot proceed. Exiting." && exit 0
 		fi
 
 		! "$QUIET" && echo "Restarting Zimbra."
