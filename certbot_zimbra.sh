@@ -455,6 +455,11 @@ prepare_cert() {
 
 # deploys certificate and restarts zimbra. ASSUMES prepare_certificate has been called already
 deploy_cert() {
+	if "$PROMPT_CONFIRM"; then
+		prompt "Deploy certificates to Zimbra? This may restart some services."
+		(( $? == 1 )) && echo "Cannot proceed. Exiting." && exit 0
+	fi
+
 	# exit on error
 	set -e
 	! "$QUIET" && echo "Deploying certificates."
@@ -464,11 +469,6 @@ deploy_cert() {
 
 	# copy privkey
 	cp -a "$tmpcerts/privkey.pem" "$ZMPATH/ssl/zimbra/commercial/commercial.key"
-
-	if "$PROMPT_CONFIRM"; then
-		prompt "Deploy certificates to Zimbra? This may restart some services."
-		(( $? == 1 )) && echo "Cannot proceed. Exiting." && exit 0
-	fi
 
 	"$QUIET" && exec > /dev/null
 	"$QUIET" && exec 2>/dev/null
@@ -484,6 +484,8 @@ deploy_cert() {
 	! "$QUIET" && echo "Removing temporary files in $tmpcerts"
 	# this is kind of sketchy
 	[ -n "$tmpcerts" ] && rm -r "$tmpcerts"
+
+	set +e
 
 	if "$RESTART_ZIMBRA"; then
 		if "$PROMPT_CONFIRM"; then
@@ -501,8 +503,6 @@ deploy_cert() {
 		"$QUIET" && exec > /dev/stdout
 		"$QUIET" && exec 2> /dev/stderr
 	fi
-
-	set +e
 
 	return 0
 }
