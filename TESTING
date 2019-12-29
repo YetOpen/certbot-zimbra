@@ -8,6 +8,7 @@ Tested:
 -z
 -p
 -x
+-e
 -q (still does some output, needs more redirecting)
 -invalid combinations as specified in usage
 -Zimbra versions/OSs: 8.8.8_UBUNTU16, 8.8.12_UBUNTU16, 8.8.11_RHEL7 (CentOS)
@@ -15,7 +16,7 @@ Tested:
 Untested:
 -N
 -a
--e,H
+-H
 -s
 -j
 -w
