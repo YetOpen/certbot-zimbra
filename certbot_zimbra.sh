@@ -324,17 +324,13 @@ check_webroot () {
 	# <8.7 didn't have nginx webroot
 	if [ ! -d "$WEBROOT" ]; then
 		if "$PROMPT_CONFIRM"; then
-			prompt "Create $WEBROOT?"
-			if (( $? == 0 )); then
-				mkdir -p "$WEBROOT"
-				return 0
-			else
-				echo "Cannot proceed, exiting."
-				exit 0
-			fi
+			prompt "Webroot $WEBROOT doesn't exist, create it?"
+			(( $? == 1 )) && echo "Cannot proceed, exiting." && exit 0
 		fi
-		echo "Error: $WEBROOT does not exist, cannot proceed. Please create it manually or rerun this script with -c/--prompt-confirm and without -q/--quiet. Exiting."
-		exit 1
+		echo "Creating webroot $WEBROOT"
+		set -e
+		mkdir -p "$WEBROOT"
+		set +e
 	fi
 }
 
