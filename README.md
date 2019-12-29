@@ -3,21 +3,12 @@ Automated letsencrypt/certbot certificate deploy script for Zimbra hosts.
 
 [![asciicast](https://asciinema.org/a/219713.svg)](https://asciinema.org/a/219713)
 
-
-
-This is still a BETA script. Tested on:
-* 8.8.8 UBUNTU16_64
-* 8.8.12 UBUNTU16_64
-* 8.8.12 RHEL7 (CentOS)
-
-# WARNING - Breaking changes ahead
+## Rewrite
 
 Thanks to the awesome job of @jjakob the script has undergone a considerable rewrite. 
 Some things changed, some parameters have been renamed, so **if you're upgrading please read the [WARNING chapter](#warning) below**.
 
 We encourage you to test the script and report back any issues you might encounter. The latest version can be downloaded from the [Releases tab](https://github.com/YetOpen/certbot-zimbra/releases), or if you prefer bleeding edge (may be broken) from the [master branch directly](/../../raw/master/certbot_zimbra.sh).
-
-If you're in a hurry and cannot wait for our feedback on an issue you can download the last *stable* version from [0.5.0 tag](https://github.com/YetOpen/certbot-zimbra/tree/0.5.0-beta).
 
 If you encounter any problem please [open an issue](https://github.com/YetOpen/certbot-zimbra/issues/new).
 
