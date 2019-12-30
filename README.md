@@ -251,7 +251,7 @@ Set up renewal as above, but without --pre-hook.
 
 This usually means zimbra-proxy is misconfigured. In the default case (without port overrides) the script checks if zimbra-proxy's nginx is listening on "zimbraMailProxyPort" (can be read with zmprov, port 80 in most cases). If this check fails, zimbra-proxy is misconfigured, not enabled, not started or you have a custom port configuration and didn't tell the script via port override parameters.
 
-Zimbra's proxy guide ([Zimbra Proxy Guide](https://wiki.zimbra.com/wiki/Zimbra_Proxy_Guide)) is usually quite confusing for a novice and may be difficult to learn. For this we have a quick [Zimbra oroxy configuration for certbot-zimbra guide](https://github.com/YetOpen/certbot-zimbra/wiki/Zimbra-proxy-configuration-for-Certbot-Zimbra) to get you up and running quickly. Still, you should get to know zimbra-proxy and configure it according to your own needs.
+Zimbra's proxy guide ([Zimbra Proxy Guide](https://wiki.zimbra.com/wiki/Zimbra_Proxy_Guide)) is usually quite confusing for a novice and may be difficult to learn. For this we have a quick [Zimbra proxy configuration for certbot-zimbra guide](https://github.com/YetOpen/certbot-zimbra/wiki/Zimbra-proxy-configuration-for-Certbot-Zimbra) to get you up and running quickly. Still, you should get to know zimbra-proxy and configure it according to your own needs.
 
 ## certbot failures
 
