@@ -276,7 +276,7 @@ now uses *webroot* mode by patching Zimbra's nginx, making it more simple to wor
 
 To check if you have the old method, run `grep authenticator /etc/letsencrypt/renewal/YOURDOMAIN.conf`. If it says *standalone* it uses the old method.
 
-To update to the new "webroot" method you can simply run `certbot-zimbra.sh -n -c -L "--cert-name [yourcertname] --force-renewal"`. This will force renew your existing certificate and save the new authentication method. It'll also ask you for deploying the new certificate in Zimbra. You can also manually modify the config file in /etc/letsencrypt/renewal/, while not recommended, is detailed here: https://community.letsencrypt.org/t/how-to-change-certbot-verification-method/56735
+To update to the new "webroot" method you can simply run `certbot-zimbra.sh -n -c -L "--force-renewal"`. This will force renew your existing certificate and save the new authentication method. It'll also ask you for deploying the new certificate in Zimbra. You can also manually modify the config file in /etc/letsencrypt/renewal/, while not recommended, is detailed here: https://community.letsencrypt.org/t/how-to-change-certbot-verification-method/56735
 
 ## How it works
 This script uses zimbra-proxy's nginx to intercept requests to .well-known/acme-challenge and pass them to a custom webroot folder. To do this, we patch the templates Zimbra uses to build nginx's configuration files.
