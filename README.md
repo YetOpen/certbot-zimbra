@@ -330,7 +330,7 @@ THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.
 &copy; Lorenzo Milesi <maxxer@yetopen.it>
 
 ## Contributors
-- Jernej Jakob <jernej.jakob@gmail.com>
+- Jernej Jakob @jjakob
 - @eN0RM
 - Pavel Pulec @pulecp
 - Antonio Prado
