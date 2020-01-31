@@ -128,6 +128,8 @@ bootstrap() {
 	[ -z "$DETECTED_ZIMBRA_VERSION" ] && echo "Error: Unable to detect zimbra version" && exit 1
 	! "$QUIET" && echo "Detected Zimbra $DETECTED_ZIMBRA_VERSION on $PLATFORM"
 
+	get_domain
+
 	return 0
 }
 
@@ -665,7 +667,6 @@ done
 
 ## actions
 bootstrap
-get_domain
 
 if ! "$DEPLOY_ONLY"; then
 	if "$NO_NGINX"; then
