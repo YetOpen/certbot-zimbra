@@ -339,10 +339,24 @@ find_certbot () {
 	LE_BIN="$(which certbot-auto certbot letsencrypt 2>/dev/null | head -n 1)"
 	[ -z "$LE_BIN" ] && echo "Error: No letsencrypt/certbot binary found in $PATH" && exit 1
 
-	DETECTED_CERTBOT_VERSION="$($LE_BIN --version 2>&1)"
-	! "$QUIET" && echo "Detected $DETECTED_CERTBOT_VERSION"
-	if ! version_gt $(echo $DETECTED_CERTBOT_VERSION | grep -Po '(\d+).(\d+).(\d+)') $MIN_CERTBOT_VERSION; then
-		echo "Error: certbot is too old, please upgrade to certbot >=$MIN_CERTBOT_VERSION. Exiting."
+	! "$QUIET" && echo "Detecting certbot version..."
+
+	# get certbot version, we need to use some trickery here in case certbot is bootstrapping (1st run) and expects user input
+	# if run with --prompt-confirm, show the output of certbot on stderr and allow the user to answer yes/no
+	# otherwise add --no-bootstrap and exit in case of error
+	oldpipefail="$(set +o | grep pipefail)"
+	set -o pipefail
+	DETECTED_CERTBOT_VERSION="$($LE_BIN $(! "$PROMPT_CONFIRM" && echo "--no-bootstrap ")$("$LE_NONIACT" && echo "--non-interactive ")--version 2>&1 | $( "$PROMPT_CONFIRM" && echo "tee /dev/stderr") | grep '^certbot .*$')"
+	e=$?
+	if [ "$e" -ne 0 ]; then
+		! "$QUIET" && echo "Error: \"$LE_BIN\" exit status $e. Exiting."
+		exit 1
+	fi
+
+	$oldpipefail
+
+	if ! version_gt "$(echo "$DETECTED_CERTBOT_VERSION" | grep -Po '(\d+).(\d+).(\d+)')" "$MIN_CERTBOT_VERSION"; then
+		! "$QUIET" && echo "Error: certbot is too old, please upgrade to certbot >=$MIN_CERTBOT_VERSION. Exiting."
 		exit 1
 	fi
 
