@@ -357,6 +357,8 @@ find_certbot () {
 
 	$oldpipefail
 
+	! "$QUIET" && ! "$PROMPT_CONFIRM" && echo "Detected $DETECTED_CERTBOT_VERSION"
+
 	if ! version_gt "$(echo "$DETECTED_CERTBOT_VERSION" | grep -Po '(\d+).(\d+).(\d+)')" "$MIN_CERTBOT_VERSION"; then
 		! "$QUIET" && echo "Error: certbot is too old, please upgrade to certbot >=$MIN_CERTBOT_VERSION. Exiting."
 		exit 1
