@@ -1,4 +1,17 @@
-## v0.7.8-beta
+## v0.7.9
+
+* Re-add showing certbot version if prompt-confirm isn't set
+* Move get_domain to bootstrap()
+* Handle interactive certbot bootstrap (#99)
+  - add --no-bootstrap to certbot --version if --prompt-confirm is not set
+      (exit with error if certbot needs to bootstrap)
+  - pass through --noninteractive (answers yes to all certbot questions)
+* README: replace @jjakob e-mail with username
+* README: remove --cert-name from command as it's already passed
+* README: fix typo
+* README: remove reference to 0.5 stable version, tone down warnings
+
+## v0.7.8
 
 * Close fd used for locking on exit, workaround for issue #89
 * Remove lock file too (#89)
