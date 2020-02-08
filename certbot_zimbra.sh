@@ -289,8 +289,10 @@ get_domain () {
 
 	if [ -n "$EXTRA_DOMAINS" ] && ! "$QUIET"; then
 		echo "Got ${#EXTRA_DOMAINS[@]} domains to use as certificate SANs: ${EXTRA_DOMAINS[@]}"
-		prompt "Include these in the certificate?"
-		(( $? == 1 )) && EXTRA_DOMAINS=""
+		if "$PROMPT_CONFIRM"; then
+			prompt "Include these in the certificate?"
+			(( $? == 1 )) && EXTRA_DOMAINS=""
+		fi
 	fi
 
 	return 0
