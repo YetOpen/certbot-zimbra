@@ -214,16 +214,16 @@ patch_nginx() {
 	else
 		[ -z $WEBROOT ] && echo "Unexpected error: patch_nginx WEBROOT not set. Exiting." && exit 1
 
-		! "$QUIET" && echo "Patching nginx templates."
-
-		set -e
-
 		# Let's make a backup of zimbra's original templates
+		set -e
 		BKDATE="$(date +'%Y%m%d_%H%M%S')"
 		! "$QUIET" && echo "Making a backup of nginx templates in $ZMPATH/conf/nginx/templates.$BKDATE"
 		cp -a "$ZMPATH/conf/nginx/templates" "$ZMPATH/conf/nginx/templates.$BKDATE"
+		set +e
 
 		# do patch
+		! "$QUIET" && echo -n "Patching nginx templates... "
+		e=0
 		for file in http.default https.default http https ; do
 			# Find the } that matches the first { after the server directive and add our location block before it,
 			# ignoring all curly braces and anything else between them. If there are multiple server blocks
@@ -248,9 +248,22 @@ patch_nginx() {
   else print
 }
 END {exit e}" "$ZMPATH/conf/nginx/templates.$BKDATE/nginx.conf.web.$file.template" > "$ZMPATH/conf/nginx/templates/nginx.conf.web.$file.template"
+			e="$?"
+			[ "$e" -ne 0 ] && break
 		done
 
-		set +e
+		if [ "$e" -ne 0 ]; then
+			! "$QUIET" && echo -ne "Error!\nRestoring old templates... "
+			cp -a $ZMPATH/conf/nginx/templates.$BKDATE/* "$ZMPATH/conf/nginx/templates/"
+			if [ "$?" -ne 0 ]; then
+				! "$QUIET" && echo "Error!"
+			else
+				! "$QUIET" && echo "Success."
+			fi
+			! "$QUIET" && echo "Exiting." && exit 1
+		else
+			! "$QUIET" && echo "Success."
+		fi
 	fi
 
 	# Don't restart if includes show nginx has already been restarted
@@ -266,8 +279,10 @@ END {exit e}" "$ZMPATH/conf/nginx/templates.$BKDATE/nginx.conf.web.$file.templat
 		# reload nginx config
 		su - zimbra -c 'zmproxyctl restart' 200>&-; e="$?"
 		if [ "$e" -ne 0 ]; then
-			echo "Error restarting zmproxy (zmproxyctl exit status $e). Exiting."
+			! "$QUIET" && echo "Error restarting zmproxy (\"zmproxyctl restart\" exit status $e). Exiting."
 			exit 1
+		else
+			! "$QUIET" && echo "Success."
 		fi
 	fi
 
