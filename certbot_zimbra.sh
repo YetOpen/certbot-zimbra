@@ -227,8 +227,30 @@ patch_nginx() {
 
 	# do patch
 	for file in http.default https.default http https ; do
-		sed -i "s#^}#\n    \# patched by certbot-zimbra.sh\n    location ^~ /.well-known/acme-challenge {\n        root $WEBROOT;\n    }\n}#" \
-			"$ZMPATH/conf/nginx/templates/nginx.conf.web.$file.template"
+		# Find the } that matches the first { after the server directive and add our location block before it,
+		# ignoring all curly braces and anything else between them. If there are multiple server blocks
+		# it adds the directives to all of them. It breaks in special cases of one-liner server blocks (rare)
+		# and unbalanced curly brace count (missing braces aka broken formatting).
+		# Exits 0 (success) if at least 1 substitution was made, 1 (failure) if 0 substitutions were made.
+		awk \
+"BEGIN {e = 1}
+/^#/ {print; next}
+/^server[[:space:]{]*.*$/ {found++}
+/{/ && found {
+  b++
+  if (first == 0) first = NR
+}
+/}/ && found {b--}
+{ if (found && b == 0 && first != 0) {
+    print gensub(/}[^}]*/, \"\n    # patched by certbot-zimbra.sh\n    location ^~ /.well-known/acme-challenge {\n        root $WEBROOT;\n    }\n&\", 1)
+    found = 0
+    first = 0
+    e = 0
+  }
+  else print
+}
+END {exit e}" \
+"$ZMPATH/conf/nginx/templates.$BKDATE/nginx.conf.web.$file.template" > "$ZMPATH/conf/nginx/templates/nginx.conf.web.$file.template"
 	done
 
 	set +e
