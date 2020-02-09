@@ -208,31 +208,29 @@ check_port () {
 patch_nginx() {
 	[ ! -d "$ZMPATH/conf/nginx/includes" ] && echo "Error: $ZMPATH/conf/nginx/includes not found, exiting" && exit 1
 
-	# Return if patch is already applied
-	if grep -r -q 'acme-challenge' "$ZMPATH/conf/nginx/includes"; then
+	# Don't patch if patch is already applied
+	if grep -r -q 'acme-challenge' "$ZMPATH/conf/nginx/templates"; then
 		! "$QUIET" && echo "Nginx templates already patched."
-		return
-	fi
+	else
+		[ -z $WEBROOT ] && echo "Unexpected error: patch_nginx WEBROOT not set. Exiting." && exit 1
 
-	[ -z $WEBROOT ] && echo "Unexpected error: patch_nginx WEBROOT not set. Exiting." && exit 1
+		! "$QUIET" && echo "Patching nginx templates."
 
-	! "$QUIET" && echo "Patching nginx templates."
+		set -e
 
-	set -e
+		# Let's make a backup of zimbra's original templates
+		BKDATE="$(date +'%Y%m%d_%H%M%S')"
+		! "$QUIET" && echo "Making a backup of nginx templates in $ZMPATH/conf/nginx/templates.$BKDATE"
+		cp -a "$ZMPATH/conf/nginx/templates" "$ZMPATH/conf/nginx/templates.$BKDATE"
 
-	# Let's make a backup of zimbra's original templates
-	BKDATE="$(date +'%Y%m%d_%H%M%S')"
-	! "$QUIET" && echo "Making a backup of nginx templates in $ZMPATH/conf/nginx/templates.$BKDATE"
-	cp -a "$ZMPATH/conf/nginx/templates" "$ZMPATH/conf/nginx/templates.$BKDATE"
-
-	# do patch
-	for file in http.default https.default http https ; do
-		# Find the } that matches the first { after the server directive and add our location block before it,
-		# ignoring all curly braces and anything else between them. If there are multiple server blocks
-		# it adds the directives to all of them. It breaks in special cases of one-liner server blocks (rare)
-		# and unbalanced curly brace count (missing braces aka broken formatting).
-		# Exits 0 (success) if at least 1 substitution was made, 1 (failure) if 0 substitutions were made.
-		awk \
+		# do patch
+		for file in http.default https.default http https ; do
+			# Find the } that matches the first { after the server directive and add our location block before it,
+			# ignoring all curly braces and anything else between them. If there are multiple server blocks
+			# it adds the directives to all of them. It breaks in special cases of one-liner server blocks (rare)
+			# and unbalanced curly brace count (missing braces aka broken formatting).
+			# Exits 0 (success) if at least 1 substitution was made, 1 (failure) if 0 substitutions were made.
+			awk \
 "BEGIN {e = 1}
 /^#/ {print; next}
 /^server[[:space:]{]*.*$/ {found++}
@@ -249,24 +247,30 @@ patch_nginx() {
   }
   else print
 }
-END {exit e}" \
-"$ZMPATH/conf/nginx/templates.$BKDATE/nginx.conf.web.$file.template" > "$ZMPATH/conf/nginx/templates/nginx.conf.web.$file.template"
-	done
+END {exit e}" "$ZMPATH/conf/nginx/templates.$BKDATE/nginx.conf.web.$file.template" > "$ZMPATH/conf/nginx/templates/nginx.conf.web.$file.template"
+		done
 
-	set +e
-
-	if "$PROMPT_CONFIRM"; then
-                prompt "Restart zmproxy?"
-                (( $? == 1 )) && echo "Cannot continue. Exiting." && exit 0
-        fi
-
-	! "$QUIET" && echo "Running zmproxyctl restart."
-	# reload nginx config
-	su - zimbra -c 'zmproxyctl restart' 200>&-; e="$?"
-	if [ "$e" -ne 0 ]; then
-		echo "Error restarting zmproxy (zmproxyctl exit status $e). Exiting."
-		exit 1
+		set +e
 	fi
+
+	# Don't restart if includes show nginx has already been restarted
+	if grep -r -q 'acme-challenge' "$ZMPATH/conf/nginx/includes"; then
+		! "$QUIET" && echo "Nginx includes already patched, skipping zmproxy restart."
+	else
+		if "$PROMPT_CONFIRM"; then
+			prompt "Restart zmproxy?"
+			(( $? == 1 )) && echo "Cannot continue. Exiting." && exit 0
+		fi
+
+		! "$QUIET" && echo "Running zmproxyctl restart."
+		# reload nginx config
+		su - zimbra -c 'zmproxyctl restart' 200>&-; e="$?"
+		if [ "$e" -ne 0 ]; then
+			echo "Error restarting zmproxy (zmproxyctl exit status $e). Exiting."
+			exit 1
+		fi
+	fi
+
 	return 0
 }
 
