@@ -1,3 +1,27 @@
+## v0.7.10
+
+* Add missing check for --prompt-confirm (#100)
+* Improve nginx templates patching process (#101)
+    - replace sed with awk script that is much more resilient,
+      doesn't care about indentation, handles modified templates
+      without breaking
+* Separate nginx templates and includes check
+    - Previously the templates were patched if the includes were unpatched,
+      this happened in the case when the templates were previously patched but
+      the nginx restart was rejected or failed. This resulted in the templates
+      being patched multiple times.
+      Now we check for patched templates first, then check for unpatched includes
+      and restart nginx if necessary.
+* Restore old nginx templates if patching fails, add more status output
+* Rework certbot version detection (#104)
+    - fix improper pipeline syntax
+    - detect certbot errors and grep parsing errors separately
+    - print helpful error message prompting the user to run certbot by itself
+      in case it may need to bootstrap
+* Lowercase local variable
+* Use gawk (GNU awk) and add it to dependency check (fixes #102)
+* Add zmhostname to dependency check
+
 ## v0.7.9
 
 * Re-add showing certbot version if prompt-confirm isn't set
