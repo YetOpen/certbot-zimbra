@@ -102,7 +102,7 @@ check_depends() {
 	! $QUIET && echo "Checking for dependencies..."
 
 	# do not check for lsof or ss here as we'll do that later
-	for name in su openssl grep head cut sed chmod chown cat cp $ZMPATH/bin/zmcertmgr $ZMPATH/bin/zmcontrol $ZMPATH/bin/zmprov $ZMPATH/libexec/get_plat_tag.sh; do
+	for name in su openssl grep head cut sed chmod chown cat cp gawk $ZMPATH/bin/zmcertmgr $ZMPATH/bin/zmcontrol $ZMPATH/bin/zmprov $ZMPATH/libexec/get_plat_tag.sh; do
 		! which "$name" >/dev/null && echo "Error: \"$name\" not found or executable" && exit 1
 	done
 }
@@ -230,7 +230,7 @@ patch_nginx() {
 			# it adds the directives to all of them. It breaks in special cases of one-liner server blocks (rare)
 			# and unbalanced curly brace count (missing braces aka broken formatting).
 			# Exits 0 (success) if at least 1 substitution was made, 1 (failure) if 0 substitutions were made.
-			awk \
+			gawk \
 "BEGIN {e = 1}
 /^#/ {print; next}
 /^server[[:space:]{]*.*$/ {found++}
@@ -302,7 +302,7 @@ find_additional_public_hostnames() {
 
 	! "$QUIET" && echo -n "Detecting additional public service hostnames... "
 
-	EXTRA_DOMAINS=($(su - zimbra -c "zmprov $ZMPROV_OPTS gad" | awk '{printf "gd %s zimbraPublicServiceHostname\n", $0}' \
+	EXTRA_DOMAINS=($(su - zimbra -c "zmprov $ZMPROV_OPTS gad" | gawk '{printf "gd %s zimbraPublicServiceHostname\n", $0}' \
 			| su - zimbra -c "zmprov $ZMPROV_OPTS -" | sed "/prov>/d;/# name/d;/$DOMAIN/d;/^$/d;s/zimbraPublicServiceHostname: \(.*\)/\1/"))
 	! "$QUIET" && echo "Found ${#EXTRA_DOMAINS[@]} zimbraPublicServiceHostnames through auto-detection"
 
@@ -482,7 +482,7 @@ prepare_cert() {
 		issuer="$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer | sed -n 's/.*CN=//;s/\/.*$//;p')"
 		[ -z "$issuer" ] && exit 1
 		# the following awk script extracts the CA cert from the bundle or exits 1 if not found
-		awk "BEGIN {e=1}; /^# $issuer$/{e=0} /^# $issuer$/,/END CERTIFICATE/; END {exit e}" /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem >> "$tmpcerts/zimbra_chain.pem"
+		gawk "BEGIN {e=1}; /^# $issuer$/{e=0} /^# $issuer$/,/END CERTIFICATE/; END {exit e}" /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem >> "$tmpcerts/zimbra_chain.pem"
 	else
 		# we shouldn't be here
 		echo "Unexpected error (problem in check_depends_ca)" && exit 1
