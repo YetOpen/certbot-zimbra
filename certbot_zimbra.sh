@@ -102,7 +102,7 @@ check_depends() {
 	! $QUIET && echo "Checking for dependencies..."
 
 	# do not check for lsof or ss here as we'll do that later
-	for name in su openssl grep head cut sed chmod chown cat cp gawk $ZMPATH/bin/zmcertmgr $ZMPATH/bin/zmcontrol $ZMPATH/bin/zmprov $ZMPATH/libexec/get_plat_tag.sh; do
+	for name in su openssl grep head cut sed chmod chown cat cp gawk $ZMPATH/bin/zmhostname $ZMPATH/bin/zmcertmgr $ZMPATH/bin/zmcontrol $ZMPATH/bin/zmprov $ZMPATH/libexec/get_plat_tag.sh; do
 		! which "$name" >/dev/null && echo "Error: \"$name\" not found or executable" && exit 1
 	done
 }
