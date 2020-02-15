@@ -24,7 +24,7 @@ The command line parameters were changed with v0.7. `-r/--renew-only` was rename
 
 ## Requirements
 
-- bash, su, patch, which, lsof or ss, openssl, grep, sed (GNU)
+- bash, su, which, lsof or ss, openssl, grep, sed (GNU), gawk (GNU awk)
 - ca-certificates (Debian/Ubuntu) or pki-base (RHEL/CentOS)
 - Zimbra: zmhostname, zmcontrol, zmproxyctrl, zmprov, zmcertmgr
 - zimbra-proxy installed and working or an alternate webserver configured for letsencrypt webroot
@@ -43,8 +43,8 @@ So open `/etc/cron.d/certbot` with your favourite editor and **comment the last 
 Download the latest release and install it (copy the latest URL from the Releases tab):
 
 ```
-wget https://github.com/YetOpen/certbot-zimbra/archive/0.7.3-alpha.tar.gz
-tar xzf 0.7.3-alpha.tar.gz certbot_zimbra.sh
+wget https://github.com/YetOpen/certbot-zimbra/archive/certbot-zimbra_v0.7.10.tar.gz
+tar xzf certbot-zimbra_v0.7.10.tar.gz certbot_zimbra.sh
 chmod +x certbot_zimbra.sh
 chown root: certbot_zimbra.sh
 mv certbot_zimbra.sh /usr/local/bin/
