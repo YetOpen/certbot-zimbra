@@ -1,3 +1,9 @@
+## v0.7.11
+
+* Fix extracting CA from tls-ca-bundle.pem when spaces are removed from CN (#106)
+    - On some RHEL/CentOS/Fedora systems, tls-ca-bundle.pem lists certificate CN's
+      with spaces removed. This fixes extraction of the CA in such cases.
+
 ## v0.7.10
 
 * Add missing check for --prompt-confirm (#100)
