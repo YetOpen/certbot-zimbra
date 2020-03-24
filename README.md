@@ -34,6 +34,12 @@ The command line parameters were changed with v0.7. `-r/--renew-only` was rename
 
 The preferred way is to install it is by using the wizard [at certbot's home](https://certbot.eff.org/). Choose *None of the above* as software and your operating system. This will allow you to install easily upgradable system packages.
 
+After installation, we need to run certbot on its own so that it can bootstrap itself. As root, run:
+```
+certbot-auto
+```
+This will make certbot install any additional packages it needs and create its environment. Failing to do this step may make the script fail when trying to run certbot.
+
 By installing Certbot via packages it automatically creates a cron schedule to renew certificates (at least on Ubuntu). 
 We must **disable this schedule** because after the renew we must deploy it in Zimbra. 
 So open `/etc/cron.d/certbot` with your favourite editor and **comment the last line**.
@@ -253,9 +259,17 @@ This usually means zimbra-proxy is misconfigured. In the default case (without p
 
 Zimbra's proxy guide ([Zimbra Proxy Guide](https://wiki.zimbra.com/wiki/Zimbra_Proxy_Guide)) is usually quite confusing for a novice and may be difficult to learn. For this we have a quick [Zimbra proxy configuration for certbot-zimbra guide](https://github.com/YetOpen/certbot-zimbra/wiki/Zimbra-proxy-configuration-for-Certbot-Zimbra) to get you up and running quickly. Still, you should get to know zimbra-proxy and configure it according to your own needs.
 
+## Error: unable to parse certbot version
+
+This is caused by certbot expecting user input when the script tried to run it, typically because of it not being bootstrapped and this being a fresh installation of certbot. To fix this, run `certbot-auto` on the command line manually, this will make it bootstrap and ask for any input. After this the script should work fine.
+
+Newer versions of the script print a more descriptive error message and allow the bootstrap to occur during the script run if ran with --prompt-confirm.
+
 ## certbot failures
 
 Check that you have an updated version of certbot installed. If you have installed certbot from your operating system's repositories, they may be out of date. Use the way that certbot recommends for your operating system on their installation page, or install certbot-auto (will auto-update on each invocation). Remove the old certbot packages first.
+
+Try running certbot/certbot-auto on the command line by itself and see if it has any errors. Check the certificate status with `certbot certificates`. Remove any duplicate or outdated certificates for the same domain names.
 
 Check that ports 80 and 443 are open and accessible from the outside and check that your domain points to the server's IP. Basically troubleshoot Letsencrypt as if you weren't using certbot-zimbra.
 
