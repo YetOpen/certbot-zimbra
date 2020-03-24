@@ -14,6 +14,9 @@ LE_LIVE_PATH="/etc/letsencrypt/live" # the domain will be appended to this path
 TEMPPATH="/run/$PROGNAME"
 # other options
 ZMPROV_OPTS="-l" # use ldap (faster)
+# used to extract the CA for the letsencrypt certs
+ca_certificates_file="/etc/ssl/certs/ca-certificates.crt"
+pki_ca_bundle_file="/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
 # Do NOT modify anything after this line.
 WEBROOT=""
 CERTPATH=""
@@ -87,11 +90,11 @@ prompt(){
 
 check_depends_ca() {
 	# Debian/Ubuntu provided by ca-certificates
-	[ -f /etc/ssl/certs/ca-certificates.crt ] && return
+	[ -r $ca_certificates_file ] && return
 	# RHEL/CentOS provided by pki-base
-	[ -f /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem ] && return
+	[ -r $pki_ca_bundle_file ] && return
 
-	echo "Installed CA certificates not found. Please check if you have installed:"
+	echo "Error: Installed CA certificates not found or files not readable. Please check if you have installed:"
 	echo "Debian/Ubuntu: ca-certificates (if you do, you might have to run \"update-ca-certificates\")"
 	echo "RHEL/CentOS: pki-base (if you do, you might have to run \"update-ca-trust\")"
 	exit 1
@@ -472,20 +475,23 @@ prepare_cert() {
 
 	# Create the "patched" chain suitable for Zimbra
 	cat "$CERTPATH/chain.pem" > "$tmpcerts/zimbra_chain.pem"
-	if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
+	if [ -r "$ca_certificates_file" ]; then
 	        # Debian/Ubuntu
 		# use the issuer_hash of the LE chain cert to find the root CA in /etc/ssl/certs
 		cat "/etc/ssl/certs/$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer_hash).0" >> "$tmpcerts/zimbra_chain.pem"
-	elif [ -f /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem ]; then
+	elif [ -r "$pki_ca_bundle_file" ]; then
 		# RHEL/CentOS
 		# extract CA by CN in tls-ca-bundle.pem
 		issuer="$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer | sed -n 's/.*CN=//;s/\/.*$//;p')"
-		[ -z "$issuer" ] && exit 1
+		[ -z "$issuer" ] && echo "Error: can't find issuer of \"$CERTPATH/chain.pem\". Exiting." && exit 1
+		# if we can't find the issuer in the bundle file, it may have spaces removed, hopefully we'll find it without spaces
+		grep -q "^# $issuer\$" "$pki_ca_bundle_file" || issuer="${issuer//' '}"
 		# the following awk script extracts the CA cert from the bundle or exits 1 if not found
-		gawk "BEGIN {e=1}; /^# $issuer$/{e=0} /^# $issuer$/,/END CERTIFICATE/; END {exit e}" /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem >> "$tmpcerts/zimbra_chain.pem"
+		! gawk "BEGIN {e=1}; /^# $issuer$/{e=0} /^# $issuer$/,/END CERTIFICATE/; END {exit e}" "$pki_ca_bundle_file" >> "$tmpcerts/zimbra_chain.pem"\
+			&& echo "Error: Can't find \"$issuer\" in \"$pki_ca_bundle_file\". Exiting." && exit 1
 	else
 		# we shouldn't be here
-		echo "Unexpected error (problem in check_depends_ca)" && exit 1
+		echo "Error in prepare_cert: can't find installed CA certificates (check_depends_ca should have caught this). Exiting." && exit 1
 	fi
 
 	$oldumask
