@@ -159,7 +159,11 @@ Only do this if you're absolutely sure what you're doing, as this leaves you wit
 EFF suggest to run *renew* twice a day. Since this would imply restarting zimbra, once a day outside workhours should be fine. So in your favourite place (like `/etc/cron.d/zimbracrontab` or with `sudo crontab -e`) schedule the command below, as suitable for your setup:
 
 ```
-# Replace /usr/bin/certbot with the location of your certbot binary, use this to find it: which certbot-auto certbot letsencrypt.
+# certbot_zimbra.sh requires bash and a path with /usr/sbin
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# Replace /usr/bin/certbot with the location of your certbot binary, use this to find it: which certbot-auto certbot letsencrypt
 12 5 * * * root /usr/bin/certbot renew --pre-hook "/usr/local/bin/certbot_zimbra.sh -p" --deploy-hook "/usr/local/bin/certbot_zimbra.sh -d"
 ```
 
