@@ -482,7 +482,7 @@ prepare_cert() {
 	elif [ -r "$pki_ca_bundle_file" ]; then
 		# RHEL/CentOS
 		# extract CA by CN in tls-ca-bundle.pem
-		issuer="$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer | sed -n 's/.*CN=//;s/\/.*$//;p')"
+		issuer="$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer | sed -n 's/.*CN\s\?=\s\?//;s/\/.*$//;p')"
 		[ -z "$issuer" ] && echo "Error: can't find issuer of \"$CERTPATH/chain.pem\". Exiting." && exit 1
 		# if we can't find the issuer in the bundle file, it may have spaces removed, hopefully we'll find it without spaces
 		grep -q "^# $issuer\$" "$pki_ca_bundle_file" || issuer="${issuer//' '}"
