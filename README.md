@@ -3,21 +3,12 @@ Automated letsencrypt/certbot certificate deploy script for Zimbra hosts.
 
 [![asciicast](https://asciinema.org/a/219713.svg)](https://asciinema.org/a/219713)
 
-
-
-This is still a BETA script. Tested on:
-* 8.8.8 UBUNTU16_64
-* 8.8.12 UBUNTU16_64
-* 8.8.12 RHEL7 (CentOS)
-
-# WARNING - Breaking changes ahead
+## Rewrite
 
 Thanks to the awesome job of @jjakob the script has undergone a considerable rewrite. 
 Some things changed, some parameters have been renamed, so **if you're upgrading please read the [WARNING chapter](#warning) below**.
 
 We encourage you to test the script and report back any issues you might encounter. The latest version can be downloaded from the [Releases tab](https://github.com/YetOpen/certbot-zimbra/releases), or if you prefer bleeding edge (may be broken) from the [master branch directly](/../../raw/master/certbot_zimbra.sh).
-
-If you're in a hurry and cannot wait for our feedback on an issue you can download the last *stable* version from [0.5.0 tag](https://github.com/YetOpen/certbot-zimbra/tree/0.5.0-beta).
 
 If you encounter any problem please [open an issue](https://github.com/YetOpen/certbot-zimbra/issues/new).
 
@@ -33,7 +24,7 @@ The command line parameters were changed with v0.7. `-r/--renew-only` was rename
 
 ## Requirements
 
-- bash, su, patch, which, lsof or ss, openssl, grep, sed (GNU)
+- bash, su, which, lsof or ss, openssl, grep, sed (GNU), gawk (GNU awk)
 - ca-certificates (Debian/Ubuntu) or pki-base (RHEL/CentOS)
 - Zimbra: zmhostname, zmcontrol, zmproxyctrl, zmprov, zmcertmgr
 - zimbra-proxy installed and working or an alternate webserver configured for letsencrypt webroot
@@ -43,17 +34,28 @@ The command line parameters were changed with v0.7. `-r/--renew-only` was rename
 
 The preferred way is to install it is by using the wizard [at certbot's home](https://certbot.eff.org/). Choose *None of the above* as software and your operating system. This will allow you to install easily upgradable system packages.
 
-By installing Certbot via packages it automatically creates a cron schedule to renew certificates (at least on Ubuntu). 
-We must **disable this schedule** because after the renew we must deploy it in Zimbra. 
-So open `/etc/cron.d/certbot` with your favourite editor and **comment the last line**.
+After installation, we need to run certbot on its own so that it can bootstrap itself. As root, run:
+```
+certbot-auto
+```
+This will make certbot install any additional packages it needs and create its environment. Failing to do this step may make the script fail when trying to run certbot.
+
+By installing Certbot via packages it automatically creates a cron schedule and a systemd timer to renew certificates (at least on Ubuntu). 
+We must **disable this schedule** because after the renew we must deploy it in Zimbra. Also certbot's timers will attempt to update the cert twice a day,
+this means a Zimbra restart may happen during work hours.
+So open `/etc/cron.d/certbot` with your favourite editor and **comment the last line**. To disable systemd timers run:
+
+```
+systemctl stop certbot.timer && systemctl disable certbot.timer
+```
 
 ## certbot-zimbra installation
 
 Download the latest release and install it (copy the latest URL from the Releases tab):
 
 ```
-wget https://github.com/YetOpen/certbot-zimbra/archive/0.7.3-alpha.tar.gz
-tar xzf 0.7.3-alpha.tar.gz certbot_zimbra.sh
+wget --content-disposition https://github.com/YetOpen/certbot-zimbra/archive/0.7.11.tar.gz
+tar xzf certbot-zimbra-0.7.11.tar.gz certbot_zimbra.sh
 chmod +x certbot_zimbra.sh
 chown root: certbot_zimbra.sh
 mv certbot_zimbra.sh /usr/local/bin/
@@ -142,8 +144,9 @@ Certbot will also ask you some information about the certificate interactively, 
 
 The domain of the certificate is obtained automatically using `zmhostname`. If you want to request a specific hostname use the `-H/--hostname` option. This domain will be the DN of the certificate.
 
-The certificate can be requested with additional hostnames/SANs. By default the script loops though all Zimbra domains, fetches 
-the `zimbraPublicServiceHostname` attribute and if present, adds it to the certificate SANs to be requested. This automatic detection may take several minutes depending on the number of domains you have. If you want to disable this behavior use the `-u/--no-public-hostname-detection` option. 
+The certificate can be requested with additional hostnames/SANs. By default the script fetches the `zimbraPublicServiceHostname` attribute from all domains and if present, adds it to the certificate SANs to be requested. If you want to disable this behavior use the `-u/--no-public-hostname-detection` option.
+
+**Note:** Let's Encrypt has a limit of a maximum of 100 domains per certificate at the time of this writing: [Rate Limits](https://letsencrypt.org/docs/rate-limits/)
 
 To indicate additional domains explicitly use the `-e/--extra-domain` option (can be specified multiple times). Note that `-e` also disables additional hostname detection. 
 
@@ -161,7 +164,11 @@ Only do this if you're absolutely sure what you're doing, as this leaves you wit
 EFF suggest to run *renew* twice a day. Since this would imply restarting zimbra, once a day outside workhours should be fine. So in your favourite place (like `/etc/cron.d/zimbracrontab` or with `sudo crontab -e`) schedule the command below, as suitable for your setup:
 
 ```
-# Replace /usr/bin/certbot with the location of your certbot binary, use this to find it: which certbot-auto certbot letsencrypt.
+# certbot_zimbra.sh requires bash and a path with /usr/sbin
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# Replace /usr/bin/certbot with the location of your certbot binary, use this to find it: which certbot-auto certbot letsencrypt
 12 5 * * * root /usr/bin/certbot renew --pre-hook "/usr/local/bin/certbot_zimbra.sh -p" --deploy-hook "/usr/local/bin/certbot_zimbra.sh -d"
 ```
 
@@ -181,7 +188,7 @@ If you want to suppress status output and only receive notifications on errors, 
 
 If you prefer systemd you can use these instructions.
 The example below uses the deploy-hook which will only rerun the script if a renewal was successful and thus only reloading zimbra when needed.
-Sadly, systemd doesn't have a built-in on-failure mail notification function like cron does. One could write a service to do that via "OnFailure=".
+Sadly, systemd doesn't have a built-in on-failure mail notification function like cron does so you won't be notified of failed renewals. One could write a service to do that via "OnFailure=".
 
 Create a service file eg: /etc/systemd/system/renew-letsencrypt.service
 
@@ -253,6 +260,28 @@ so that it will deploy the certificate in zimbra.
 
 Set up renewal as above, but without --pre-hook.
 
+# Troubleshooting
+
+## Error: port check failed
+
+This usually means zimbra-proxy is misconfigured. In the default case (without port overrides) the script checks if zimbra-proxy's nginx is listening on "zimbraMailProxyPort" (can be read with zmprov, port 80 in most cases). If this check fails, zimbra-proxy is misconfigured, not enabled, not started or you have a custom port configuration and didn't tell the script via port override parameters.
+
+Zimbra's proxy guide ([Zimbra Proxy Guide](https://wiki.zimbra.com/wiki/Zimbra_Proxy_Guide)) is usually quite confusing for a novice and may be difficult to learn. For this we have a quick [Zimbra proxy configuration for certbot-zimbra guide](https://github.com/YetOpen/certbot-zimbra/wiki/Zimbra-proxy-configuration-for-Certbot-Zimbra) to get you up and running quickly. Still, you should get to know zimbra-proxy and configure it according to your own needs.
+
+## Error: unable to parse certbot version
+
+This is caused by certbot expecting user input when the script tried to run it, typically because of it not being bootstrapped and this being a fresh installation of certbot. To fix this, run `certbot-auto` on the command line manually, this will make it bootstrap and ask for any input. After this the script should work fine.
+
+Newer versions of the script print a more descriptive error message and allow the bootstrap to occur during the script run if ran with --prompt-confirm.
+
+## certbot failures
+
+Check that you have an updated version of certbot installed. If you have installed certbot from your operating system's repositories, they may be out of date. Use the way that certbot recommends for your operating system on their installation page, or install certbot-auto (will auto-update on each invocation). Remove the old certbot packages first.
+
+Try running certbot/certbot-auto on the command line by itself and see if it has any errors. Check the certificate status with `certbot certificates`. Remove any duplicate or outdated certificates for the same domain names.
+
+Check that ports 80 and 443 are open and accessible from the outside and check that your domain points to the server's IP. Basically troubleshoot Letsencrypt as if you weren't using certbot-zimbra.
+
 # Notes
 
 ## Notes on zimbraReverseProxyMailMode 
@@ -270,10 +299,27 @@ now uses *webroot* mode by patching Zimbra's nginx, making it more simple to wor
 
 To check if you have the old method, run `grep authenticator /etc/letsencrypt/renewal/YOURDOMAIN.conf`. If it says *standalone* it uses the old method.
 
-To update to the new "webroot" method you can simply run `certbot-zimbra.sh -n -c -L "--cert-name [yourcertname] --force-renewal"`. This will force renew your existing certificate and save the new authentication method. It'll also ask you for deploying the new certificate in Zimbra. You can also manually modify the config file in /etc/letsencrypt/renewal/, while not recommended, is detailed here: https://community.letsencrypt.org/t/how-to-change-certbot-verification-method/56735
+To update to the new "webroot" method you can simply run `certbot-zimbra.sh -n -c -L "--force-renewal"`. This will force renew your existing certificate and save the new authentication method. It'll also ask you for deploying the new certificate in Zimbra. You can also manually modify the config file in /etc/letsencrypt/renewal/, while not recommended, is detailed here: https://community.letsencrypt.org/t/how-to-change-certbot-verification-method/56735
 
 ## How it works
-TODO: explain the nginx patching mathod, etc.
+This script uses zimbra-proxy's nginx to intercept requests to .well-known/acme-challenge and pass them to a custom webroot folder. To do this, we patch the templates Zimbra uses to build nginx's configuration files.
+The patch is simple, we add this new section to the end of the templates:
+```
+    # patched by certbot-zimbra.sh
+    location ^~ /.well-known/acme-challenge {
+        root $WEBROOT;
+    }
+```
+$WEBROOT is either /opt/zimbra/data/nginx/html (default) or the path specified by the command line option.
+After this we restart zmproxy to apply the patches.
+
+We then pass this webroot to certbot with the webroot plugin to obtain the certificate.
+
+After the certificate has been obtained successfully we stage the certificates in a temporary directory, find the correct CA certificates from the system's certificate store and build the certificate files in a way Zimbra expects them. If verification with zmcertmgr succeeds we deploy the new certificates, restart Zimbra and clean up the temporary files.
+
+After the first patching the script will check if the templates have been already patched and if so, it skips the patching and zmproxy restart steps. This is useful in cron jobs where even if we upgrade Zimbra and wipe out the patched templates they'll be repatched automatically.
+
+The use of --deploy-only from --deploy-hook in cron jobs will only deploy the certificates if a renewal was successful. Thus Zimbra won't be unnecessarily restarted if no renewal was done.
 
 ## Certbot notes
 
@@ -307,7 +353,7 @@ THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.
 &copy; Lorenzo Milesi <maxxer@yetopen.it>
 
 ## Contributors
-- Jernej Jakob <jernej.jakob@gmail.com>
+- Jernej Jakob @jjakob
 - @eN0RM
 - Pavel Pulec @pulecp
 - Antonio Prado
