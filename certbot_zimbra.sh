@@ -156,9 +156,9 @@ check_zimbra_proxy() {
 	fi
 
 	if [ "$PORT" != "80" ] && ! "$QUIET"; then
-		echo "WARNING: non-standard zimbraMailProxyPort $PORT. 
-This needs to be 80 from the internet for Let's Encrypt (certbot) to work. 
-If you have NAT set up to do the translation this is likely fine. 
+		echo "WARNING: non-standard zimbraMailProxyPort $PORT.
+This needs to be 80 from the internet for Let's Encrypt (certbot) to work.
+If you have NAT set up to do the translation this is likely fine.
 If not, your Zimbra proxy is misconfigured and certbot will fail."
 		if "$PROMPT_CONFIRM"; then
 			prompt "Proceed?"
@@ -368,7 +368,7 @@ set_certpath() {
 
 check_webroot () {
 	[ -z "$WEBROOT" ] && echo "Unexpected error: check_webroot WEBROOT not set. Exiting." && exit 1
-	
+
 	# <8.7 didn't have nginx webroot
 	if [ ! -d "$WEBROOT" ]; then
 		if "$PROMPT_CONFIRM"; then
@@ -578,6 +578,19 @@ deploy_cert() {
 	return 0
 }
 
+# Disable certbot's renewal
+disable_crontab() {
+    ! "$QUIET" && echo "Disabling certbot's scheduled renewals (systemd and crontab)."
+    # exit on error
+    set -e
+    [ -x /usr/bin/systemctl ] && /usr/bin/systemctl stop certbot.timer && /usr/bin/systemctl disable certbot.timer
+    [ -f /etc/cron.d/certbot ] && sed -i '/^0/s/^/#/g' /etc/cron.d/certbot
+    "$QUIET" && exec > /dev/stdout
+    "$QUIET" && exec 2> /dev/stderr
+    set +e
+    return 0
+}
+
 usage () {
 	cat <<EOF
 USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameters ..."]
@@ -743,6 +756,7 @@ if ! "$DEPLOY_ONLY"; then
 
 	find_certbot
 	request_cert
+	"$NEW_CERT" && disable_crontab
 fi
 
 set_certpath
