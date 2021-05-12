@@ -5,7 +5,7 @@
 # GPLv3 license
 
 PROGNAME="certbot-zimbra"
-VERSION="0.7.11"
+VERSION="0.7.12"
 GITHUB_URL="https://github.com/YetOpen/certbot-zimbra"
 # paths
 ZMPATH="/opt/zimbra"
@@ -445,7 +445,7 @@ request_cert() {
 	"$QUIET" && exec > /dev/null
 	"$QUIET" && exec 2>/dev/null
 	# Request our cert
-	"$LE_BIN" certonly $LE_PARAMS
+	"$LE_BIN" certonly $LE_PARAMS --preferred-chain 'ISRG Root X1'
 	e=$?
 	"$QUIET" && exec > /dev/stdout
 	"$QUIET" && exec 2> /dev/stderr
