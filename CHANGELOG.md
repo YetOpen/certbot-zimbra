@@ -1,3 +1,10 @@
+## v0.7.12
+
+* Add --preferred-chain to the Certbot command line according to Let's Encrypt
+  [recent changes][1] (#129)
+
+[1]: https://community.letsencrypt.org/t/openssl-client-compatibility-changes-for-let-s-encrypt-certificates/143816
+
 ## v0.7.11
 
 * Fix extracting CA from tls-ca-bundle.pem when spaces are removed from CN (#106)
