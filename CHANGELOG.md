@@ -1,6 +1,13 @@
 ## v0.7.12-pre
 
 * Use topmost certificate in chain to find CA cert. Fixes #129
+* Coding style changes:
+    * Use local variables where possible and unset them after use
+    * Make constants readonly
+    * Change all variables to lowercase
+        - To comply with shell coding best practices and prevent clashing with any
+          shell or environment variables.
+        - Also add some missing globals to the initial declaration at the top of the file.
 
 ## v0.7.11
 
