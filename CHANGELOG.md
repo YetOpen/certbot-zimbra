@@ -1,3 +1,7 @@
+## v0.7.12-pre
+
+* Use topmost certificate in chain to find CA cert. Fixes #129
+
 ## v0.7.11
 
 * Fix extracting CA from tls-ca-bundle.pem when spaces are removed from CN (#106)
