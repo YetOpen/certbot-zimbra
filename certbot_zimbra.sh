@@ -475,15 +475,21 @@ prepare_cert() {
 
 	# Create the "patched" chain suitable for Zimbra
 	cat "$CERTPATH/chain.pem" > "$tmpcerts/zimbra_chain.pem"
+
+	# get the last cert in chain.pem (topmost in the intermediates chain)
+	local chaincerts="$(cat $CERTPATH/chain.pem)"
+	local topchaincert="-----BEGIN CERTIFICATE${chaincerts##*BEGIN CERTIFICATE}"
+	unset chaincerts
+
 	if [ -r "$ca_certificates_file" ]; then
 	        # Debian/Ubuntu
 		# use the issuer_hash of the LE chain cert to find the root CA in /etc/ssl/certs
-		cat "/etc/ssl/certs/$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer_hash).0" >> "$tmpcerts/zimbra_chain.pem"
+		cat "/etc/ssl/certs/$(echo "${topchaincert}" | openssl x509 -noout -issuer_hash).0" >> "$tmpcerts/zimbra_chain.pem"
 	elif [ -r "$pki_ca_bundle_file" ]; then
 		# RHEL/CentOS
 		# extract CA by CN in tls-ca-bundle.pem
-		issuer="$(openssl x509 -in $CERTPATH/chain.pem -noout -issuer | sed -n 's/.*CN\s\?=\s\?//;s/\/.*$//;p')"
-		[ -z "$issuer" ] && echo "Error: can't find issuer of \"$CERTPATH/chain.pem\". Exiting." && exit 1
+		issuer="$(echo "${topchaincert}" | openssl x509 -noout -issuer | sed -n 's/.*CN\s\?=\s\?//;s/\/.*$//;p')"
+		[ -z "$issuer" ] && echo "Error: can't find issuer of topmost certificate in \"$CERTPATH/chain.pem\". Exiting." && exit 1
 		# if we can't find the issuer in the bundle file, it may have spaces removed, hopefully we'll find it without spaces
 		grep -q "^# $issuer\$" "$pki_ca_bundle_file" || issuer="${issuer//' '}"
 		# the following awk script extracts the CA cert from the bundle or exits 1 if not found
@@ -494,6 +500,7 @@ prepare_cert() {
 		echo "Error in prepare_cert: can't find installed CA certificates (check_depends_ca should have caught this). Exiting." && exit 1
 	fi
 
+	unset topchaincert
 	$oldumask
 
 	# set permissions so that zimbra can read the certs
