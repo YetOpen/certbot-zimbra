@@ -181,10 +181,10 @@ check_port () {
 	! "$QUIET" && echo "Checking if process is listening on port $1 ${2:+"with name \"$2\" "}${3:+"user \"$3\""}"
 
 	# check with lsof if available, or fall back to ss
-	LSOF_BIN="$(which lsof 2>/dev/null)"
-	SS_BIN="$(which ss 2>/dev/null)"
-	CHECK_BIN=""
-	GREP_FILTER=""
+	local LSOF_BIN="$(which lsof 2>/dev/null)"
+	local SS_BIN="$(which ss 2>/dev/null)"
+	local CHECK_BIN=""
+	local GREP_FILTER=""
 	if [ -x "$LSOF_BIN" ]; then
 		CHECK_BIN="$LSOF_BIN -i :$1 -s TCP:LISTEN -a -n"
 		GREP_FILTER="$2.*$3"
@@ -201,6 +201,7 @@ check_port () {
 	# optionally $2 and $3 are process name and process user
 	(( "$($CHECK_BIN | grep -c "$GREP_FILTER")" == 0 )) && return 1
 
+	unset LSOF_BIN SS_BIN CHECK_BIN GREP_FILTER
 	return 0
 }
 
@@ -219,7 +220,7 @@ patch_nginx() {
 
 		# Let's make a backup of zimbra's original templates
 		set -e
-		BKDATE="$(date +'%Y%m%d_%H%M%S')"
+		local BKDATE="$(date +'%Y%m%d_%H%M%S')"
 		! "$QUIET" && echo "Making a backup of nginx templates in $ZMPATH/conf/nginx/templates.$BKDATE"
 		cp -a "$ZMPATH/conf/nginx/templates" "$ZMPATH/conf/nginx/templates.$BKDATE"
 		set +e
@@ -267,6 +268,8 @@ END {exit e}" "$ZMPATH/conf/nginx/templates.$BKDATE/nginx.conf.web.$file.templat
 		else
 			! "$QUIET" && echo "Success."
 		fi
+
+		unset BKDATE
 	fi
 
 	# Don't restart if includes show nginx has already been restarted
@@ -406,6 +409,8 @@ Exiting."
 		exit 1
 	fi
 
+	unset certbot_version_params
+
 	if [ -z "$detected_certbot_version" ]; then
 		! "$QUIET" && echo "Error: unable to parse certbot version. Exiting."
 		exit 1
@@ -500,8 +505,9 @@ prepare_cert() {
 		echo "Error in prepare_cert: can't find installed CA certificates (check_depends_ca should have caught this). Exiting." && exit 1
 	fi
 
-	unset topchaincert
+	unset topchaincert issuer
 	$oldumask
+	unset oldumask
 
 	# set permissions so that zimbra can read the certs
 	chown -R root:zimbra "$tmpcerts"
@@ -562,6 +568,7 @@ deploy_cert() {
 	! "$QUIET" && echo "Removing temporary files in $tmpcerts"
 	# this is kind of sketchy
 	[ -n "$tmpcerts" ] && rm -r "$tmpcerts"
+	unset tmpcerts
 
 	set +e
 
