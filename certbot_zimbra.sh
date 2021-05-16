@@ -4,19 +4,19 @@
 # author: Jernej Jakob <jernej.jakob@gmail.com>
 # GPLv3 license
 
-progname="certbot-zimbra"
-version="0.7.12"
-github_url="https://github.com/YetOpen/certbot-zimbra"
+readonly progname="certbot-zimbra"
+readonly version="0.7.12"
+readonly github_url="https://github.com/YetOpen/certbot-zimbra"
 # paths
-zmpath="/opt/zimbra"
-zmwebroot="$zmpath/data/nginx/html"
-le_live_path="/etc/letsencrypt/live" # the domain will be appended to this path
-temppath="/run/$progname"
+readonly zmpath="/opt/zimbra"
+readonly zmwebroot="$zmpath/data/nginx/html"
+readonly le_live_path="/etc/letsencrypt/live" # the domain will be appended to this path
+readonly temppath="/run/$progname"
 # other options
-zmprov_opts="-l" # use ldap (faster)
+readonly zmprov_opts="-l" # use ldap (faster)
 # used to extract the CA for the letsencrypt certs
-ca_certificates_file="/etc/ssl/certs/ca-certificates.crt"
-pki_ca_bundle_file="/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
+readonly ca_certificates_file="/etc/ssl/certs/ca-certificates.crt"
+readonly pki_ca_bundle_file="/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
 # Do NOT modify anything after this line.
 webroot=""
 certpath=""
@@ -37,7 +37,7 @@ detect_public_hostnames=true
 skip_port_check=false
 port=""
 quiet=false
-min_certbot_version="0.19.0"
+readonly min_certbot_version="0.19.0"
 locked=false
 platform=""
 detected_zimbra_version=""
@@ -80,6 +80,7 @@ get_lock(){
 	! flock -n 200 && echo "Error: can't get exclusive lock. Another instance of this script may be running.
 If you are sure there is no other instance of this script running (check with \"ps afx\") you can remove $temppath/$progname.lck and try again." && exit 1
 	locked=true
+	readonly locked
 }
 
 prompt(){
@@ -130,8 +131,10 @@ bootstrap() {
 	# use zimbra's get_plat_tag.sh to find OS and version (this is only for display and not used elsewhere in the script)
 	# returns $OS$ver for 32-bit or $OS$ver_64 for 64-bit, where OS is the os name (UBUNTU,DEBIAN,RHEL,CentOS,F,FC,SLES,openSUSE,UCS,MANDRIVA,SOLARIS,MACOSx)
 	platform="$($zmpath/libexec/get_plat_tag.sh)"
+	readonly platform
 
 	detected_zimbra_version="$(su - zimbra -c "$zmpath/bin/zmcontrol -v" | grep -Po '(\d+).(\d+).(\d+)' | head -n 1)"
+	readonly detected_zimbra_version
 	[ -z "$detected_zimbra_version" ] && echo "Error: Unable to detect zimbra version" && exit 1
 	! "$quiet" && echo "Detected Zimbra $detected_zimbra_version on $platform"
 
@@ -727,6 +730,8 @@ while [[ $# -gt 0 ]]; do
 	shift
 done
 
+readonly deploy_only new_cert patch_only agree_tos le_noniact detect_public_hostnames skip_port_check no_nginx services restart_zimbra prompt_confirm quiet
+
 # exit if an invalid option combination was passed
 "$quiet" && "$prompt_confirm" && echo "Incompatible parameters: -q -c" && exit 1
 "$le_noniact" && "$prompt_confirm" && echo "Incompatible parameters: -N -c" && exit 1
@@ -751,6 +756,8 @@ if ! "$deploy_only"; then
 				&& exit 1
 	else
 		webroot="$zmwebroot"
+		readonly webroot
+
 		check_zimbra_proxy
 		! check_port "$port" nginx zimbra && echo "Error: port check failed. If you have overridden the port with --port, a web server to use for letsencrypt authentication \
 				of the domain $domain must be listening on it." && exit 1
