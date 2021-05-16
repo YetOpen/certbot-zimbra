@@ -1,4 +1,4 @@
-## v0.7.12-pre
+## v0.7.12
 
 * Use topmost certificate in chain to find CA cert. Fixes #129
 * Coding style changes:
