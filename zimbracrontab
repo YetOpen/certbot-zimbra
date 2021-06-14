@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# certbot_zimbra.sh requires bash and a path with /usr/sbin
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+# Place in /etc/cron.d/zimbracrontab
+# touch /etc/cron.d/zimbracrontab
+# chmod +x /etc/cron.d/zimbracrontab
+
+# Replace /usr/bin/certbot with the location of your certbot binary, use this to find it: which certbot-auto certbot letsencrypt
+12 5 * * * root /usr/bin/certbot renew --pre-hook "/usr/local/bin/certbot_zimbra.sh -p" --deploy-hook "/usr/local/bin/certbot_zimbra.sh -d"
