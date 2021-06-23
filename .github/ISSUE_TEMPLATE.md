@@ -1,3 +1,5 @@
+* If the error is "ERROR: Unable to validate certificate chain" please update to latest 0.7.12, that will fix it
+
 * Read the [troubleshooting section of the readme](https://github.com/YetOpen/certbot-zimbra#troubleshooting) if any section applies.
 
 * If you have upgraded to v0.7+ from older versions, please check that you have also changed your command line options in crontabs or systemd units and that you are using the correct post-0.7 options if running manually (read the [readme](https://github.com/YetOpen/certbot-zimbra)).
