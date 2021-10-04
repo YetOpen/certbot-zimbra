@@ -282,6 +282,14 @@ Try running certbot/certbot-auto on the command line by itself and see if it has
 
 Check that ports 80 and 443 are open and accessible from the outside and check that your domain points to the server's IP. Basically troubleshoot Letsencrypt as if you weren't using certbot-zimbra.
 
+## `cat: /etc/ssl/certs/2e5ac55d.0: No such file or directory` OR `Can't find "DSTRootCAX3"` OR `Unable to validate certificate chain: O = Digital Signature Trust Co., CN = DST Root CA X3`
+
+Letsencrypt's "DST Root CA X3" expired in September 2021. Certbot should have automatically renewed the certificate with the new "ISRG Root X1" before this, but some users reported this did not happen, certbot still issued a certificate with the old expired CA, and the site certificate did not successfully install. See issue #140.
+
+- make sure you have latest ca-certificates (Debian/Ubuntu) or pki-base (RHEL/CentOS) package (do a apt-get dist-upgrade/upgrade/install ca-certificates or equivalent yum command)
+- use certbot_zimbra to request a new cert just for Zimbra: `certbot_zimbra.sh -L '--preferred-chain \"ISRG Root X1\"' new`. You need to use the same options as when you first requested the cert, as certbot_zimbra doesn't remember them.
+- alternatively try forcing a renewal with `certbot --force-renewal --preferred-chain "ISRG Root X1" renew` (quotes around "ISRG Root X1" are important). If successful, run `/usr/local/bin/certbot_zimbra.sh -d` to deploy the new cert. NOTE: this will force renew all certificates, not just Zimbra's, and you may need to manually deploy them to other services.
+
 # Notes
 
 ## Notes on zimbraReverseProxyMailMode 
