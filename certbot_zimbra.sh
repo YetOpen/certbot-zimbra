@@ -488,9 +488,11 @@ prepare_cert() {
 	# Create the "patched" chain suitable for Zimbra
 	cat "$certpath/chain.pem" > "$tmpcerts/zimbra_chain.pem"
 
-	# get the last cert in chain.pem (topmost in the intermediates chain)
+	# get the needed cert in chain.pem (topmost in the intermediates chain)
 	local chaincerts="$(cat $certpath/chain.pem)"
-	local topchaincert="-----BEGIN CERTIFICATE${chaincerts##*BEGIN CERTIFICATE}"
+	lineno=`cat $certpath/chain.pem |tail -n +2 | grep -n BEGIN |cut -d: -f1`
+	cat $certpath/chain.pem | head -n $lineno > $tmpcerts/zimbra_chain.pem
+	local topchaincert=`cat $tmpcerts/zimbra_chain.pem`
 	unset chaincerts
 
 	if [ -r "$ca_certificates_file" ]; then
