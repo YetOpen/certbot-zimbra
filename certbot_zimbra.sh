@@ -615,7 +615,7 @@ USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.d
   Domain options:
 	 -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u/--no-public-hostname-detection.
 	 -H | --hostname <my.host.name>: hostname being requested. If not passed it's automatically detected using "zmhostname".
-	 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraServicePublicHostname.
+	 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraPublicServiceHostname.
   Deploy options:
 	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
 	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
@@ -629,7 +629,7 @@ USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.d
 	 -c | --prompt-confirm: ask for confirmation. Incompatible with -q/--quiet.
 	 -q | --quiet: Do not output on stdout. Useful for scripts. Implies -N/--noninteractive, incompatible with -c/--prompt-confirm.
 
-Authors: Lorenzo Milesi <maxxer@yetopen.it>, Jernej Jakob <jernej.jakob@gmail.com> @jjakob
+Authors: Lorenzo Milesi <maxxer@yetopen.com>, Jernej Jakob <jernej.jakob@gmail.com> @jjakob
 Feedback, bugs and PR are welcome on GitHub: https://github.com/yetopen/certbot-zimbra.
 
 Disclaimer:

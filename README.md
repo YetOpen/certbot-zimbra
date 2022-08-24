@@ -358,7 +358,7 @@ THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.
 
 # Author
 
-&copy; Lorenzo Milesi <maxxer@yetopen.it>
+&copy; Lorenzo Milesi <maxxer@yetopen.com>
 
 ## Contributors
 - Jernej Jakob @jjakob
