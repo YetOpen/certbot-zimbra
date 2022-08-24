@@ -313,10 +313,26 @@ find_additional_public_hostnames() {
 		return
 	fi
 
-	! "$quiet" && echo -n "Detecting additional public service hostnames... "
+	! "$quiet" && echo "Detecting additional public service hostnames:"
 
-	extra_domains=($(su - zimbra -c "zmprov $zmprov_opts gad" | gawk '{printf "gd %s zimbraPublicServiceHostname\n", $0}' \
-			| su - zimbra -c "zmprov $zmprov_opts -" | sed "/prov>/d;/# name/d;/$domain/d;/^$/d;s/zimbraPublicServiceHostname: \(.*\)/\1/"))
+	# process all Zimbra domains
+	all_domains=($(su - zimbra -c "zmprov $zmprov_opts gad" | tr '\n' ' '))
+	for domain_entry in ${all_domains[@]}; do
+		! "$quiet" echo "Processing: ${domain_entry}"
+		additional_domains=$((su - zimbra -c "zmprov $zmprov_opts gd ${domain_entry} zimbraPublicServiceHostname" \
+			| sed "/prov>/d;/# name/d;/^$/d;s/zimbraPublicServiceHostname: \(.*\)/\1/"; \
+			su - zimbra -c "zmprov $zmprov_opts gd ${domain_entry} zimbraVirtualHostname" \
+			| sed "/prov>/d;/# name/d;/^$/d;s/zimbraVirtualHostname: \(.*\)/\1/") \
+			| sort | uniq | tr '\n' ' ')
+		# if domain is actually a hostname add it to the list
+		[ -z "${additional_domains}" -a "${domain_entry}" != "${domain}" ] && additional_domains="${domain_entry}"
+		
+		# add finding to our list
+		if [ -n "${additional_domains}" ]; then
+			! "$quiet" && echo "Found additional domains: ${additional_domains}"
+			extra_domains+=(${additional_domains})
+		fi
+	done
 	! "$quiet" && echo "Found ${#extra_domains[@]} zimbraPublicServiceHostnames through auto-detection"
 
 	return 0
