@@ -1,3 +1,9 @@
+## v0.7.13 (unreleased)
+
+* Change the way certbot-zimbra establishes the list of SAN's - (#161)
+    - In addition to zimbraPublicServiceHostname also look at entries added
+      to zimbraVirtualHostname to find all SAN's for the certificate.
+
 ## v0.7.12
 
 * Use topmost certificate in chain to find CA cert. Fixes #129
