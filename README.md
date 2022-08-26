@@ -95,7 +95,7 @@ USAGE: certbot_zimbra.sh < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extr
 ```
 
 
-If no `-e` is given, the script will figure out the additional domain(s) to add to the certificate as SANs via `zmprov gd $domain zimbraPublicServiceHostname`.
+If no `-e` is given, the script will figure out the additional domain(s) to add to the certificate as SANs via `zmprov gd $domain zimbraPublicServiceHostname` and `zmprov gd $domain zimbraVirtualHostname`.
 This can be skipped with `-u/--no-public-hostname-detection`, in which case only the CN from `zmhostname` or `-H/--hostname` will be used.
 
 Only one certificate will be issued including all the found hostnames. The primary host will always be `zmhostname`.
@@ -144,7 +144,7 @@ Certbot will also ask you some information about the certificate interactively, 
 
 The domain of the certificate is obtained automatically using `zmhostname`. If you want to request a specific hostname use the `-H/--hostname` option. This domain will be the DN of the certificate.
 
-The certificate can be requested with additional hostnames/SANs. By default the script fetches the `zimbraPublicServiceHostname` attribute from all domains and if present, adds it to the certificate SANs to be requested. If you want to disable this behavior use the `-u/--no-public-hostname-detection` option.
+The certificate can be requested with additional hostnames/SANs. By default the script fetches the `zimbraPublicServiceHostname` and all `zimbraVirtualHostname` attributes from all domains and if present, adds those to the certificate SANs to be requested. If you want to disable this behavior use the `-u/--no-public-hostname-detection` option.
 
 **Note:** Let's Encrypt has a limit of a maximum of 100 domains per certificate at the time of this writing: [Rate Limits](https://letsencrypt.org/docs/rate-limits/)
 
