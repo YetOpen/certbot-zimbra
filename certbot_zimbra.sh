@@ -5,7 +5,7 @@
 # GPLv3 license
 
 readonly progname="certbot-zimbra"
-readonly version="0.7.12"
+readonly version="0.7.13 (unreleased)"
 readonly github_url="https://github.com/YetOpen/certbot-zimbra"
 # paths
 readonly zmpath="/opt/zimbra"
