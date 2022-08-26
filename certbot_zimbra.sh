@@ -329,11 +329,11 @@ find_additional_public_hostnames() {
 		
 		# add finding to our list
 		if [ -n "${additional_domains}" ]; then
-			! "$quiet" && echo "Found additional domains: ${additional_domains}"
+			! "$quiet" && echo " - domain ${domain_entry}: ${additional_domains}"
 			extra_domains+=(${additional_domains})
 		fi
 	done
-	! "$quiet" && echo "Found ${#extra_domains[@]} zimbraPublicServiceHostnames through auto-detection"
+	! "$quiet" && echo "Found ${#extra_domains[@]} through auto-detection (zimbraPublicServiceHostname, zimbraVirtualHostname)"
 
 	unset all_domains domain_entry additional_domains
 	return 0
