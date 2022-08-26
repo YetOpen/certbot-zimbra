@@ -335,6 +335,7 @@ find_additional_public_hostnames() {
 	done
 	! "$quiet" && echo "Found ${#extra_domains[@]} zimbraPublicServiceHostnames through auto-detection"
 
+	unset all_domains domain_entry additional_domains
 	return 0
 }
 
