@@ -43,7 +43,12 @@ This will make certbot install any additional packages it needs and create its e
 By installing Certbot via packages it automatically creates a cron schedule and a systemd timer to renew certificates (at least on Ubuntu). 
 We must **disable this schedule** because after the renew we must deploy it in Zimbra. Also certbot's timers will attempt to update the cert twice a day,
 this means a Zimbra restart may happen during work hours.
-So open `/etc/cron.d/certbot` with your favourite editor and **comment the last line**. To disable systemd timers run:
+So open `/etc/cron.d/certbot` with your favourite editor and **comment the last line** or use the below sed command to do so as root. 
+```
+sed -i '/certbot -q renew/s/^/#/g' /etc/cron.d/certbot
+```
+
+To disable systemd timers run:
 
 ```
 systemctl stop certbot.timer && systemctl disable certbot.timer
@@ -61,6 +66,13 @@ chown root: certbot_zimbra.sh
 mv certbot_zimbra.sh /usr/local/bin/
 ```
 Or from the master branch: [certbot_zimbra.sh](/../../raw/master/certbot_zimbra.sh)
+```bash
+wget -O /usr/local/bin/certbot_zimbra.sh https://github.com/YetOpen/certbot-zimbra/raw/master/certbot_zimbra.sh;
+chmod +x /usr/local/bin/certbot_zimbra.sh;
+wget -O /etc/cron.d/zimbracrontab https://github.com/YetOpen/certbot-zimbra/raw/masterzimbracrontab;
+chmod +x /etc/cron.d/zimbracrontab
+```
+
 
 # Usage
 
@@ -367,6 +379,7 @@ THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.
 - Antonio Prado
 - @afrimberger
 - @mauriziomarini
+- Michael Ramsey @whattheserver
 
 *if you are a contributor, add yourself here (and in the code)*
 

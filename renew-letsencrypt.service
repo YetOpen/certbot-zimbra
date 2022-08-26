@@ -1,0 +1,9 @@
+[Unit]
+Description=Renew Let's Encrypt certificates and deploy into Zimbra if successful
+After=network-online.target
+
+[Service]
+Type=oneshot
+# run certbot --renew with pre/post hooks. only deploys if renewal was successful.
+# Replace /usr/bin/certbot with the location of your certbot binary, use this to find it: which certbot-auto certbot letsencrypt.
+ExecStart=/usr/bin/certbot renew --quiet --pre-hook "/usr/local/bin/certbot_zimbra.sh -p" --deploy-hook "/usr/local/bin/certbot_zimbra.sh -d"
