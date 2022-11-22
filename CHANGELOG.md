@@ -1,8 +1,8 @@
 ## v0.7.13 (unreleased)
 
 * Change the way certbot-zimbra establishes the list of SAN's (#161)
-    - In addition to zimbraPublicServiceHostname also look at entries added
-      to zimbraVirtualHostname to find all SAN's for the certificate.
+    - In addition to zimbraPublicServiceHostname it also looks at entries
+      added to zimbraVirtualHostname to find all SAN's for the certificate.
 
 ## v0.7.12
 
