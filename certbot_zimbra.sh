@@ -5,7 +5,7 @@
 # GPLv3 license
 
 readonly progname="certbot-zimbra"
-readonly version="0.7.12"
+readonly version="0.7.13 (unreleased)"
 readonly github_url="https://github.com/YetOpen/certbot-zimbra"
 # paths
 readonly zmpath="/opt/zimbra"
@@ -314,10 +314,14 @@ find_additional_public_hostnames() {
 	fi
 
 	! "$quiet" && echo -n "Detecting additional public service hostnames... "
-
-	extra_domains=($(su - zimbra -c "zmprov $zmprov_opts gad" | gawk '{printf "gd %s zimbraPublicServiceHostname\n", $0}' \
-			| su - zimbra -c "zmprov $zmprov_opts -" | sed "/prov>/d;/# name/d;/$domain/d;/^$/d;s/zimbraPublicServiceHostname: \(.*\)/\1/"))
-	! "$quiet" && echo "Found ${#extra_domains[@]} zimbraPublicServiceHostnames through auto-detection"
+	
+	extra_domains=($(su - zimbra -c "zmprov $zmprov_opts gad" \
+			| gawk '{printf "gd %s zimbraPublicServiceHostname\ngd %s zimbraVirtualHostname\n", $0, $0}' \
+			| su - zimbra -c "zmprov $zmprov_opts -" \
+			| sed "/prov>/d;/# name/d;/$domain/d;/^$/d;s/\(\(zimbraPublicServiceHostname\)\|\(zimbraVirtualHostname\)\): \(.*\)/\4/g" \
+			| sort -u | tr '\n' ' ' \
+			))
+	! "$quiet" && echo "Found ${#extra_domains[@]} through auto-detection (zimbraPublicServiceHostname, zimbraVirtualHostname)"
 
 	return 0
 }
