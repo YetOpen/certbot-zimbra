@@ -38,6 +38,7 @@ skip_port_check=false
 port=""
 quiet=false
 readonly min_certbot_version="0.19.0"
+detected_certbot_version=""
 locked=false
 platform=""
 detected_zimbra_version=""
@@ -407,30 +408,30 @@ find_certbot () {
 	# get certbot version, we need to use some trickery here in case certbot is bootstrapping (1st run) and expects user input
 	# if run with --prompt-confirm, show the output of certbot on stderr and allow the user to answer yes/no
 	# otherwise add --no-bootstrap and exit in case of error
-	local certbot_version_params=""
-	! "$prompt_confirm" && certbot_version_params="--no-bootstrap "
-	"$le_noniact" && certbot_version_params+="--non-interactive "
-	certbot_version_params+="--version"
+	# TODO: --no-bootstrap is not used in certbot, deprecated in certbot >=1.13.0, and certbot-auto is already dead,
+	# so no point in keeping it, certbot does not need to bootstrap (but may ask for accepting the TOS)
+	local certbot_version_params=()
+	! "$prompt_confirm" && certbot_version_params=("--no-bootstrap")
+	"$le_noniact" && certbot_version_params+=("--non-interactive")
+	certbot_version_params+=("--version")
 
-	local detected_certbot_version="$($le_bin ${certbot_version_params} 2>&1 | $( "$prompt_confirm" && echo 'tee /dev/stderr |') grep '^certbot .*$')"
-	certbot_version_exit=${PIPESTATUS[0]}
+	detected_certbot_version="$($le_bin "${certbot_version_params[@]}" 2>&1 | $( "$prompt_confirm" && echo 'tee /dev/stderr |') | grep -oP '^certbot \K(\d+).(\d+).(\d+)$')"
+	local certbot_version_exit="${PIPESTATUS[0]}"
 	if [ "$certbot_version_exit" -ne 0 ]; then
-		! "$quiet" && echo "Error: \"$le_bin ${certbot_version_params}\" exit status $certbot_version_exit.
+		! "$quiet" && echo "Error: \""$le_bin ${certbot_version_params[@]}"\" exit status $certbot_version_exit.
 Try running $le_bin by itself on the command line and see if it works (it may need to bootstrap itself).
 Exiting."
 		exit 1
 	fi
-
-	unset certbot_version_params
 
 	if [ -z "$detected_certbot_version" ]; then
 		! "$quiet" && echo "Error: unable to parse certbot version. Exiting."
 		exit 1
 	fi
 
-	! "$quiet" && ! "$prompt_confirm" && echo "Detected $detected_certbot_version"
+	! "$quiet" && ! "$prompt_confirm" && echo "Detected certbot $detected_certbot_version"
 
-	if ! version_gt "$(echo "$detected_certbot_version" | grep -Po '(\d+).(\d+).(\d+)')" "$min_certbot_version"; then
+	if ! version_gt "$detected_certbot_version" "$min_certbot_version"; then
 		! "$quiet" && echo "Error: certbot is too old, please upgrade to certbot >=$min_certbot_version. Exiting."
 		exit 1
 	fi
