@@ -460,7 +460,7 @@ request_cert() {
 		le_params+=("--key-type" "rsa" "--rsa-key-size" "4096")
 
 	le_params+=("--webroot" "-w" "$webroot" "--cert-name" "$domain" "-d" "$domain")
-	for d in ${extra_domains[@]}; do
+	for d in "${extra_domains[@]}"; do
 		[ -z "$d" ] && continue
 		le_params+=("-d" "$d")
 	done
@@ -710,7 +710,7 @@ while [[ $# -gt 0 ]]; do
 		# domain
 		-e|--extra-domain)
 			[ -z "$2" ] && echo "missing extra domain argument" && exit 1
-			extra_domains=("${extra_domains[@]}" "$2")
+			extra_domains+=("$2")
 			detect_public_hostnames=false
 			shift
 			;;
