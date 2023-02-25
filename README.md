@@ -28,17 +28,11 @@ The command line parameters were changed with v0.7. `-r/--renew-only` was rename
 - ca-certificates (Debian/Ubuntu) or pki-base (RHEL/CentOS)
 - Zimbra: zmhostname, zmcontrol, zmproxyctrl, zmprov, zmcertmgr
 - zimbra-proxy installed and working or an alternate webserver configured for letsencrypt webroot
-- either certbot, certbot-auto or letsencrypt binary in PATH. These three may be used interchangeably in the rest of the document, depending on what is installed on your system.
+- Certbot >=1.12.0, either certbot or letsencrypt binary in PATH.
 
 ## Certbot installation
 
-The preferred way is to install it is by using the wizard [at certbot's home](https://certbot.eff.org/). Choose *None of the above* as software and your operating system. This will allow you to install easily upgradable system packages.
-
-After installation, we need to run certbot on its own so that it can bootstrap itself. As root, run:
-```
-certbot-auto
-```
-This will make certbot install any additional packages it needs and create its environment. Failing to do this step may make the script fail when trying to run certbot.
+The preferred way is to install it is by using the wizard [at certbot's home](https://certbot.eff.org/). Select "Other" as software. This will allow you to install easily upgradable system packages.
 
 By installing Certbot via packages it automatically creates a cron schedule and a systemd timer to renew certificates (at least on Ubuntu). 
 We must **disable this schedule** because after the renew we must deploy it in Zimbra. Also certbot's timers will attempt to update the cert twice a day,
@@ -168,15 +162,13 @@ EFF suggest to run *renew* twice a day. Since this would imply restarting zimbra
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-# Replace /usr/bin/certbot with the location of your certbot binary, use this to find it: which certbot-auto certbot letsencrypt
+# Replace /usr/bin/certbot with the location of your certbot binary, use this to find it: which certbot letsencrypt
 12 5 * * * root /usr/bin/certbot renew --pre-hook "/usr/local/bin/certbot_zimbra.sh -p" --deploy-hook "/usr/local/bin/certbot_zimbra.sh -d"
 ```
 
 The `--pre-hook` ensures Zimbra's nginx is patched to allow certificate verification. You can omit it if you remember to manually execute that command after an upgrade or a reinstall which may restore nginx's templates to their default.
 
-The `--deploy-hook` parameter is only run if a renewal was successful, this will run certbot-zimbra.sh with `-d` to deploy the renewed certificates and restart zimbra.
-
-`--deploy-hook` is a newer addition to certbot, so if yours doesn't have it, the best option is to upgrade it. If you installed certbot manually instead of via the package manager, it should auto-upgrade on every invocation. Just run `certbot-auto` (or the equivalent on your system) without any parameters to auto-upgrade.
+The `--deploy-hook` parameter is only run if a renewal was successful, this will run certbot-zimbra.sh with `-d|--deploy-only` to deploy the renewed certificates and restart zimbra.
 
 The domain to renew is automatically obtained with `zmhostname`. If you need customized domain name pass the `-H` parameter after `-d`.
 
@@ -200,7 +192,7 @@ After=network-online.target
 [Service]
 Type=oneshot
 # run certbot --renew with pre/post hooks. only deploys if renewal was successful.
-# Replace /usr/bin/certbot with the location of your certbot binary, use this to find it: which certbot-auto certbot letsencrypt.
+# Replace /usr/bin/certbot with the location of your certbot binary, use this to find it: "which certbot letsencrypt"
 ExecStart=/usr/bin/certbot renew --quiet --pre-hook "/usr/local/bin/certbot_zimbra.sh -p" --deploy-hook "/usr/local/bin/certbot_zimbra.sh -d"
 ```
 
@@ -252,7 +244,7 @@ Deployment and renewal can be done as in the [Alternate webserver manual mode](#
 
 ### Manual certificate request example
 
-Say you have apache in front of zimbra (or listening on port 80 only) just run `certbot-auto` to request the certificate for apache, and when done run
+Say you have apache in front of zimbra (or listening on port 80 only) just run certbot by hand with appropriate options to request the certificate for apache, and when done run
 ```
 /usr/local/bin/certbot_zimbra.sh --deploy-only
 ```
@@ -270,15 +262,16 @@ Zimbra's proxy guide ([Zimbra Proxy Guide](https://wiki.zimbra.com/wiki/Zimbra_P
 
 ## Error: unable to parse certbot version
 
-This is caused by certbot expecting user input when the script tried to run it, typically because of it not being bootstrapped and this being a fresh installation of certbot. To fix this, run `certbot-auto` on the command line manually, this will make it bootstrap and ask for any input. After this the script should work fine.
+This is caused by certbot expecting user input when the script tried to run it to detect its version. To fix this, run `certbot` on the command line manually and answer any questions it has or fix any errors. After this the script should work fine.
 
-Newer versions of the script print a more descriptive error message and allow the bootstrap to occur during the script run if ran with --prompt-confirm.
+Newer versions of the script print a more descriptive error message if ran with `-c|--prompt-confirm`.
 
 ## certbot failures
 
-Check that you have an updated version of certbot installed. If you have installed certbot from your operating system's repositories, they may be out of date. Use the way that certbot recommends for your operating system on their installation page, or install certbot-auto (will auto-update on each invocation). Remove the old certbot packages first.
 
-Try running certbot/certbot-auto on the command line by itself and see if it has any errors. Check the certificate status with `certbot certificates`. Remove any duplicate or outdated certificates for the same domain names.
+Check that you have an updated version of certbot installed. If you have installed certbot from your operating system's repositories, they may be out of date, especially on non-rolling distributions. If your distribution's certbot is outdated, remove the system packages and install it the way that certbot recommends for your operating system on their installation page, or a different way that you prefer.
+
+Check certificate statuses with `certbot certificates`. Remove any duplicate or outdated certificates for the same domain names.
 
 Check that ports 80 and 443 are open and accessible from the outside and check that your domain points to the server's IP. Basically troubleshoot Letsencrypt as if you weren't using certbot-zimbra.
 
