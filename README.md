@@ -48,13 +48,13 @@ systemctl stop certbot.timer && systemctl disable certbot.timer
 Download the latest release and install it (copy the latest URL from the Releases tab):
 
 ```
-wget --content-disposition https://github.com/YetOpen/certbot-zimbra/archive/0.7.11.tar.gz
-tar xzf certbot-zimbra-0.7.11.tar.gz certbot_zimbra.sh
+wget --content-disposition https://github.com/YetOpen/certbot-zimbra/archive/0.7.13.tar.gz
+tar xzf certbot-zimbra-0.7.13.tar.gz certbot_zimbra.sh
 chmod +x certbot_zimbra.sh
 chown root: certbot_zimbra.sh
 mv certbot_zimbra.sh /usr/local/bin/
 ```
-Or from the master branch: [certbot_zimbra.sh](/../../raw/master/certbot_zimbra.sh)
+Or from the master branch (unstable): [certbot_zimbra.sh](/../../raw/master/certbot_zimbra.sh)
 
 # Usage
 
