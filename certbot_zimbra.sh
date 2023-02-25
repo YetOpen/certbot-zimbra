@@ -398,7 +398,8 @@ check_webroot () {
 
 find_certbot () {
 	# check for executable certbot-auto / certbot / letsencrypt
-	le_bin="$(which certbot-auto certbot letsencrypt 2>/dev/null | head -n 1)"
+	# TODO: remove dead certbot-auto
+	le_bin="$(which certbot letsencrypt certbot-auto 2>/dev/null | head -n 1)"
 	[ -z "$le_bin" ] && echo "Error: No letsencrypt/certbot binary found in $PATH" && exit 1
 
 	! "$quiet" && echo "Detecting certbot version..."
