@@ -24,6 +24,7 @@ le_bin=""
 le_params=()
 le_agree_tos=false
 le_noniact=false
+le_override_key_type_rsa=true
 agree_tos=false
 extra_domains=()
 no_nginx=false
@@ -453,6 +454,11 @@ request_cert() {
 	"$le_noniact" && le_params+=("--non-interactive")
 	"$quiet" && le_params+=("--quiet")
 	"$le_agree_tos" && le_params+=("--agree-tos")
+
+	version_gt "$detected_certbot_version" "1.999.999" &&
+		"$le_override_key_type_rsa" &&
+		le_params+=("--key-type" "rsa" "--rsa-key-size" "4096")
+
 	le_params+=("--webroot" "-w" "$webroot" "--cert-name" "$domain" "-d" "$domain")
 	for d in ${extra_domains[@]}; do
 		[ -z "$d" ] && continue
@@ -618,6 +624,8 @@ USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.d
 	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
 	 -L | --letsencrypt-params "--extra-le-parameter": Additional parameter to pass to certbot/letsencrypt. Must be repeated for each parameter and argument, e.g. -L "--preferred-chain" -L "ISRG Root X1"
 	 -N | --noninteractive: Pass --noninteractive to certbot/letsencrypt.
+	 --no-override-key-type-rsa: if certbot >=v2.0.0 has been detected, do not override ECDSA to RSA with "--key-type rsa" (use this to get the default ECDSA key type, Zimbra does NOT support it!)
+
   Domain options:
 	 -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u/--no-public-hostname-detection.
 	 -H | --hostname <my.host.name>: hostname being requested. If not passed it's automatically detected using "zmhostname".
@@ -672,6 +680,9 @@ while [[ $# -gt 0 ]]; do
 			;;
 		-N|--noninteractive)
 			le_noniact=true
+			;;
+		--no-override-key-type-rsa)
+			le_override_key_type_rsa=false
 			;;
 		# domain
 		-e|--extra-domain)
@@ -736,7 +747,7 @@ while [[ $# -gt 0 ]]; do
 	shift
 done
 
-readonly deploy_only new_cert patch_only agree_tos le_noniact detect_public_hostnames skip_port_check no_nginx services restart_zimbra prompt_confirm quiet
+readonly deploy_only new_cert patch_only agree_tos le_noniact le_override_key_type_rsa detect_public_hostnames skip_port_check no_nginx services restart_zimbra prompt_confirm quiet
 
 # exit if an invalid option combination was passed
 "$quiet" && "$prompt_confirm" && echo "Incompatible parameters: -q -c" && exit 1
