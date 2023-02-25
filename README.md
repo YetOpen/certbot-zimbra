@@ -92,7 +92,7 @@ USAGE: certbot_zimbra.sh < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extr
 If no `-e` is given, the script will figure out the additional domain(s) to add to the certificate as SANs via `zmprov gd $domain zimbraPublicServiceHostname zimbraVirtualHostname`.
 This can be skipped with `-u/--no-public-hostname-detection`, in which case only the CN from `zmhostname` or `-H/--hostname` will be used.
 
-Only one certificate will be issued including all the found hostnames. The primary host will always be `zmhostname`.
+Only one certificate will be issued including all the found hostnames. The primary host will always be `zmhostname` or the one passed via `-H|--hostname`.
 
 
 # Zimbra 8.6+ single server example
@@ -109,7 +109,7 @@ Uses zimbra-proxy for the letsencrypt authentication. Zimbra-proxy must be enabl
 
 When starting, the script checks the status of zmproxyctl and checks if a process with the name "nginx" and user "zimbra" is listening on port zimbraMailProxyPort (obtained via zmprov).
 
-The port can optionally be overridden with -P/--port or the port check skipped entirely with -j/--no-port-check if you are absolutely sure everything is set up correctly. The zmproxyctl status check can't be skipped.
+The port can optionally be overridden with `-P/--port` or the port check skipped entirely with `-j/--no-port-check` if you are absolutely sure everything is set up correctly. The zmproxyctl status check can't be skipped.
 
 Patches are applied to nginx's templates to pass .well-known to the webroot to make letsencrypt work, after which nginx is restarted.
 
@@ -117,13 +117,13 @@ Everything, including new certificate requests, can be done via certbot-zimbra i
 
 ### Alternate webserver mode
 
-Is selected with -x/--no-nginx. Requires -P/--port and -w/--webroot. --port is checked for listening status. All zimbra-proxy checks are skipped.
+Is selected with `-x/--no-nginx`. Requires `-P/--port` and `-w/--webroot`. `--port` is checked for listening status. All zimbra-proxy checks are skipped.
 
 Can be used in case you don't have zimbra-proxy enabled but have a different webserver as a reverse proxy in front of Zimbra. 
 
 You'll have to configure the webserver for letsencrypt (to serve /.well-known from a webroot somewhere in the filesystem), some examples for this can be found [here.](https://www.hiawatha-webserver.org/forum/topic/2275)
 
-Renewal can be done as per instructions below, but --pre-hook can be omitted.
+Renewal can be done as per instructions below, but `--pre-hook` can be omitted.
 
 ## First run
 
@@ -132,13 +132,13 @@ If you don't yet have a letsencrypt certificate, you'll need to obtain one first
 Run
 `./certbot_zimbra.sh -n -c`
 
-This will do all pre-run checks, patch zimbra's nginx, run certbot to obtain the certificate, test it, deploy it and restart zimbra. Passing -c means the script will prompt you for confirmation before restarting zimbra's nginx, running certbot/letsencrypt, deploying the certificate and restarting zimbra.
+This will do all pre-run checks, patch zimbra's nginx, run certbot to obtain the certificate, test it, deploy it and restart zimbra. Passing `-c|--prompt-confirm` means the script will prompt you for confirmation before restarting zimbra's nginx, running certbot/letsencrypt, deploying the certificate and restarting zimbra.
 
 Certbot will also ask you some information about the certificate interactively, including an e-mail to use for expiry notifications. Please use a valid e-mail for this as should the automatic renewal fail for any reason, this is the way you'll get notified.
 
 The domain of the certificate is obtained automatically using `zmhostname`. If you want to request a specific hostname use the `-H/--hostname` option. This domain will be the DN of the certificate.
 
-The certificate can be requested with additional hostnames/SANs. By default the script fetches the `zimbraPublicServiceHostname` and all `zimbraVirtualHostname` attributes from all domains and if present, adds those to the certificate SANs to be requested. If you want to disable this behavior use the `-u/--no-public-hostname-detection` option.
+The certificate can be requested with additional hostnames/SANs. By default the script fetches `zimbraPublicServiceHostname` and `zimbraVirtualHostname` attributes from all domains and if present, adds those to the certificate SANs to be requested. If you want to disable this behavior use the `-u/--no-public-hostname-detection` option.
 
 **Note:** Let's Encrypt has a limit of a maximum of 100 domains per certificate at the time of this writing: [Rate Limits](https://letsencrypt.org/docs/rate-limits/)
 
@@ -148,7 +148,7 @@ Additional options can be passed directly to certbot/letsencrypt with `-L | --le
 
 ## Running noninteractively
 
-When retrieving a new certificate using -n, certbot runs interactively. If you want to run it noninteractively, you can pass `-N/--noninteractive` which will be passed on to certbot. Also passing `-q/--quiet` will suppress the status output of the script.
+When retrieving a new certificate using `-n|--new`, certbot runs interactively. If you want to run it noninteractively, you can pass `-N/--noninteractive` which will be passed on to certbot. Also passing `-q/--quiet` will suppress the status output of the script.
 Only do this if you're absolutely sure what you're doing, as this leaves you with no option to verify the detected hostnames, specify the certificate e-mail etc. `-N/--noninteractive` may be combined with `-q | --quiet` and/or `-L | --letsencrypt-params` to pass all the parameters to certbot directly, e.g. in scripts to do automated testing with staging certificates. 
 
 ## Renewal
@@ -170,7 +170,7 @@ The `--pre-hook` ensures Zimbra's nginx is patched to allow certificate verifica
 
 The `--deploy-hook` parameter is only run if a renewal was successful, this will run certbot-zimbra.sh with `-d|--deploy-only` to deploy the renewed certificates and restart zimbra.
 
-The domain to renew is automatically obtained with `zmhostname`. If you need customized domain name pass the `-H` parameter after `-d`.
+The domain to renew is automatically obtained with `zmhostname`. If you need customized domain name pass the `-H|--hostname` parameter after `-d`.
 
 If you want to suppress status output and only receive notifications on errors, you can add `--quiet` to certbot and both hooks.
 
@@ -234,7 +234,7 @@ See [Preparation](#preparation): [Alternate webserver](#alternate-webserver)
 
 As above, but the first certificate can be obtained manually with certbot outside of this script with the authenticator plugin of your choice. Refer to the letsencrypt documentation for first certificate request information.
 
-After the certificate has been obtained, -d/--deploy-only can be used to deploy the certificate in Zimbra (to use it in services other than HTTP also) and renewal can be done as usual with --deploy-hook.
+After the certificate has been obtained, `-d/--deploy-only` can be used to deploy the certificate in Zimbra (to use it in services other than HTTP also) and renewal can be done as usual with `--deploy-hook`.
 
 ### No proxy server (manual certificate request with alternate authentication method)
 
@@ -250,7 +250,7 @@ Say you have apache in front of zimbra (or listening on port 80 only) just run c
 ```
 so that it will deploy the certificate in zimbra.
 
-Set up renewal as above, but without --pre-hook.
+Set up renewal as above, but without `--pre-hook`.
 
 # Troubleshooting
 
@@ -303,7 +303,7 @@ To check if you have the old method, run `grep authenticator /etc/letsencrypt/re
 To update to the new "webroot" method you can simply run `certbot-zimbra.sh -n -c -L "--force-renewal"`. This will force renew your existing certificate and save the new authentication method. It'll also ask you for deploying the new certificate in Zimbra. You can also manually modify the config file in /etc/letsencrypt/renewal/, while not recommended, is detailed here: https://community.letsencrypt.org/t/how-to-change-certbot-verification-method/56735
 
 ## How it works
-This script uses zimbra-proxy's nginx to intercept requests to .well-known/acme-challenge and pass them to a custom webroot folder. To do this, we patch the templates Zimbra uses to build nginx's configuration files.
+This script uses zimbra-proxy's nginx to intercept requests to `.well-known/acme-challenge` and pass them to a custom webroot folder. To do this, we patch the templates Zimbra uses to build nginx's configuration files.
 The patch is simple, we add this new section to the end of the templates:
 ```
     # patched by certbot-zimbra.sh
@@ -311,7 +311,7 @@ The patch is simple, we add this new section to the end of the templates:
         root $WEBROOT;
     }
 ```
-$WEBROOT is either /opt/zimbra/data/nginx/html (default) or the path specified by the command line option.
+`$WEBROOT` is either `/opt/zimbra/data/nginx/html` (default) or the path specified by the command line option.
 After this we restart zmproxy to apply the patches.
 
 We then pass this webroot to certbot with the webroot plugin to obtain the certificate.
@@ -320,7 +320,7 @@ After the certificate has been obtained successfully we stage the certificates i
 
 After the first patching the script will check if the templates have been already patched and if so, it skips the patching and zmproxy restart steps. This is useful in cron jobs where even if we upgrade Zimbra and wipe out the patched templates they'll be repatched automatically.
 
-The use of --deploy-only from --deploy-hook in cron jobs will only deploy the certificates if a renewal was successful. Thus Zimbra won't be unnecessarily restarted if no renewal was done.
+The use of `--deploy-only` from `--deploy-hook` in cron jobs will only deploy the certificates if a renewal was successful. Thus Zimbra won't be unnecessarily restarted if no renewal was done.
 
 ## Certbot notes
 
