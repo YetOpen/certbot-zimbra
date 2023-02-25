@@ -21,7 +21,7 @@ readonly pki_ca_bundle_file="/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
 webroot=""
 certpath=""
 le_bin=""
-le_params=""
+le_params=()
 le_agree_tos=false
 le_noniact=false
 agree_tos=false
@@ -448,20 +448,20 @@ request_cert() {
 
 	#TODO: dry-run
 
-	"$le_noniact" && le_params="$le_params --non-interactive"
-	"$quiet" && le_params="$le_params --quiet"
-	"$le_agree_tos" && le_params="$le_params --agree-tos"
-	le_params="$le_params --webroot -w $webroot --cert-name $domain -d $domain"
+	"$le_noniact" && le_params+=("--non-interactive")
+	"$quiet" && le_params+=("--quiet")
+	"$le_agree_tos" && le_params+=("--agree-tos")
+	le_params+=("--webroot" "-w" "$webroot" "--cert-name" "$domain" "-d" "$domain")
 	for d in ${extra_domains[@]}; do
 		[ -z "$d" ] && continue
-		le_params="$le_params -d $d"
+		le_params+=("-d" "$d")
 	done
 
-	! "$quiet" && echo "Running $le_bin certonly $le_params"
+	! "$quiet" && echo "Running $le_bin certonly ${le_params[@]}"
 	"$quiet" && exec > /dev/null
 	"$quiet" && exec 2>/dev/null
 	# Request our cert
-	"$le_bin" certonly $le_params
+	"$le_bin" certonly "${le_params[@]}"
 	e=$?
 	"$quiet" && exec > /dev/stdout
 	"$quiet" && exec 2> /dev/stderr
@@ -614,7 +614,7 @@ USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.d
 
   Options only used with -n/--new:
 	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
-	 -L | --letsencrypt-params "--extra-le-parameters ...": Additional parameters to pass to certbot/letsencrypt
+	 -L | --letsencrypt-params "--extra-le-parameter": Additional parameter to pass to certbot/letsencrypt. Must be repeated for each parameter and argument, e.g. -L "--preferred-chain" -L "ISRG Root X1"
 	 -N | --noninteractive: Pass --noninteractive to certbot/letsencrypt.
   Domain options:
 	 -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u/--no-public-hostname-detection.
@@ -665,7 +665,7 @@ while [[ $# -gt 0 ]]; do
 			;;
 		-L|--letsencrypt-params)
 			[ -z "$2" ] && echo "missing letsencrypt-params argument" && exit 1
-			le_params="$le_params $2"
+			le_params+=("$2")
 			shift
 			;;
 		-N|--noninteractive)
