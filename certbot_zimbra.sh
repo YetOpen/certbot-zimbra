@@ -339,7 +339,7 @@ get_domain () {
 
 	if "$prompt_confirm"; then
 		prompt "Is this correct?"
-		(( $? == 1 )) && echo "Error: Please call $(basename $0) --hostname your.host.name" && exit 0
+		(( $? == 1 )) && echo "Error: Please manually specify your hostname with \"--hostname your.host.name\"" && exit 0
 	fi
 
 	# Find additional domains
