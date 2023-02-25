@@ -59,7 +59,7 @@ Or from the master branch: [certbot_zimbra.sh](/../../raw/master/certbot_zimbra.
 # Usage
 
 ```bash
-USAGE: certbot_zimbra.sh < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameters ..."]
+USAGE: certbot_zimbra.sh < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameter"]...
   Only one option at a time can be supplied. Options cannot be chained.
   Mandatory options (only one can be specified):
 	 -d | --deploy-only: Just deploys certificates. Can be run as --deploy-hook. If run standalone, assumes valid certificates are in /etc/letsencrypt/live. Incompatible with -n/--new, -p/--patch-only.
@@ -68,21 +68,27 @@ USAGE: certbot_zimbra.sh < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extr
 
   Options only used with -n/--new:
 	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
-	 -L | --letsencrypt-params "--extra-le-parameters ...": Additional parameters to pass to certbot/letsencrypt
+	 -L | --letsencrypt-params "--extra-le-parameter": Additional parameter to pass to certbot/letsencrypt. Must be repeated for each parameter and argument, e.g. -L "--preferred-chain" -L "ISRG Root X1"
 	 -N | --noninteractive: Pass --noninteractive to certbot/letsencrypt.
+	 --no-override-key-type-rsa: if certbot >=v2.0.0 has been detected, do not override ECDSA to RSA with "--key-type rsa" (use this to get the default ECDSA key type, Zimbra does NOT support it!)
+
   Domain options:
 	 -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u/--no-public-hostname-detection.
 	 -H | --hostname <my.host.name>: hostname being requested. If not passed it's automatically detected using "zmhostname".
 	 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraServicePublicHostname.
+
   Deploy options:
 	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
 	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
+
   Port check:
 	 -j | --no-port-check: disable port check. Incompatible with -P/--port.
 	 -P | --port <port>: HTTP port the web server to use for letsencrypt authentication is listening on. Is detected from zimbraMailProxyPort. Mandatory with -x/--no-nginx.
+
   Nginx options:
 	 -w | --webroot "/path/to/www": path to the webroot of alternate webserver. Valid only with -x/--no-nginx.
 	 -x | --no-nginx: Alternate webserver mode. Don't check and patch zimbra-proxy's nginx. Must also specify -P/--port and -w/--webroot. Incompatible with -p/--patch-only.
+
   Output options:
 	 -c | --prompt-confirm: ask for confirmation. Incompatible with -q/--quiet.
 	 -q | --quiet: Do not output on stdout. Useful for scripts. Implies -N/--noninteractive, incompatible with -c/--prompt-confirm.
@@ -268,6 +274,7 @@ Newer versions of the script print a more descriptive error message if ran with 
 
 ## certbot failures
 
+## General certbot troubleshooting
 
 Check that you have an updated version of certbot installed. If you have installed certbot from your operating system's repositories, they may be out of date, especially on non-rolling distributions. If your distribution's certbot is outdated, remove the system packages and install it the way that certbot recommends for your operating system on their installation page, or a different way that you prefer.
 
@@ -277,11 +284,28 @@ Check that ports 80 and 443 are open and accessible from the outside and check t
 
 ## `cat: /etc/ssl/certs/2e5ac55d.0: No such file or directory` OR `Can't find "DSTRootCAX3"` OR `Unable to validate certificate chain: O = Digital Signature Trust Co., CN = DST Root CA X3`
 
-Letsencrypt's "DST Root CA X3" expired in September 2021. Certbot should have automatically renewed the certificate with the new "ISRG Root X1" before this, but some users reported this did not happen, certbot still issued a certificate with the old expired CA, and the site certificate did not successfully install. See issue #140.
+Letsencrypt's "DST Root CA X3" expired in September 2021. Already issued certificates were cross-signed with both the old "DST Root CA X3" and new "ISRG Root X1" chains. Due to the way certbot-zimbra parses certificate files, it may cause certbot-zimbra to use the wrong chain when deploying the certificate. See issue #140.
 
-- make sure you have latest ca-certificates (Debian/Ubuntu) or pki-base (RHEL/CentOS) package (do a apt-get dist-upgrade/upgrade/install ca-certificates or equivalent yum command)
-- use certbot_zimbra to request a new cert just for Zimbra: `certbot_zimbra.sh -L '--preferred-chain \"ISRG Root X1\"' new`. You need to use the same options as when you first requested the cert, as certbot_zimbra doesn't remember them.
-- alternatively try forcing a renewal with `certbot --force-renewal --preferred-chain "ISRG Root X1" renew` (quotes around "ISRG Root X1" are important). If successful, run `/usr/local/bin/certbot_zimbra.sh -d` to deploy the new cert. NOTE: this will force renew all certificates, not just Zimbra's, and you may need to manually deploy them to other services.
+Procedure to fix it:
+
+- make sure you have latest ca-certificates (Debian/Ubuntu) or pki-base (RHEL/CentOS) package (do a apt-get dist-upgrade/upgrade/install ca-certificates or equivalent yum/dnf command), this will make sure you have the "ISRG Root X1" CA in the system-wide CA store
+- force a renewal with `certbot renew --force-renewal --preferred-chain "ISRG Root X1" --cert-name "zimbra-cert-name"` Replace zimbra-cert-name with the name of your existing cert, you can find it with `certbot certificates`.
+- If the previous step is successful, run `/usr/local/bin/certbot_zimbra.sh -d` to deploy the new cert.
+
+The fix for new certificate requests is included in certbot-zimbra >=0.7.13, it will by default request new certs with `--preferred-chain "ISRG Root X1"`. Just upgrading certbot-zimbra will not fix the problem as you need to manually trigger a renewal or new cert request in certbot.
+
+## zmcertmgr certificate and private key do not match ("expecting an rsa key")
+
+Certbot v2.0.0 switched to ECDSA private keys by default, which Zimbra's zmcertmgr doesn't support. See [certbot docs](https://github.com/certbot/certbot/blob/caad4d93d048d77ede6508dd42da1d23cde524eb/certbot/docs/using.rst#id34)
+
+It may be possible to [patch zmcertmgr](https://forums.zimbra.org/viewtopic.php?f=15&t=69645&p=301580) to support ECDSA keys, but this is not officially supported or widely tested.
+
+Certbot-zimbra >=0.7.13 will auto-detect if certbot is >=2.0.0 and apply options while requesting a new certificate to obtain a RSA key.
+
+If you used certbot >=2 with certbot-zimbra <0.7.13, you might run into this issue. There are two options to fix it:
+
+- `certbot renew --key-type rsa --rsa-key-size 4096 --cert-name "zimbra-cert-name" --force-renewal` replace zimbra-cert-name with the name of the existing certificate, you can find it with `certbot certificates`. You can also change the key size to one that you prefer. If renewal is successful, redeploy the certificate with `/usr/local/bin/certbot_zimbra.sh -d`.
+- update to certbot-zimbra >=0.7.13 and rerequest the certificate with `certbot-zimbra --new`, and add all the options you used with the original `--new` invocation, else your certificate may get replaced with one with different CN and SANs.
 
 # Notes
 
@@ -322,7 +346,7 @@ After the first patching the script will check if the templates have been alread
 
 The use of `--deploy-only` from `--deploy-hook` in cron jobs will only deploy the certificates if a renewal was successful. Thus Zimbra won't be unnecessarily restarted if no renewal was done.
 
-## Certbot notes
+## Certbot certificate privacy/security notes
 
 Certbot preserves the gid and the g:rwx and o:r permissions from old privkey files to the renewed ones. This is described in 
 https://github.com/certbot/certbot/blob/8b684e9b9543c015669844222b8960e1b9a71e97/certbot/storage.py#L1107
