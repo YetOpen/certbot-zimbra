@@ -316,7 +316,7 @@ find_additional_public_hostnames() {
 	fi
 
 	! "$quiet" && echo -n "Detecting additional public service hostnames... "
-	
+
 	extra_domains=($(su - zimbra -c "zmprov $zmprov_opts gad" \
 			| gawk '{printf "gd %s zimbraPublicServiceHostname\ngd %s zimbraVirtualHostname\n", $0, $0}' \
 			| su - zimbra -c "zmprov $zmprov_opts -" \
