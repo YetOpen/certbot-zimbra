@@ -144,7 +144,7 @@ The certificate can be requested with additional hostnames/SANs. By default the 
 
 To indicate additional domains explicitly use the `-e/--extra-domain` option (can be specified multiple times). Note that `-e` also disables additional hostname detection. 
 
-Additional options can be passed directly to certbot/letsencrypt with `-L | --letsencrypt-params`. For example, if you want 4096-bit certificates, add `-L "--rsa-key-size 4096"` (note: this is the default for newer certbot). Refer to certbot's documentation for more information.
+Additional options can be passed directly to certbot/letsencrypt with `-L | --letsencrypt-params`. The option must be repeated for each letsencrypt option. For example, if you want 4096-bit certificates, add `-L "--rsa-key-size" -L "4096"`. Refer to certbot's documentation for more information.
 
 ## Running noninteractively
 
