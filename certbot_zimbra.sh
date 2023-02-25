@@ -632,7 +632,7 @@ deploy_cert() {
 
 usage () {
 	cat <<EOF
-USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameters ..."]
+USAGE: $progname.sh < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameter"]...
   Only one option at a time can be supplied. Options cannot be chained.
   Mandatory options (only one can be specified):
 	 -d | --deploy-only: Just deploys certificates. Can be run as --deploy-hook. If run standalone, assumes valid certificates are in $le_live_path. Incompatible with -n/--new, -p/--patch-only.
@@ -649,15 +649,19 @@ USAGE: $(basename $0) < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.d
 	 -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u/--no-public-hostname-detection.
 	 -H | --hostname <my.host.name>: hostname being requested. If not passed it's automatically detected using "zmhostname".
 	 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraPublicServiceHostname.
+
   Deploy options:
 	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
 	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
+
   Port check:
 	 -j | --no-port-check: disable port check. Incompatible with -P/--port.
 	 -P | --port <port>: HTTP port the web server to use for letsencrypt authentication is listening on. Is detected from zimbraMailProxyPort. Mandatory with -x/--no-nginx.
+
   Nginx options:
 	 -w | --webroot "/path/to/www": path to the webroot of alternate webserver. Valid only with -x/--no-nginx.
 	 -x | --no-nginx: Alternate webserver mode. Don't check and patch zimbra-proxy's nginx. Must also specify -P/--port and -w/--webroot. Incompatible with -p/--patch-only.
+
   Output options:
 	 -c | --prompt-confirm: ask for confirmation. Incompatible with -q/--quiet.
 	 -q | --quiet: Do not output on stdout. Useful for scripts. Implies -N/--noninteractive, incompatible with -c/--prompt-confirm.
