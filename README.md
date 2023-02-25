@@ -89,7 +89,7 @@ USAGE: certbot_zimbra.sh < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extr
 ```
 
 
-If no `-e` is given, the script will figure out the additional domain(s) to add to the certificate as SANs via `zmprov gd $domain zimbraPublicServiceHostname` and `zmprov gd $domain zimbraVirtualHostname`.
+If no `-e` is given, the script will figure out the additional domain(s) to add to the certificate as SANs via `zmprov gd $domain zimbraPublicServiceHostname zimbraVirtualHostname`.
 This can be skipped with `-u/--no-public-hostname-detection`, in which case only the CN from `zmhostname` or `-H/--hostname` will be used.
 
 Only one certificate will be issued including all the found hostnames. The primary host will always be `zmhostname`.
