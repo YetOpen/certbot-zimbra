@@ -498,33 +498,52 @@ prepare_cert() {
 	cp "$certpath"/{privkey.pem,cert.pem} "$tmpcerts/"
 
 	# Create the "patched" chain suitable for Zimbra
-	cat "$certpath/chain.pem" > "$tmpcerts/zimbra_chain.pem"
 
-	# get the last cert in chain.pem (topmost in the intermediates chain)
+	# find the first valid chain by iterating through chain.pem one certificate at a time
 	local chaincerts="$(cat $certpath/chain.pem)"
-	local topchaincert="-----BEGIN CERTIFICATE${chaincerts##*BEGIN CERTIFICATE}"
-	unset chaincerts
+	local chaincert="${chaincerts%%END CERTIFICATE*}END CERTIFICATE-----"
+	local issuerhash=
+	local issuercn=
+
+	while [ "$chaincert" != "${chaincert##*BEGIN CERTIFICATE}" ]; do
+		if printf '%s\n' "$chaincert" | openssl verify >/dev/null 2>&1; then
+			issuerhash="$(echo "${chaincert}" | openssl x509 -noout -issuer_hash)"
+			issuercn="$(echo "${chaincert}" | openssl x509 -noout -issuer -nameopt sep_multiline,utf8 | grep -oP '\sCN=\K.*')"
+			break
+		else
+			# get next cert
+			chaincerts="${chaincerts##$chaincert}"
+			chaincert="${chaincerts%%END CERTIFICATE*}END CERTIFICATE-----"
+		fi
+	done
+
+	unset chaincerts chaincert
+
+	if [ -z "$issuerhash" ]; then
+		printf 'Error: No valid chain found in "%s"! Exiting.' "$certpath/chain.pem"
+		exit 1
+	fi
 
 	if [ -r "$ca_certificates_file" ]; then
 	        # Debian/Ubuntu
 		# use the issuer_hash of the LE chain cert to find the root CA in /etc/ssl/certs
-		cat "/etc/ssl/certs/$(echo "${topchaincert}" | openssl x509 -noout -issuer_hash).0" >> "$tmpcerts/zimbra_chain.pem"
+		cat "/etc/ssl/certs/$issuerhash.0" >> "$tmpcerts/zimbra_chain.pem"
 	elif [ -r "$pki_ca_bundle_file" ]; then
 		# RHEL/CentOS
 		# extract CA by CN in tls-ca-bundle.pem
-		issuer="$(echo "${topchaincert}" | openssl x509 -noout -issuer | sed -n 's/.*CN\s\?=\s\?//;s/\/.*$//;p')"
-		[ -z "$issuer" ] && echo "Error: can't find issuer of topmost certificate in \"$certpath/chain.pem\". Exiting." && exit 1
-		# if we can't find the issuer in the bundle file, it may have spaces removed, hopefully we'll find it without spaces
-		grep -q "^# $issuer\$" "$pki_ca_bundle_file" || issuer="${issuer//' '}"
+
+		# if we can't find the issuer CN in the bundle file, it may have spaces removed, hopefully we'll find it without spaces
+		grep -q "^# $issuercn\$" "$pki_ca_bundle_file" || issuercn="${issuercn//' '}"
 		# the following awk script extracts the CA cert from the bundle or exits 1 if not found
-		! gawk "BEGIN {e=1}; /^# $issuer$/{e=0} /^# $issuer$/,/END CERTIFICATE/; END {exit e}" "$pki_ca_bundle_file" >> "$tmpcerts/zimbra_chain.pem"\
-			&& echo "Error: Can't find \"$issuer\" in \"$pki_ca_bundle_file\". Exiting." && exit 1
+		! gawk "BEGIN {e=1}; /^# $issuercn$/{e=0} /^# $issuercn$/,/END CERTIFICATE/; END {exit e}" "$pki_ca_bundle_file" >> "$tmpcerts/zimbra_chain.pem"\
+			&& echo "Error: Can't find \"$issuercn\" in \"$pki_ca_bundle_file\". Exiting." && exit 1
 	else
 		# we shouldn't be here
 		echo "Error in prepare_cert: can't find installed CA certificates (check_depends_ca should have caught this). Exiting." && exit 1
 	fi
 
-	unset topchaincert issuer
+	cat "$certpath/chain.pem" >> "$tmpcerts/zimbra_chain.pem"
+
 	$oldumask
 	unset oldumask
 
