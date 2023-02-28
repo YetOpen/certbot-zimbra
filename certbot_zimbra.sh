@@ -16,7 +16,7 @@ readonly le_live_path="$le_conf_path/live" # the domain will be appended to this
 readonly temppath="/run/$progname"
 # other options
 readonly zmprov_opts="-l" # use ldap (faster)
-# used to extract the CA for the letsencrypt certs
+# used to extract the CA for the Lets Encrypt certs
 readonly ca_certificates_file="/etc/ssl/certs/ca-certificates.crt"
 readonly pki_ca_bundle_file="/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
 # Do NOT modify anything after this line.
@@ -131,14 +131,14 @@ bootstrap() {
 
 	# Detect OS and Zimbra version
 
-	# use zimbra's get_plat_tag.sh to find OS and version (this is only for display and not used elsewhere in the script)
+	# use Zimbra's get_plat_tag.sh to find OS and version (this is only for display and not used elsewhere in the script)
 	# returns $OS$ver for 32-bit or $OS$ver_64 for 64-bit, where OS is the os name (UBUNTU,DEBIAN,RHEL,CentOS,F,FC,SLES,openSUSE,UCS,MANDRIVA,SOLARIS,MACOSx)
 	platform="$($zmpath/libexec/get_plat_tag.sh)"
 	readonly platform
 
 	detected_zimbra_version="$(su - zimbra -c "$zmpath/bin/zmcontrol -v" | grep -Po '(\d+).(\d+).(\d+)' | head -n 1)"
 	readonly detected_zimbra_version
-	[ -z "$detected_zimbra_version" ] && echo "Error: Unable to detect zimbra version" && exit 1
+	[ -z "$detected_zimbra_version" ] && echo "Error: Unable to detect Zimbra version" && exit 1
 	! "$quiet" && echo "Detected Zimbra $detected_zimbra_version on $platform"
 
 	get_domain
@@ -167,9 +167,9 @@ check_zimbra_proxy() {
 
 	if [ "$port" != "80" ] && ! "$quiet"; then
 		echo "WARNING: non-standard zimbraMailProxyPort $port. 
-This needs to be 80 from the internet for Let's Encrypt (certbot) to work. 
+This needs to be 80 from the internet for Let's Encrypt (Certbot) to work.
 If you have NAT set up to do the translation this is likely fine. 
-If not, your Zimbra proxy is misconfigured and certbot will fail."
+If not, your Zimbra proxy is misconfigured and Certbot will fail."
 		if "$prompt_confirm"; then
 			prompt "Proceed?"
 			(( $? == 1 )) && echo "Cannot continue. Exiting." && exit 0
@@ -216,7 +216,7 @@ check_port () {
 }
 
 
-# Patch zimbra proxy nginx and restart it if successful
+# Patch Zimbra proxy nginx and restart it if successful
 # zimbra-proxy must be running (checked with check_zimbra_proxy) or zmproxyctl restart will fail
 # returns true if patch was applied or was already present, exits script if encountered an error
 patch_nginx() {
@@ -228,7 +228,7 @@ patch_nginx() {
 	else
 		[ -z $webroot ] && echo "Unexpected error: patch_nginx WEBROOT not set. Exiting." && exit 1
 
-		# Let's make a backup of zimbra's original templates
+		# Let's make a backup of Zimbra's original templates
 		set -e
 		local bkdate="$(date +'%Y%m%d_%H%M%S')"
 		! "$quiet" && echo "Making a backup of nginx templates in $zmpath/conf/nginx/templates.$bkdate"
@@ -330,7 +330,7 @@ find_additional_public_hostnames() {
 }
 
 get_domain () {
-	# If we got no domain from command line try using zimbra hostname
+	# If we got no domain from command line try using Zimbra hostname
 	if [ -z "$domain" ]; then
 		! "$quiet" && echo "Using zmhostname to detect domain."
 		domain="$($zmpath/bin/zmhostname)"
@@ -363,8 +363,8 @@ set_certpath() {
 	# must be run after get_domain
 	[ -z "$domain" ] && echo "Unexpected error (set_certpath domain not set)" && exit 1
 
-	# when run as --deploy-hook, check if any of RENEWED_DOMAINS match zimbra's domain.
-	# RENEWED_DOMAINS and RENEWED_LINEAGE are passed by certbot as env vars to --deploy-hook
+	# when run as --deploy-hook, check if any of RENEWED_DOMAINS match Zimbra's domain.
+	# RENEWED_DOMAINS and RENEWED_LINEAGE are passed by Certbot as env vars to --deploy-hook
 	if [ -n "$RENEWED_DOMAINS" ]; then
 		# we were run as --deploy-hook
 		for renewed_domain in $RENEWED_DOMAINS; do
@@ -405,13 +405,13 @@ find_certbot () {
 	le_bin="$(which certbot letsencrypt certbot-auto 2>/dev/null | head -n 1)"
 	[ -z "$le_bin" ] && echo "Error: No letsencrypt/certbot binary found in $PATH" && exit 1
 
-	! "$quiet" && echo "Detecting certbot version..."
+	! "$quiet" && echo "Detecting Certbot version..."
 
-	# get certbot version, we need to use some trickery here in case certbot is bootstrapping (1st run) and expects user input
-	# if run with --prompt-confirm, show the output of certbot on stderr and allow the user to answer yes/no
+	# get Certbot version, we need to use some trickery here in case Certbot is bootstrapping (1st run) and expects user input
+	# if run with --prompt-confirm, show the output of Certbot on stderr and allow the user to answer yes/no
 	# otherwise add --no-bootstrap and exit in case of error
-	# TODO: --no-bootstrap is not used in certbot, deprecated in certbot >=1.13.0, and certbot-auto is already dead,
-	# so no point in keeping it, certbot does not need to bootstrap (but may ask for accepting the TOS)
+	# TODO: --no-bootstrap is not used in Certbot, deprecated in Certbot >=1.13.0, and certbot-auto is already dead,
+	# so no point in keeping it, Certbot does not need to bootstrap (but may ask for accepting the TOS)
 	local certbot_version_params=()
 	! "$prompt_confirm" && certbot_version_params=("--no-bootstrap")
 	"$le_noniact" && certbot_version_params+=("--non-interactive")
@@ -427,26 +427,26 @@ Exiting."
 	fi
 
 	if [ -z "$detected_certbot_version" ]; then
-		! "$quiet" && echo "Error: unable to parse certbot version. Exiting."
+		! "$quiet" && echo "Error: unable to parse Certbot version. Exiting."
 		exit 1
 	fi
 
-	! "$quiet" && ! "$prompt_confirm" && echo "Detected certbot $detected_certbot_version"
+	! "$quiet" && ! "$prompt_confirm" && echo "Detected Certbot $detected_certbot_version"
 
 	if ! version_gt "$detected_certbot_version" "$min_certbot_version"; then
-		! "$quiet" && echo "Error: certbot is too old, please upgrade to certbot >=$min_certbot_version. Exiting."
+		! "$quiet" && echo "Error: Certbot is too old, please upgrade to Certbot >=$min_certbot_version. Exiting."
 		exit 1
 	fi
 
 	return 0
 }
 
-# perform the letsencrypt request
+# perform the Lets Encrypt request
 request_cert() {
 	check_webroot
 
 	if "$prompt_confirm"; then
-		prompt "We will now run certbot to request the certificate. Proceed?"
+		prompt "We will now run Certbot to request the certificate. Proceed?"
 		(( $? == 1 )) && echo "Exiting." && exit 0
 	fi
 
@@ -478,7 +478,7 @@ request_cert() {
 	return 0
 }
 
-# adds pre and deploy hooks to the certbot certificate configuration
+# adds pre and deploy hooks to the Certbot certificate configuration
 add_certbot_hooks() {
         if "$prompt_confirm" && ! prompt "Do you wish to add pre and deploy hooks to Certbot certificate configuration? (unless you manually wish to do so, answer yes)"; then
 		printf 'Please manually add Certbot hooks as described in the README.\n' >&2
@@ -494,7 +494,7 @@ add_certbot_hooks() {
 		! "$quiet" && printf 'Adding pre and deploy hooks to Certbot certificate configuration\n' >&2
 
 		if version_gt "$detected_certbot_version" "2.2.999"; then
-			# certbot >=2.3.0 has "reconfigure"
+			# Certbot >=2.3.0 has "reconfigure"
 			local le_reconfigure_params=("--cert-name" "$domain" "--pre-hook" "$progname -p" "--deploy-hook" "$progname -d")
 			! "$quiet" && printf 'Running "%s"\n' "$le_bin reconfigure ${le_reconfigure_params[*]}" >&2
 			"$le_bin" reconfigure "${le_reconfigure_params[@]}"
@@ -520,7 +520,7 @@ add_certbot_hooks() {
 			if (( e != 0 )); then
 				# awk program works if [renewalparams] does or doesn't already exist
 				# (it would be very odd if they didn't!)
-				# certbot stores --deploy-hook as "renew_hook" in the config file
+				# Certbot stores --deploy-hook as "renew_hook" in the config file
 				# https://github.com/certbot/certbot/issues/5935
 				gawk -v progname="$progname" -f - "$le_domain_conf" > "$le_domain_conf_temp" <<- "EOF"
 					function print_hooks() {
@@ -561,14 +561,14 @@ add_certbot_hooks() {
 	fi
 }
 
-# copies stuff ready for zimbra deployment and test them
+# copies stuff ready for Zimbra deployment and test them
 prepare_cert() {
 	! "$quiet" && echo "Preparing certificates for deployment."
 
 	[ -z "$certpath" ] && echo "Unexpected error (prepare_cert certpath not set). Exiting." && exit 1
 	[ -z "$domain" ] && echo "Unexpected error (prepare_cert domain not set). Exiting." && exit 1
 
-	# Make zimbra accessible files
+	# Make Zimbra accessible files
 	# save old umask
 	oldumask="$(umask -p)"
 	# make files u=rwx g=rx o=
@@ -631,7 +631,7 @@ prepare_cert() {
 	$oldumask
 	unset oldumask
 
-	# set permissions so that zimbra can read the certs
+	# set permissions so that Zimbra can read the certs
 	chown -R root:zimbra "$tmpcerts"
 	chmod 550 "$tmpcerts"
 	chmod 440 $tmpcerts/*
@@ -659,7 +659,7 @@ prepare_cert() {
 	return 0
 }
 
-# deploys certificate and restarts zimbra. ASSUMES prepare_certificate has been called already
+# deploys certificate and restarts Zimbra. ASSUMES prepare_certificate has been called already
 deploy_cert() {
 	if "$prompt_confirm"; then
 		prompt "Deploy certificates to Zimbra? This may restart some services."
@@ -727,7 +727,7 @@ USAGE: $progname < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain
 	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
 	 -L | --letsencrypt-params "--extra-le-parameter": Additional parameter to pass to certbot/letsencrypt. Must be repeated for each parameter and argument, e.g. -L "--preferred-chain" -L "ISRG Root X1"
 	 -N | --noninteractive: Pass --noninteractive to certbot/letsencrypt.
-	 --no-override-key-type-rsa: if certbot >=v2.0.0 has been detected, do not override ECDSA to RSA with "--key-type rsa" (use this to get the default ECDSA key type, Zimbra does NOT support it!)
+	 --no-override-key-type-rsa: if Certbot >=v2.0.0 has been detected, do not override ECDSA to RSA with "--key-type rsa" (use this to get the default ECDSA key type, Zimbra does NOT support it!)
 
   Domain options:
 	 -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u/--no-public-hostname-detection.
@@ -736,11 +736,11 @@ USAGE: $progname < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain
 
   Deploy options:
 	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
-	 -z | --no-zimbra-restart: do not restart zimbra after a certificate deployment
+	 -z | --no-zimbra-restart: do not restart Zimbra after a certificate deployment
 
   Port check:
 	 -j | --no-port-check: disable port check. Incompatible with -P/--port.
-	 -P | --port <port>: HTTP port the web server to use for letsencrypt authentication is listening on. Is detected from zimbraMailProxyPort. Mandatory with -x/--no-nginx.
+	 -P | --port <port>: HTTP port the web server to use for Lets Encrypt authentication is listening on. Is detected from zimbraMailProxyPort. Mandatory with -x/--no-nginx.
 
   Nginx options:
 	 -w | --webroot "/path/to/www": path to the webroot of alternate webserver. Valid only with -x/--no-nginx.
@@ -776,7 +776,7 @@ while [[ $# -gt 0 ]]; do
 			patch_only=true
 			;;
 		# optional parameters
-		# letsencrypt
+		# Lets Encrypt
 		-a|--agree-tos)
 			le_agree_tos=true
 			;;
@@ -876,14 +876,14 @@ bootstrap
 
 if ! "$deploy_only"; then
 	if "$no_nginx"; then
-		! check_port "$port" && echo "Error: port check failed. A web server to use for letsencrypt authentication of the domain $domain must be listening on the port specified with --port." \
+		! check_port "$port" && echo "Error: port check failed. A web server to use for Lets Encrypt authentication of the domain $domain must be listening on the port specified with --port." \
 				&& exit 1
 	else
 		webroot="$zmwebroot"
 		readonly webroot
 
 		check_zimbra_proxy
-		! check_port "$port" nginx zimbra && echo "Error: port check failed. If you have overridden the port with --port, a web server to use for letsencrypt authentication \
+		! check_port "$port" nginx zimbra && echo "Error: port check failed. If you have overridden the port with --port, a web server to use for Lets Encrypt authentication \
 				of the domain $domain must be listening on it." && exit 1
 		patch_nginx
 	fi
