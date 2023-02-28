@@ -4,7 +4,7 @@
 # author: Jernej Jakob <jernej.jakob@gmail.com>
 # GPLv3 license
 
-readonly progname="certbot-zimbra"
+readonly progname="certbot_zimbra.sh"
 readonly version="0.7.13 (unreleased)"
 readonly github_url="https://github.com/YetOpen/certbot-zimbra"
 # paths
@@ -631,7 +631,7 @@ deploy_cert() {
 
 usage () {
 	cat <<EOF
-USAGE: $progname.sh < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameter"]...
+USAGE: $progname < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameter"]...
   Only one option at a time can be supplied. Options cannot be chained.
   Mandatory options (only one can be specified):
 	 -d | --deploy-only: Just deploys certificates. Can be run as --deploy-hook. If run standalone, assumes valid certificates are in $le_live_path. Incompatible with -n/--new, -p/--patch-only.
