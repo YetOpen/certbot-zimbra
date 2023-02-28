@@ -28,7 +28,7 @@ The command line parameters were changed with v0.7. `-r/--renew-only` was rename
 - ca-certificates (Debian/Ubuntu) or pki-base (RHEL/CentOS)
 - Zimbra: zmhostname, zmcontrol, zmproxyctrl, zmprov, zmcertmgr
 - zimbra-proxy installed and working or an alternate webserver configured for letsencrypt webroot
-- Certbot >=1.12.0, either certbot or letsencrypt binary in PATH.
+- Certbot >=0.19.0, either certbot or letsencrypt binary in PATH.
 
 ## Certbot installation
 
