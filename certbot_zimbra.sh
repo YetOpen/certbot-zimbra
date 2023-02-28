@@ -10,7 +10,9 @@ readonly github_url="https://github.com/YetOpen/certbot-zimbra"
 # paths
 readonly zmpath="/opt/zimbra"
 readonly zmwebroot="$zmpath/data/nginx/html"
-readonly le_live_path="/etc/letsencrypt/live" # the domain will be appended to this path
+readonly le_conf_path="/etc/letsencrypt"
+readonly le_conf_renewal_path="$le_conf_path/renewal"
+readonly le_live_path="$le_conf_path/live" # the domain will be appended to this path
 readonly temppath="/run/$progname"
 # other options
 readonly zmprov_opts="-l" # use ldap (faster)
@@ -476,6 +478,89 @@ request_cert() {
 	return 0
 }
 
+# adds pre and deploy hooks to the certbot certificate configuration
+add_certbot_hooks() {
+        if "$prompt_confirm" && ! prompt "Do you wish to add pre and deploy hooks to Certbot certificate configuration? (unless you manually wish to do so, answer yes)"; then
+		printf 'Please manually add Certbot hooks as described in the README.\n' >&2
+		return
+        fi
+
+	declare -i e=0
+
+	if ! hash "$progname" 2>/dev/null; then
+		printf 'Error: could not find "%s" in PATH!\n' "$progname" >&2
+		e=1
+	else
+		! "$quiet" && printf 'Adding pre and deploy hooks to Certbot certificate configuration\n' >&2
+
+		if version_gt "$detected_certbot_version" "2.2.999"; then
+			# certbot >=2.3.0 has "reconfigure"
+			local le_reconfigure_params=("--cert-name" "$domain" "--pre-hook" "$progname -p" "--deploy-hook" "$progname -d")
+			! "$quiet" && printf 'Running "%s"\n' "$le_bin reconfigure ${le_reconfigure_params[*]}" >&2
+			"$le_bin" reconfigure "${le_reconfigure_params[@]}"
+			e="$?"
+		else
+			# manually change hooks in Certbot renewal config file
+			! "$quiet" && printf 'Certbot does not have reconfigure, manually editing renewal config file...\n'
+
+			# make backup of conf file
+			local le_domain_conf="$le_conf_renewal_path/$domain.conf"
+			local le_domain_conf_temp="$temppath/$domain.conf"
+
+			if ! cp --preserve=all "$le_domain_conf" "$le_domain_conf_temp"; then
+				printf 'Error: cannot read "%s"!\n' "$le_domain_conf" >&2
+				e=1
+			fi
+
+			if ! cp -f --preserve=all --backup=numbered "$le_domain_conf" "$le_domain_conf"; then
+				printf 'Error: cannot write to "%s"!\n' "$le_conf_renewal_path" >&2
+				e=1
+			fi
+
+			if (( e != 0 )); then
+				# awk program works if [renewalparams] does or doesn't already exist
+				# (it would be very odd if they didn't!)
+				# certbot stores --deploy-hook as "renew_hook" in the config file
+				# https://github.com/certbot/certbot/issues/5935
+				gawk -v progname="$progname" -f - "$le_domain_conf" > "$le_domain_conf_temp" <<- "EOF"
+					function print_hooks() {
+					        print "pre_hook =", progname, "-p"
+					        print "renew_hook =", progname, "-d"
+					}
+					BEGIN {e=1}
+					/^(pre|renew)_hook.*/ {next}
+					{print}
+					/^\[renewalparams\]$/ {
+						print "# hooks modified by", progname
+					        print_hooks()
+					        e=0
+					}
+					END {
+					        if (e) {
+							print "# renewalparams added by", progname
+					                print "[renewalparams]"
+					                print_hooks()
+					        }
+					}
+				EOF
+				e="$?"
+				if (( e != 0 )); then
+					printf 'Error: awk exit %s!\n' "$e" >&2
+				else
+					if ! cp -f --preserve=all "$le_domain_conf_temp" "$le_domain_conf"; then
+						printf 'Error: cannot write to "%s"!\n' "$le_domain_conf" >&2
+						e+=1
+					fi
+				fi
+			fi
+		fi
+	fi
+
+	if (( e != 0 )); then
+		printf 'Error while adding hooks to "%s"! Please do so manually as described in the README.\n' "$le_domain_conf"
+	fi
+}
+
 # copies stuff ready for zimbra deployment and test them
 prepare_cert() {
 	! "$quiet" && echo "Preparing certificates for deployment."
@@ -807,6 +892,7 @@ if ! "$deploy_only"; then
 
 	find_certbot
 	request_cert
+	add_certbot_hooks
 fi
 
 set_certpath
