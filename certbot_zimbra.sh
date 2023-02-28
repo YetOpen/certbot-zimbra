@@ -25,7 +25,6 @@ le_params=()
 le_agree_tos=false
 le_noniact=false
 le_override_key_type_rsa=true
-agree_tos=false
 extra_domains=()
 no_nginx=false
 deploy_only=false
@@ -694,7 +693,7 @@ while [[ $# -gt 0 ]]; do
 		# optional parameters
 		# letsencrypt
 		-a|--agree-tos)
-			agree_tos=true
+			le_agree_tos=true
 			;;
 		-L|--letsencrypt-params)
 			[ -z "$2" ] && echo "missing letsencrypt-params argument" && exit 1
@@ -770,7 +769,7 @@ while [[ $# -gt 0 ]]; do
 	shift
 done
 
-readonly deploy_only new_cert patch_only agree_tos le_noniact le_override_key_type_rsa detect_public_hostnames skip_port_check no_nginx services restart_zimbra prompt_confirm quiet
+readonly deploy_only new_cert patch_only le_agree_tos le_noniact le_override_key_type_rsa detect_public_hostnames skip_port_check no_nginx services restart_zimbra prompt_confirm quiet
 
 # exit if an invalid option combination was passed
 "$quiet" && "$prompt_confirm" && echo "Incompatible parameters: -q -c" && exit 1
