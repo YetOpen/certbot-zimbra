@@ -195,15 +195,17 @@ Check that ports 80 and 443 are open and accessible from the outside and check t
 
 ## `cat: /etc/ssl/certs/2e5ac55d.0: No such file or directory` OR `Can't find "DSTRootCAX3"` OR `Unable to validate certificate chain: O = Digital Signature Trust Co., CN = DST Root CA X3`
 
-Letsencrypt's "DST Root CA X3" expired in September 2021. Already issued certificates were cross-signed with both the old "DST Root CA X3" and new "ISRG Root X1" chains. Due to the way certbot-zimbra parses certificate files, it may cause certbot-zimbra to use the wrong chain when deploying the certificate. See issue #140.
+Let's Encrypt's "DST Root CA X3" expired in September 2021. Already issued certificates were cross-signed with both the old "DST Root CA X3" and new "ISRG Root X1" chains. Due to the way certbot-zimbra parses certificate files, it may cause certbot-zimbra to use the wrong chain's CA certificate when deploying the certificate. See issue #140.
 
 Procedure to fix it:
 
 - make sure you have latest ca-certificates (Debian/Ubuntu) or pki-base (RHEL/CentOS) package (do a apt-get dist-upgrade/upgrade/install ca-certificates or equivalent yum/dnf command), this will make sure you have the "ISRG Root X1" CA in the system-wide CA store
-- force a renewal with `certbot renew --force-renewal --preferred-chain "ISRG Root X1" --cert-name "zimbra-cert-name"` Replace zimbra-cert-name with the name of your existing cert, you can find it with `certbot certificates`.
-- If the previous step is successful, run `/usr/local/bin/certbot_zimbra.sh -d` to deploy the new cert.
+- install `certbot_zimbra.sh` >=0.7.13
+- run `/usr/local/bin/certbot_zimbra.sh -d` to redeploy the certificate
+- if unsuccessful, force a renewal with `certbot renew --force-renewal --preferred-chain "ISRG Root X1" --cert-name "zimbra-cert-name"` Replace zimbra-cert-name with the name of your existing cert, you can find it with `certbot certificates`.
+- if successful, run `/usr/local/bin/certbot_zimbra.sh -d` to deploy the new cert.
 
-The fix for new certificate requests is included in certbot-zimbra >=0.7.13, it will by default request new certs with `--preferred-chain "ISRG Root X1"`. Just upgrading certbot-zimbra will not fix the problem as you need to manually trigger a renewal or new cert request in Certbot.
+`certbot_zimbra.sh` >=0.7.13 includes a fix for parsing the chain and should work better. If simply redeploying the certificate doesn't work, please open a new issue with your problem. `--preferred-chain` is a workaround but should not be required, if it fixes your problem, there is still an issue with the script.
 
 ## zmcertmgr certificate and private key do not match ("expecting an rsa key")
 
