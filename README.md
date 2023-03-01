@@ -118,78 +118,30 @@ Only do this if you're absolutely sure what you're doing, as this leaves you wit
 
 ## Renewal
 
-### Renewal using crontab
+When obtaining a new certificate with `certbot-zimbra.sh --new`, the script will add itself as `pre_hook` and `renew_hook` (equivalent to `--pre-hook` and `--deploy-hook`) to Certbot's certificate renewal configuration. Certbot will then automatically run hooks when renewing the certificate, the hooks will deploy the certificate and restart Zimbra.
 
-EFF suggest to run *renew* twice a day. Since this would imply restarting zimbra, once a day outside workhours should be fine. So in your favourite place (like `/etc/cron.d/zimbracrontab` or with `sudo crontab -e`) schedule the command below, as suitable for your setup:
+Certbot will install a crontab or systemd timer to automatically renew certificates close to expiring. You will likely want to modify the time at which it runs, or else Certbot might restart Zimbra at a random time during the day, which might mean downtime when you don't want it! Read Certbot's documentation to see how to do this (modify the default Certbot crontab or systemd timer).
 
+### Renewal failure notifications
+
+Make sure you have a working mail setup (valid alias for root or similar). Cron can send script output to mail if the crontab is correctly configured. Configuring systemd timers to send mail is harder but possible.
+
+### Manually adding hooks to Certbot
+
+If adding hooks fails during script execution, or if you requested a new certificate without using the script, you can add hooks manually.
+
+#### Certbot >=2.2.0:
 ```
-# certbot_zimbra.sh requires bash and a path with /usr/sbin
-SHELL=/bin/bash
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-
-# Replace /usr/bin/certbot with the location of your certbot binary, use this to find it: which certbot letsencrypt
-12 5 * * * root /usr/bin/certbot renew --pre-hook "/usr/local/bin/certbot_zimbra.sh -p" --deploy-hook "/usr/local/bin/certbot_zimbra.sh -d"
+certbot reconfigure --cert-name "cert.name" --pre-hook "certbot_zimbra.sh -p" --deploy-hook "certbot_zimbra.sh -d"
 ```
+Replace `cert.name` with the name of the certificate, you can see it using `certbot certificates`.
 
-The `--pre-hook` ensures Zimbra's nginx is patched to allow certificate verification. You can omit it if you remember to manually execute that command after an upgrade or a reinstall which may restore nginx's templates to their default.
-
-The `--deploy-hook` parameter is only run if a renewal was successful, this will run certbot-zimbra.sh with `-d|--deploy-only` to deploy the renewed certificates and restart zimbra.
-
-The domain to renew is automatically obtained with `zmhostname`. If you need customized domain name pass the `-H|--hostname` parameter after `-d`.
-
-If you want to suppress status output and only receive notifications on errors, you can add `--quiet` to certbot and both hooks.
-
-**Make sure you have a working mail setup (valid aliases for root or similar) to get crontab failure notifications.**
-
-### Renewal using Systemd
-
-If you prefer systemd you can use these instructions.
-The example below uses the deploy-hook which will only rerun the script if a renewal was successful and thus only reloading zimbra when needed.
-Sadly, systemd doesn't have a built-in on-failure mail notification function like cron does so you won't be notified of failed renewals. One could write a service to do that via "OnFailure=".
-
-Create a service file eg: /etc/systemd/system/renew-letsencrypt.service
-
+#### Older certbot versions:
+Edit `/etc/letsencrypt/renewal/cert.name.conf` and modify section `[renewalparams]` to contain:
 ```
-[Unit]
-Description=Renew Let's Encrypt certificates and deploy into Zimbra if successful
-After=network-online.target
-
-[Service]
-Type=oneshot
-# run certbot --renew with pre/post hooks. only deploys if renewal was successful.
-# Replace /usr/bin/certbot with the location of your certbot binary, use this to find it: "which certbot letsencrypt"
-ExecStart=/usr/bin/certbot renew --quiet --pre-hook "/usr/local/bin/certbot_zimbra.sh -p" --deploy-hook "/usr/local/bin/certbot_zimbra.sh -d"
+pre_hook = certbot_zimbra.sh -p
+renew_hook = certbot_zimbra.sh -d
 ```
-
-Create a timer file to run the above once a day at 2am: /etc/systemd/system/renew-letsencrypt.timer
-
-```
-[Unit]
-Description=Daily renewal of Let's Encrypt's certificates
-
-[Timer]
-# once a day, at 2AM
-OnCalendar=*-*-* 02:00:00
-# Be kind to the Let's Encrypt servers: add a random delay of 0–3600 seconds
-RandomizedDelaySec=3600
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-```
-
-Then reload the unit file with
-```
-systemctl daemon-reload
-systemctl start renew-letsencrypt.timer
-systemctl enable renew-letsencrypt.timer
-```
-
-Check the timers status:
-```
-systemctl list-timers renew-letsencrypt.timer
-```
-
 
 ## Alternate webserver mode
 
