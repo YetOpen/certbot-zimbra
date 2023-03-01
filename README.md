@@ -1,5 +1,5 @@
 # certbot-zimbra
-Automated letsencrypt/Certbot certificate deploy script for Zimbra hosts.
+Automated Certbot (ACME) certificate script for Zimbra.
 
 [![asciicast](https://asciinema.org/a/219713.svg)](https://asciinema.org/a/219713)
 
@@ -26,9 +26,9 @@ The command line parameters were changed with v0.7. `-r/--renew-only` was rename
 
 - bash, su, which, lsof or ss, openssl, grep, sed (GNU), gawk (GNU awk)
 - ca-certificates (Debian/Ubuntu) or pki-base (RHEL/CentOS)
-- Zimbra: zmhostname, zmcontrol, zmproxyctrl, zmprov, zmcertmgr
-- zimbra-proxy installed and working or an alternate webserver configured for letsencrypt webroot
-- Certbot >=0.19.0, either certbot or letsencrypt binary in PATH.
+- Zimbra: zmhostname, zmcontrol, zmproxyctl, zmprov, zmcertmgr
+- zimbra-proxy installed and working or an alternate webserver configured for ACME webroot
+- Certbot >=0.19.0 in PATH
 
 ## Certbot installation
 
@@ -239,7 +239,7 @@ Check that you have an updated version of Certbot installed. If you have install
 
 Check certificate statuses with `certbot certificates`. Remove any duplicate or outdated certificates for the same domain names.
 
-Check that ports 80 and 443 are open and accessible from the outside and check that your domain points to the server's IP. Basically troubleshoot Letsencrypt as if you weren't using certbot-zimbra.
+Check that ports 80 and 443 are open and accessible from the outside and check that your domain points to the server's IP. Basically troubleshoot Certbot as if you weren't using certbot-zimbra.
 
 ## `cat: /etc/ssl/certs/2e5ac55d.0: No such file or directory` OR `Can't find "DSTRootCAX3"` OR `Unable to validate certificate chain: O = Digital Signature Trust Co., CN = DST Root CA X3`
 
@@ -270,7 +270,7 @@ If you used Certbot >=2 with certbot-zimbra <0.7.13, you might run into this iss
 
 ## Notes on zimbraReverseProxyMailMode 
 
-Letsencrypt by default tries to verify a domain using http, so the script should work fine if [zimbraReverseProxyMailMode](https://wiki.zimbra.com/wiki/Enabling_Zimbra_Proxy_and_memcached#Protocol_Requirements_Including_HTTPS_Redirect) is set to http, both, redirect or mixed. It won't work if set to https only. This is due to Certbot deprecating the tls-sni-01 authentication method and switching to HTTP-01. https://letsencrypt.org/docs/challenge-types/
+Let's Encrypt by default tries to verify a domain using http, so the script should work fine if [zimbraReverseProxyMailMode](https://wiki.zimbra.com/wiki/Enabling_Zimbra_Proxy_and_memcached#Protocol_Requirements_Including_HTTPS_Redirect) is set to http, both, redirect or mixed. It won't work if set to https only. This is due to Certbot deprecating the tls-sni-01 authentication method and switching to HTTP-01. https://letsencrypt.org/docs/challenge-types/
 
 ## Limitations
 
