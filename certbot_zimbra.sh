@@ -719,7 +719,7 @@ usage () {
 USAGE: $progname < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameter"]...
   Only one option at a time can be supplied. Options cannot be chained.
   Mandatory options (only one can be specified):
-	 -d | --deploy-only: Just deploys certificates. Can be run as --deploy-hook. If run standalone, assumes valid certificates are in $le_live_path. Incompatible with -n/--new, -p/--patch-only.
+	 -d | --deploy-only: Just deploys certificates. Will detect if it's being run from Certbot renew_hook or --deploy-hook and only deploy if env variable RENEWED_DOMAINS matches the hostname. If run standalone, assumes valid certificates are in $le_live_path. Incompatible with -n/--new, -p/--patch-only.
 	 -n | --new: performs a request for a new certificate ("certonly"). Can be used to update the domains in an existing certificate. Incompatible with -d/--deploy-only, -p/--patch-only.
 	 -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade. Incompatible with -d/--deploy-only, -n/--new, -x/--no-nginx.
 
