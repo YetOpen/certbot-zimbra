@@ -115,8 +115,11 @@ check_depends() {
 	! "$quiet" && printf 'Checking for dependencies...\n' >&2
 
 	# do not check for lsof or ss here as we'll do that later
-	for name in su openssl grep head cut sed chmod chown cat cp gawk $zmpath/bin/zmhostname $zmpath/bin/zmcertmgr $zmpath/bin/zmcontrol $zmpath/bin/zmprov $zmpath/libexec/get_plat_tag.sh; do
-		! which "$name" >/dev/null && printf 'Error: "%s" not found or executable\n' "$name" >&2 && exit 1
+	for name in su openssl grep sort head cut sed chmod chown cat cp gawk "$zmpath/bin/zmhostname" "$zmpath/bin/zmcertmgr" "$zmpath/bin/zmcontrol" "$zmpath/bin/zmprov" "$zmpath/libexec/get_plat_tag.sh"; do
+		if ! hash "$name" 2>/dev/null; then
+			printf 'Error: "%s" not found or executable\n' "$name" >&2
+			exit 1
+		fi
 	done
 }
 
@@ -190,15 +193,13 @@ check_port () {
 	! "$quiet" && printf 'Checking if process is listening on port %s\n' "$1 ${2:+"with name \"$2\" "}${3:+"user \"$3\""}" >&2
 
 	# check with lsof if available, or fall back to ss
-	local lsof_bin="$(which lsof 2>/dev/null)"
-	local ss_bin="$(which ss 2>/dev/null)"
-	local check_bin=""
-	local grep_filter=""
-	if [ -x "$lsof_bin" ]; then
-		check_bin="$lsof_bin -i :$1 -s TCP:LISTEN -a -n"
+	declare -a check_bin
+	declare grep_filter=
+	if hash lsof 2>/dev/null; then
+		check_bin=("lsof" "-i" ":$1" "-s" "TCP:LISTEN" "-a" "-n")
 		grep_filter="$2.*$3"
-	elif [ -x "$ss_bin" ]; then
-		check_bin="$ss_bin -lptn sport eq :$1"
+	elif hash ss 2>/dev/null; then
+		check_bin=("ss" "-lptn" "sport" "eq" ":$1")
 		# ss doesn't return process user, so don't use it for count
 		grep_filter="$2"
 	else
@@ -208,9 +209,8 @@ check_port () {
 
 	# return false if count of matched processes is 0
 	# optionally $2 and $3 are process name and process user
-	(( "$($check_bin | grep -c "$grep_filter")" == 0 )) && return 1
+	(( "$("${check_bin[@]}" | grep -c "$grep_filter")" == 0 )) && return 1
 
-	unset lsof_bin ss_bin check_bin grep_filter
 	return 0
 }
 
@@ -400,7 +400,7 @@ check_webroot () {
 find_certbot () {
 	# check for executable certbot-auto / certbot / letsencrypt
 	# TODO: remove dead certbot-auto
-	le_bin="$(which certbot letsencrypt certbot-auto 2>/dev/null | head -n 1)"
+	le_bin="$(command -v certbot letsencrypt certbot-auto 2>/dev/null | head -n 1)"
 	[[ -z "$le_bin" ]] && printf 'Error: No letsencrypt/certbot binary found in PATH.\n' >&2 && exit 1
 
 	! "$quiet" && printf 'Detecting Certbot version...\n' >&2
