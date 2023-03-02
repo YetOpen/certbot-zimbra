@@ -87,7 +87,7 @@ get_lock(){
 }
 
 prompt(){
-	while read -p "$1 " yn; do
+	while read -rp "$1 " yn; do
 		case "$yn" in
 			[Yy]* ) return 0;;
 			[Nn]* ) return 1;;
