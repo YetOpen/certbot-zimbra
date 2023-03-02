@@ -123,8 +123,14 @@ check_depends() {
 	done
 }
 
-# version compare from  http://stackoverflow.com/a/24067243/738852
-version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
+# greater than or equal to (>=) semver comparison
+# pure bash solution thanks to geirha at #bash:irc.libera.chat
+version_ge() {
+	local a b
+	IFS=. read -ra a <<< "$1"
+	IFS=. read -ra b <<< "$2"
+	(( a[0] > b[0] || (a[0] == b[0] && (a[1] > b[1] || a[1] == b[1] && a[2] >= b[2])) ))
+}
 
 bootstrap() {
 	check_user
@@ -429,7 +435,7 @@ find_certbot () {
 
 	! "$quiet" && ! "$prompt_confirm" && printf 'Detected Certbot %s\n' "$detected_certbot_version" >&2
 
-	if ! version_gt "$detected_certbot_version" "$min_certbot_version"; then
+	if ! version_ge "$detected_certbot_version" "$min_certbot_version"; then
 		! "$quiet" && printf 'Error: Certbot is too old, please upgrade to Certbot >=%s.\n' "$min_certbot_version" >&2
 		exit 1
 	fi
@@ -452,7 +458,7 @@ request_cert() {
 	"$quiet" && le_params+=("--quiet")
 	"$le_agree_tos" && le_params+=("--agree-tos")
 
-	version_gt "$detected_certbot_version" "1.999.999" &&
+	version_ge "$detected_certbot_version" "2.0.0" &&
 		"$le_override_key_type_rsa" &&
 		le_params+=("--key-type" "rsa" "--rsa-key-size" "4096")
 
@@ -489,7 +495,7 @@ add_certbot_hooks() {
 	else
 		! "$quiet" && printf 'Adding pre and deploy hooks to Certbot certificate configuration\n' >&2
 
-		if version_gt "$detected_certbot_version" "2.2.999"; then
+		if version_ge "$detected_certbot_version" "2.3.0"; then
 			# Certbot >=2.3.0 has "reconfigure"
 			local le_reconfigure_params=("--cert-name" "$domain" "--pre-hook" "$progname -p" "--deploy-hook" "$progname -d")
 			! "$quiet" && printf 'Running "%s"\n' "$le_bin reconfigure ${le_reconfigure_params[*]}" >&2
@@ -639,7 +645,7 @@ prepare_cert() {
 	"$quiet" && exec 2>/dev/null
 
 	# Test cert. 8.6 and below must use root
-	if version_gt "$detected_zimbra_version" "8.7"; then
+	if version_ge "$detected_zimbra_version" "8.7"; then
 		su - zimbra -c "$zmpath/bin/zmcertmgr verifycrt comm $tmpcerts/privkey.pem $tmpcerts/cert.pem $tmpcerts/zimbra_chain.pem"
 	else
 		"$zmpath/bin/zmcertmgr" verifycrt comm "$tmpcerts/privkey.pem" "$tmpcerts/cert.pem" "$tmpcerts/zimbra_chain.pem"
@@ -675,7 +681,7 @@ deploy_cert() {
 	"$quiet" && exec > /dev/null
 	"$quiet" && exec 2>/dev/null
 	# this is it, deploy the cert.
-	if version_gt "$detected_zimbra_version" "8.7"; then
+	if version_ge "$detected_zimbra_version" "8.7"; then
 		su - zimbra -c "$zmpath/bin/zmcertmgr deploycrt comm $tmpcerts/cert.pem $tmpcerts/zimbra_chain.pem -deploy ${services}"
 	else
 		"$zmpath/bin/zmcertmgr" deploycrt comm "$tmpcerts/cert.pem" "$tmpcerts/zimbra_chain.pem"
