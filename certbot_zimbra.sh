@@ -719,47 +719,47 @@ deploy_cert() {
 }
 
 usage () {
-	cat <<EOF
-USAGE: $progname < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameter"]...
-  Only one option at a time can be supplied. Options cannot be chained.
-  Mandatory options (only one can be specified):
-	 -d | --deploy-only: Just deploys certificates. Will detect if it's being run from Certbot renew_hook or --deploy-hook and only deploy if env variable RENEWED_DOMAINS matches the hostname. If run standalone, assumes valid certificates are in $le_live_path. Incompatible with -n/--new, -p/--patch-only.
-	 -n | --new: performs a request for a new certificate ("certonly"). Can be used to update the domains in an existing certificate. Incompatible with -d/--deploy-only, -p/--patch-only.
-	 -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade. Incompatible with -d/--deploy-only, -n/--new, -x/--no-nginx.
+	cat >&2 <<-EOF
+		USAGE: $progname < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameter"]...
+		  Only one option at a time can be supplied. Options cannot be chained.
+		  Mandatory options (only one can be specified):
+			 -d | --deploy-only: Just deploys certificates. Will detect if it's being run from Certbot renew_hook or --deploy-hook and only deploy if env variable RENEWED_DOMAINS matches the hostname. If run standalone, assumes valid certificates are in $le_live_path. Incompatible with -n/--new, -p/--patch-only.
+			 -n | --new: performs a request for a new certificate ("certonly"). Can be used to update the domains in an existing certificate. Incompatible with -d/--deploy-only, -p/--patch-only.
+			 -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade. Incompatible with -d/--deploy-only, -n/--new, -x/--no-nginx.
 
-  Options only used with -n/--new:
-	 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
-	 -L | --letsencrypt-params "--extra-le-parameter": Additional parameter to pass to certbot/letsencrypt. Must be repeated for each parameter and argument, e.g. -L "--preferred-chain" -L "ISRG Root X1"
-	 -N | --noninteractive: Pass --noninteractive to certbot/letsencrypt.
-	 --no-override-key-type-rsa: if Certbot >=v2.0.0 has been detected, do not override ECDSA to RSA with "--key-type rsa" (use this to get the default ECDSA key type, Zimbra does NOT support it!)
+		  Options only used with -n/--new:
+			 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
+			 -L | --letsencrypt-params "--extra-le-parameter": Additional parameter to pass to certbot/letsencrypt. Must be repeated for each parameter and argument, e.g. -L "--preferred-chain" -L "ISRG Root X1"
+			 -N | --noninteractive: Pass --noninteractive to certbot/letsencrypt.
+			 --no-override-key-type-rsa: if Certbot >=v2.0.0 has been detected, do not override ECDSA to RSA with "--key-type rsa" (use this to get the default ECDSA key type, Zimbra does NOT support it!)
 
-  Domain options:
-	 -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u/--no-public-hostname-detection.
-	 -H | --hostname <my.host.name>: hostname being requested. If not passed it's automatically detected using "zmhostname".
-	 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraPublicServiceHostname and zimbraVirtualHostname.
+		  Domain options:
+			 -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u/--no-public-hostname-detection.
+			 -H | --hostname <my.host.name>: hostname being requested. If not passed it's automatically detected using "zmhostname".
+			 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraPublicServiceHostname and zimbraVirtualHostname.
 
-  Deploy options:
-	 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
-	 -z | --no-zimbra-restart: do not restart Zimbra after a certificate deployment
+		  Deploy options:
+			 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
+			 -z | --no-zimbra-restart: do not restart Zimbra after a certificate deployment
 
-  Port check:
-	 -j | --no-port-check: disable port check. Incompatible with -P/--port.
-	 -P | --port <port>: HTTP port the web server to use for Lets Encrypt authentication is listening on. Is detected from zimbraMailProxyPort. Mandatory with -x/--no-nginx.
+		  Port check:
+			 -j | --no-port-check: disable port check. Incompatible with -P/--port.
+			 -P | --port <port>: HTTP port the web server to use for Lets Encrypt authentication is listening on. Is detected from zimbraMailProxyPort. Mandatory with -x/--no-nginx.
 
-  Nginx options:
-	 -w | --webroot "/path/to/www": path to the webroot of alternate webserver. Valid only with -x/--no-nginx.
-	 -x | --no-nginx: Alternate webserver mode. Don't check and patch zimbra-proxy's nginx. Must also specify -P/--port and -w/--webroot. Incompatible with -p/--patch-only.
+		  Nginx options:
+			 -w | --webroot "/path/to/www": path to the webroot of alternate webserver. Valid only with -x/--no-nginx.
+			 -x | --no-nginx: Alternate webserver mode. Don't check and patch zimbra-proxy's nginx. Must also specify -P/--port and -w/--webroot. Incompatible with -p/--patch-only.
 
-  Output options:
-	 -c | --prompt-confirm: ask for confirmation. Incompatible with -q/--quiet.
-	 -q | --quiet: Do not output on stdout. Useful for scripts. Implies -N/--noninteractive, incompatible with -c/--prompt-confirm.
+		  Output options:
+			 -c | --prompt-confirm: ask for confirmation. Incompatible with -q/--quiet.
+			 -q | --quiet: Do not output on stdout or stderr. Useful for scripts. Implies -N/--noninteractive, incompatible with -c/--prompt-confirm.
 
-Authors: Lorenzo Milesi <maxxer@yetopen.com>, Jernej Jakob <jernej.jakob@gmail.com> @jjakob
-Feedback, bugs and PR are welcome on GitHub: https://github.com/yetopen/certbot-zimbra.
+		Authors: Lorenzo Milesi <maxxer@yetopen.com>, Jernej Jakob <jernej.jakob@gmail.com> @jjakob
+		Feedback, bugs and PR are welcome on GitHub: https://github.com/yetopen/certbot-zimbra.
 
-Disclaimer:
-THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
-EOF
+		Disclaimer:
+		THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+	EOF
 }
 ## functions end ##
 
