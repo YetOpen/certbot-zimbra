@@ -144,7 +144,7 @@ bootstrap() {
 
 	# use Zimbra's get_plat_tag.sh to find OS and version (this is only for display and not used elsewhere in the script)
 	# returns $OS$ver for 32-bit or $OS$ver_64 for 64-bit, where OS is the os name (UBUNTU,DEBIAN,RHEL,CentOS,F,FC,SLES,openSUSE,UCS,MANDRIVA,SOLARIS,MACOSx)
-	platform="$($zmpath/libexec/get_plat_tag.sh)"
+	platform="$("$zmpath/libexec/get_plat_tag.sh")"
 	readonly platform
 
 	detected_zimbra_version="$(su - zimbra -c "$zmpath/bin/zmcontrol -v" | grep -Po '(\d+).(\d+).(\d+)' | head -n 1)"
@@ -337,7 +337,7 @@ get_domain () {
 	# If we got no domain from command line try using Zimbra hostname
 	if [[ -z "$domain" ]]; then
 		! "$quiet" && printf 'Using zmhostname to detect domain.\n' >&2
-		domain="$($zmpath/bin/zmhostname)"
+		domain="$("$zmpath/bin/zmhostname")"
 	fi
 
 	[[ -z "$domain" ]] && printf 'Error: No domain found! Please run with -d/--hostname or check why zmhostname is not working.\n' >&2 && exit 1
@@ -473,7 +473,7 @@ request_cert() {
 	"$quiet" && exec 2>/dev/null
 	# Request our cert
 	"$le_bin" certonly "${le_params[@]}"
-	e=$?
+	e="$?"
 	"$quiet" && exec > /dev/stdout
 	"$quiet" && exec 2> /dev/stderr
 	(( e != 0 )) && printf 'Error: "%s" exit status %s. Cannot proceed.\n' "$le_bin" "$e" >&2 && exit 1
@@ -586,7 +586,7 @@ prepare_cert() {
 	# Create the "patched" chain suitable for Zimbra
 
 	# find the first valid chain by iterating through chain.pem one certificate at a time
-	local chaincerts="$(cat $certpath/chain.pem)"
+	local chaincerts="$(cat "$certpath/chain.pem")"
 	local chaincert="${chaincerts%%END CERTIFICATE*}END CERTIFICATE-----"
 	local issuerhash=
 	local issuercn=
@@ -598,7 +598,7 @@ prepare_cert() {
 			break
 		else
 			# get next cert
-			chaincerts="${chaincerts##$chaincert}"
+			chaincerts="${chaincerts##"$chaincert"}"
 			chaincert="${chaincerts%%END CERTIFICATE*}END CERTIFICATE-----"
 		fi
 	done
@@ -636,7 +636,7 @@ prepare_cert() {
 	# set permissions so that Zimbra can read the certs
 	chown -R root:zimbra "$tmpcerts"
 	chmod 550 "$tmpcerts"
-	chmod 440 $tmpcerts/*
+	chmod 440 "$tmpcerts"/*
 
 	! "$quiet" && printf 'Testing with zmcertmgr.\n' >&2
 
