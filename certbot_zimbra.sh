@@ -249,24 +249,25 @@ patch_nginx() {
 			# it adds the directives to all of them. It breaks in special cases of one-liner server blocks (rare)
 			# and unbalanced curly brace count (missing braces aka broken formatting).
 			# Exits 0 (success) if at least 1 substitution was made, 1 (failure) if 0 substitutions were made.
-			gawk \
-"BEGIN {e = 1}
-/^#/ {print; next}
-/^server[[:space:]{]*.*$/ {found++}
-/{/ && found {
-  b++
-  if (first == 0) first = NR
-}
-/}/ && found {b--}
-{ if (found && b == 0 && first != 0) {
-    print gensub(/}[^}]*/, \"\n    # patched by certbot-zimbra.sh\n    location ^~ /.well-known/acme-challenge {\n        root $webroot;\n    }\n&\", 1)
-    found = 0
-    first = 0
-    e = 0
-  }
-  else print
-}
-END {exit e}" "$zmpath/conf/nginx/templates.$bkdate/nginx.conf.web.$file.template" > "$zmpath/conf/nginx/templates/nginx.conf.web.$file.template"
+			gawk -v webroot="$webroot" -f - "$zmpath/conf/nginx/templates.$bkdate/nginx.conf.web.$file.template" > "$zmpath/conf/nginx/templates/nginx.conf.web.$file.template" <<-'EOF'
+				BEGIN {e = 1}
+				/^#/ {print; next}
+				/^server[[:space:]{]*.*$/ {found++}
+				/{/ && found {
+				  b++
+				  if (first == 0) first = NR
+				}
+				/}/ && found {b--}
+				{ if (found && b == 0 && first != 0) {
+				    print gensub(/}[^}]*/, "\n    # patched by certbot-zimbra.sh\n    location ^~ /.well-known/acme-challenge {\n        root " webroot ";\n    }\n&", 1)
+				    found = 0
+				    first = 0
+				    e = 0
+				  }
+				  else print
+				}
+				END {exit e}
+			EOF
 			e="$?"
 			(( e != 0 )) && break
 		done
