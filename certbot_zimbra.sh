@@ -48,7 +48,7 @@ detected_zimbra_version=""
 # set up a trap on exit
 exitfunc(){
 	e="$?"
-	if [ "$e" -ne 0 ] && ! "$quiet"; then
+	if (( e != 0 )) && ! "$quiet"; then
 		printf '\nAn error seems to have occurred. Please read the output above for clues and try to rectify the situation.\nIf you believe this is an error with the script, please file an issue at %s . Exiting.\n' "$github_url" >&2
 	fi
 
@@ -65,7 +65,7 @@ trap exitfunc EXIT
 ## functions begin ##
 
 check_user () {
-	if [ "$EUID" -ne 0 ]; then
+	if (( EUID != 0 )); then
 		printf 'Error: This script must be run as root.\n' >&2
 		exit 1
 	fi
@@ -98,9 +98,9 @@ prompt(){
 
 check_depends_ca() {
 	# Debian/Ubuntu provided by ca-certificates
-	[ -r $ca_certificates_file ] && return
+	[[ -r "$ca_certificates_file" ]] && return
 	# RHEL/CentOS provided by pki-base
-	[ -r $pki_ca_bundle_file ] && return
+	[[ -r "$pki_ca_bundle_file" ]] && return
 
 	cat >&2 <<-'EOF'
 		Error: Installed CA certificates not found or files not readable. Please check if you have installed:
@@ -140,7 +140,7 @@ bootstrap() {
 
 	detected_zimbra_version="$(su - zimbra -c "$zmpath/bin/zmcontrol -v" | grep -Po '(\d+).(\d+).(\d+)' | head -n 1)"
 	readonly detected_zimbra_version
-	[ -z "$detected_zimbra_version" ] && printf 'Error: Unable to detect Zimbra version.\n' >&2 && exit 1
+	[[ -z "$detected_zimbra_version" ]] && printf 'Error: Unable to detect Zimbra version.\n' >&2 && exit 1
 	! "$quiet" && printf 'Detected Zimbra %s on %s\n' "$detected_zimbra_version" "$platform" >&2
 
 	get_domain
@@ -150,7 +150,7 @@ bootstrap() {
 
 check_zimbra_proxy() {
 	# must be run after get_domain
-	[ -z "$domain" ] && printf 'Unexpected error (check_zimbra_proxy domain not set).\n' >&2 && exit 1
+	[[ -z "$domain" ]] && printf 'Unexpected error (check_zimbra_proxy domain not set).\n' >&2 && exit 1
 
 	! "$quiet" && printf 'Checking zimbra-proxy is running and enabled\n' >&2
 
@@ -159,15 +159,15 @@ check_zimbra_proxy() {
 	! su - zimbra -c "$zmpath/bin/zmprov $zmprov_opts gs $domain zimbraReverseProxyHttpEnabled | grep -q TRUE" \
 			&& printf 'Error: http reverse proxy not enabled (zimbraReverseProxyHttpEnabled: FALSE).\n' >&2 && exit 1
 
-	if [ -z "$port" ]; then
+	if [[ -z "$port" ]]; then
 		! "$quiet" && printf 'Detecting port from zimbraMailProxyPort\n' >&2
 		port="$(su - zimbra -c "$zmpath/bin/zmprov $zmprov_opts gs $domain zimbraMailProxyPort | sed -n 's/zimbraMailProxyPort: //p'")"
-		[ -z "$port" ] && printf 'Error: zimbraMailProxyPort not found.\n' >&2 && exit 1
+		[[ -z "$port" ]] && printf 'Error: zimbraMailProxyPort not found.\n' >&2 && exit 1
 	else
 		printf 'Skipping port detection from zimbraMailProxyPort due to --port override\n' >&2
 	fi
 
-	if [ "$port" != "80" ] && ! "$quiet"; then
+	if [[ "$port" != "80" ]] && ! "$quiet"; then
 		printf 'WARNING: non-standard zimbraMailProxyPort %s. This needs to be 80 from the internet for ACME HTTP-01 to work. If you have NAT set up to do the translation this is likely fine. If not, your Zimbra proxy is misconfigured and Certbot will fail.\n' "$port" >&2
 		if "$prompt_confirm"; then
 			prompt "Proceed?"
@@ -185,7 +185,7 @@ check_port () {
 		return 0
 	fi
 
-	[ -z "$1" ] && printf 'Unexpected error: check_port empty $1 (port).\n' >&2 && exit 1
+	[[ -z "$1" ]] && printf 'Unexpected error: check_port empty $1 (port).\n' >&2 && exit 1
 
 	! "$quiet" && printf 'Checking if process is listening on port %s\n' "$1 ${2:+"with name \"$2\" "}${3:+"user \"$3\""}" >&2
 
@@ -219,13 +219,13 @@ check_port () {
 # zimbra-proxy must be running (checked with check_zimbra_proxy) or zmproxyctl restart will fail
 # returns true if patch was applied or was already present, exits script if encountered an error
 patch_nginx() {
-	[ ! -d "$zmpath/conf/nginx/includes" ] && printf 'Error: "%s" not found.\n' "$zmpath/conf/nginx/includes" >&2 && exit 1
+	[[ ! -d "$zmpath/conf/nginx/includes" ]] && printf 'Error: "%s" not found.\n' "$zmpath/conf/nginx/includes" >&2 && exit 1
 
 	# Don't patch if patch is already applied
 	if grep -r -q 'acme-challenge' "$zmpath/conf/nginx/templates"; then
 		! "$quiet" && printf 'Nginx templates already patched.\n' >&2
 	else
-		[ -z $webroot ] && printf 'Unexpected error: patch_nginx WEBROOT not set.\n' >&2 && exit 1
+		[[ -z $webroot ]] && printf 'Unexpected error: patch_nginx WEBROOT not set.\n' >&2 && exit 1
 
 		# Let's make a backup of Zimbra's original templates
 		set -e
@@ -262,13 +262,12 @@ patch_nginx() {
 }
 END {exit e}" "$zmpath/conf/nginx/templates.$bkdate/nginx.conf.web.$file.template" > "$zmpath/conf/nginx/templates/nginx.conf.web.$file.template"
 			e="$?"
-			[ "$e" -ne 0 ] && break
+			(( e != 0 )) && break
 		done
 
-		if [ "$e" -ne 0 ]; then
+		if (( e != 0 )); then
 			! "$quiet" && printf 'Error!\nRestoring old templates... ' >&2
-			cp -a $zmpath/conf/nginx/templates.$bkdate/* "$zmpath/conf/nginx/templates/"
-			if [ "$?" -ne 0 ]; then
+			if ! cp -a "$zmpath/conf/nginx/templates.$bkdate/"* "$zmpath/conf/nginx/templates/"; then
 				! "$quiet" && printf 'Error restoring templates!\n' >&2
 			else
 				! "$quiet" && printf 'Success.\n' >&2
@@ -293,7 +292,7 @@ END {exit e}" "$zmpath/conf/nginx/templates.$bkdate/nginx.conf.web.$file.templat
 		! "$quiet" && printf 'Running zmproxyctl restart.\n' >&2
 		# reload nginx config
 		su - zimbra -c 'zmproxyctl restart' 200>&-; e="$?"
-		if [ "$e" -ne 0 ]; then
+		if (( e != 0 )); then
 			! "$quiet" && printf 'Error restarting zmproxy ("zmproxyctl restart" exit status %s).\n' "$e" >&2
 			exit 1
 		else
@@ -307,7 +306,7 @@ END {exit e}" "$zmpath/conf/nginx/templates.$bkdate/nginx.conf.web.$file.templat
 # detect additional public service hostnames from configured domains' zimbraPublicServiceHostname
 find_additional_public_hostnames() {
 	# If already set, leave them alone
-	[ -n "$extra_domains" ] && return
+	[[ "${extra_domains[*]}" ]] && return
 
 	# If it has been requested NOT to perform the search
 	if ! "$detect_public_hostnames"; then
@@ -330,12 +329,12 @@ find_additional_public_hostnames() {
 
 get_domain () {
 	# If we got no domain from command line try using Zimbra hostname
-	if [ -z "$domain" ]; then
+	if [[ -z "$domain" ]]; then
 		! "$quiet" && printf 'Using zmhostname to detect domain.\n' >&2
 		domain="$($zmpath/bin/zmhostname)"
 	fi
 
-	[ -z "$domain" ] && printf 'Error: No domain found! Please run with -d/--hostname or check why zmhostname is not working.\n' >&2 && exit 1
+	[[ -z "$domain" ]] && printf 'Error: No domain found! Please run with -d/--hostname or check why zmhostname is not working.\n' >&2 && exit 1
 
 	! "$quiet" && printf 'Using domain %s (as certificate DN)\n' "$domain" >&2
 
@@ -347,7 +346,7 @@ get_domain () {
 	# Find additional domains
 	"$new_cert" && find_additional_public_hostnames
 
-	if [ -n "$extra_domains" ] && ! "$quiet"; then
+	if [[ "${extra_domains[*]}" ]] && ! "$quiet"; then
 		printf 'Got %s domains to use as certificate SANs: %s\n' "${#extra_domains[@]}" "${extra_domains[*]}" >&2
 		if "$prompt_confirm"; then
 			prompt "Include these in the certificate?"
@@ -360,17 +359,17 @@ get_domain () {
 
 set_certpath() {
 	# must be run after get_domain
-	[ -z "$domain" ] && printf 'Unexpected error (set_certpath domain not set).\n' >&2 && exit 1
+	[[ -z "$domain" ]] && printf 'Unexpected error (set_certpath domain not set).\n' >&2 && exit 1
 
 	# when run as --deploy-hook, check if any of RENEWED_DOMAINS match Zimbra's domain.
 	# RENEWED_DOMAINS and RENEWED_LINEAGE are passed by Certbot as env vars to --deploy-hook
-	if [ -n "$RENEWED_DOMAINS" ]; then
+	if [[ -n "$RENEWED_DOMAINS" ]]; then
 		# we were run as --deploy-hook
 		for renewed_domain in $RENEWED_DOMAINS; do
-			[ "$renewed_domain" == "$domain" ] && certpath="$RENEWED_LINEAGE"
+			[[ "$renewed_domain" == "$domain" ]] && certpath="$RENEWED_LINEAGE"
 		done
 		# exit gracefully if no matching domains were found. We must be running for some other cert, not ours.
-		if [ -z "$certpath" ]; then
+		if [[ -z "$certpath" ]]; then
 			! "$quiet" && printf 'Detected --deploy-hook but no matching domain found. Nothing to do.\n' >&2
 			exit 0
 		else
@@ -383,10 +382,10 @@ set_certpath() {
 }
 
 check_webroot () {
-	[ -z "$webroot" ] && printf 'Unexpected error: check_webroot webroot not set.\n' >&2 && exit 1
+	[[ -z "$webroot" ]] && printf 'Unexpected error: check_webroot webroot not set.\n' >&2 && exit 1
 	
 	# <8.7 didn't have nginx webroot
-	if [ ! -d "$webroot" ]; then
+	if ! [[ -d "$webroot" ]]; then
 		if "$prompt_confirm"; then
 			prompt "Webroot $webroot doesn't exist, create it?"
 			(( $? == 1 )) && printf 'Cannot proceed.\n' >&2 && exit 0
@@ -402,7 +401,7 @@ find_certbot () {
 	# check for executable certbot-auto / certbot / letsencrypt
 	# TODO: remove dead certbot-auto
 	le_bin="$(which certbot letsencrypt certbot-auto 2>/dev/null | head -n 1)"
-	[ -z "$le_bin" ] && printf 'Error: No letsencrypt/certbot binary found in PATH.\n' >&2 && exit 1
+	[[ -z "$le_bin" ]] && printf 'Error: No letsencrypt/certbot binary found in PATH.\n' >&2 && exit 1
 
 	! "$quiet" && printf 'Detecting Certbot version...\n' >&2
 
@@ -418,12 +417,12 @@ find_certbot () {
 
 	detected_certbot_version="$($le_bin "${certbot_version_params[@]}" 2>&1 | $( "$prompt_confirm" && printf 'tee /dev/stderr |') | grep -oP '^certbot \K(\d+).(\d+).(\d+)$')"
 	local certbot_version_exit="${PIPESTATUS[0]}"
-	if [ "$certbot_version_exit" -ne 0 ]; then
+	if (( certbot_version_exit != 0 )); then
 		! "$quiet" && printf 'Error: "%s" exit status %s.\nTry running "%s" by itself on the command line and see if it works.\n' "$le_bin ${certbot_version_params[*]}" "$certbot_version_exit" "$le_bin" >&2
 		exit 1
 	fi
 
-	if [ -z "$detected_certbot_version" ]; then
+	if [[ -z "$detected_certbot_version" ]]; then
 		! "$quiet" && printf 'Error: unable to parse Certbot version.\n' >&2
 		exit 1
 	fi
@@ -459,7 +458,7 @@ request_cert() {
 
 	le_params+=("--webroot" "-w" "$webroot" "--cert-name" "$domain" "-d" "$domain")
 	for d in "${extra_domains[@]}"; do
-		[ -z "$d" ] && continue
+		[[ -z "$d" ]] && continue
 		le_params+=("-d" "$d")
 	done
 
@@ -562,8 +561,8 @@ add_certbot_hooks() {
 prepare_cert() {
 	! "$quiet" && printf 'Preparing certificates for deployment.\n' >&2
 
-	[ -z "$certpath" ] && printf 'Unexpected error (prepare_cert certpath not set).\n' >&2 && exit 1
-	[ -z "$domain" ] && printf 'Unexpected error (prepare_cert domain not set).\n' >&2 && exit 1
+	[[ -z "$certpath" ]] && printf 'Unexpected error (prepare_cert certpath not set).\n' >&2 && exit 1
+	[[ -z "$domain" ]] && printf 'Unexpected error (prepare_cert domain not set).\n' >&2 && exit 1
 
 	# Make Zimbra accessible files
 	# save old umask
@@ -586,7 +585,7 @@ prepare_cert() {
 	local issuerhash=
 	local issuercn=
 
-	while [ "$chaincert" != "${chaincert##*BEGIN CERTIFICATE}" ]; do
+	while [[ "$chaincert" != "${chaincert##*BEGIN CERTIFICATE}" ]]; do
 		if printf '%s\n' "$chaincert" | openssl verify >/dev/null 2>&1; then
 			issuerhash="$(printf '%s' "${chaincert}" | openssl x509 -noout -issuer_hash)"
 			issuercn="$(printf '%s' "${chaincert}" | openssl x509 -noout -issuer -nameopt sep_multiline,utf8 | grep -oP '\sCN=\K.*')"
@@ -600,16 +599,16 @@ prepare_cert() {
 
 	unset chaincerts chaincert
 
-	if [ -z "$issuerhash" ]; then
+	if [[ -z "$issuerhash" ]]; then
 		printf 'Error: No valid chain found in "%s"!\n' "$certpath/chain.pem" >&2
 		exit 1
 	fi
 
-	if [ -r "$ca_certificates_file" ]; then
+	if [[ -r "$ca_certificates_file" ]]; then
 	        # Debian/Ubuntu
 		# use the issuer_hash of the LE chain cert to find the root CA in /etc/ssl/certs
 		cat "/etc/ssl/certs/$issuerhash.0" >> "$tmpcerts/zimbra_chain.pem"
-	elif [ -r "$pki_ca_bundle_file" ]; then
+	elif [[ -r "$pki_ca_bundle_file" ]]; then
 		# RHEL/CentOS
 		# extract CA by CN in tls-ca-bundle.pem
 
@@ -686,7 +685,7 @@ deploy_cert() {
 
 	! "$quiet" && printf 'Removing temporary files in "%s"\n' "$tmpcerts" >&2
 	# this is kind of sketchy
-	[ -n "$tmpcerts" ] && rm -r "$tmpcerts"
+	[[ -n "$tmpcerts" ]] && rm -r "$tmpcerts"
 	unset tmpcerts
 
 	set +e
@@ -760,7 +759,7 @@ EOF
 
 
 # parameters parsing http://stackoverflow.com/a/14203146/738852
-while [[ $# -gt 0 ]]; do
+while (( $# > 0 )); do
 	case "$1" in
 		# flow-modifying parameters
 		-d|--deploy-only)
@@ -778,7 +777,7 @@ while [[ $# -gt 0 ]]; do
 			le_agree_tos=true
 			;;
 		-L|--letsencrypt-params)
-			[ -z "$2" ] && printf 'Error: missing --letsencrypt-params argument\n' >&2 && exit 1
+			[[ -z "$2" ]] && printf 'Error: missing --letsencrypt-params argument\n' >&2 && exit 1
 			le_params+=("$2")
 			shift
 			;;
@@ -790,13 +789,13 @@ while [[ $# -gt 0 ]]; do
 			;;
 		# domain
 		-e|--extra-domain)
-			[ -z "$2" ] && printf 'Error: missing --extra-domain argument\n' >&2 && exit 1
+			[[ -z "$2" ]] && printf 'Error: missing --extra-domain argument\n' >&2 && exit 1
 			extra_domains+=("$2")
 			detect_public_hostnames=false
 			shift
 			;;
 		-H|--hostname)
-			[ -z "$2" ] && printf 'Error: missing --hostname argument\n' >&2 && exit 1
+			[[ -z "$2" ]] && printf 'Error: missing --hostname argument\n' >&2 && exit 1
 			domain="$2"
 			detect_public_hostnames=false
 			shift
@@ -809,13 +808,13 @@ while [[ $# -gt 0 ]]; do
 			skip_port_check=true
 			;;
 		-P|--port)
-			[ -z "$2" ] && printf 'Error: missing --port argument\n' >&2 && exit 1
+			[[ -z "$2" ]] && printf 'Error: missing --port argument\n' >&2 && exit 1
 			port="$2"
 			shift
 			;;
 		# nginx
 		-w|--webroot)
-			[ -z "$2" ] && printf 'Error: missing --webroot argument\n' >&2 && exit 1
+			[[ -z "$2" ]] && printf 'Error: missing --webroot argument\n' >&2 && exit 1
 			webroot="$2"
 			shift
 			;;
@@ -824,7 +823,7 @@ while [[ $# -gt 0 ]]; do
 			;;
 		# zimbra
 		-s|--services)
-			[ -z "$2" ] && printf 'Error: missing --services argument\n' >&2 && exit 1
+			[[ -z "$2" ]] && printf 'Error: missing --services argument\n' >&2 && exit 1
 			services="$2"
 			shift
 			;;
@@ -862,9 +861,9 @@ readonly deploy_only new_cert patch_only le_agree_tos le_noniact le_override_key
 "$patch_only" && ("$deploy_only" || "$new_cert" || "$no_nginx") && printf 'Incompatible option combination\n' >&2 && exit 1
 ! ("$deploy_only" || "$new_cert" || "$patch_only") && printf 'Nothing to do. Please specify one of: -d -n -p.\n' >&2 && exit 1
 
-"$no_nginx" && [ -z "$webroot" -o \( -z "$port" -a ! "$skip_port_check" \) ] && printf 'Error: --no-nginx requires --webroot and --port or --no-port-check.\n' >&2 && exit 1
-! "$no_nginx" && [ -n "$webroot" ] && printf 'Error: -w/--webroot cannot be used in zimbra-proxy mode. Please use -x/--no-nginx (alternate webserver mode).\n' >&2 && exit 1
-"$skip_port_check" && [ -n "$port" ] && printf 'Error: -j/--no-port-check cannot be used with -P/--port.\n' >&2 && exit 1
+"$no_nginx" && [[ -z "$webroot" || ( -z "$port" && ! "$skip_port_check" ) ]] && printf 'Error: --no-nginx requires --webroot and --port or --no-port-check.\n' >&2 && exit 1
+! "$no_nginx" && [[ -n "$webroot" ]] && printf 'Error: -w/--webroot cannot be used in zimbra-proxy mode. Please use -x/--no-nginx (alternate webserver mode).\n' >&2 && exit 1
+"$skip_port_check" && [[ -n "$port" ]] && printf 'Error: -j/--no-port-check cannot be used with -P/--port.\n' >&2 && exit 1
 
 ! "$quiet" && printf '%s\n' "$progname v$version - $github_url" >&2
 
