@@ -371,9 +371,11 @@ set_certpath() {
 	# RENEWED_DOMAINS and RENEWED_LINEAGE are passed by Certbot as env vars to --deploy-hook
 	if [[ -n "$RENEWED_DOMAINS" ]]; then
 		# we were run as --deploy-hook
+		set -f
 		for renewed_domain in $RENEWED_DOMAINS; do
 			[[ "$renewed_domain" == "$domain" ]] && certpath="$RENEWED_LINEAGE"
 		done
+		set +f
 		# exit gracefully if no matching domains were found. We must be running for some other cert, not ours.
 		if [[ -z "$certpath" ]]; then
 			! "$quiet" && printf 'Detected --deploy-hook but no matching domain found. Nothing to do.\n' >&2
