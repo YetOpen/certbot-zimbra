@@ -328,12 +328,12 @@ find_additional_public_hostnames() {
 
 	! "$quiet" && printf 'Detecting additional public service hostnames...\n' >&2
 
-	extra_domains=($(su - zimbra -c "zmprov $zmprov_opts gad" \
-			| gawk '{printf "gd %s zimbraPublicServiceHostname\ngd %s zimbraVirtualHostname\n", $0, $0}' \
-			| su - zimbra -c "zmprov $zmprov_opts -" \
-			| sed "/prov>/d;/# name/d;/$domain/d;/^$/d;s/\(\(zimbraPublicServiceHostname\)\|\(zimbraVirtualHostname\)\): \(.*\)/\4/g" \
-			| sort -u | tr '\n' ' ' \
-			))
+	readarray -t extra_domains < <(capsh --user=zimbra -- -c '"$1"/bin/zmprov $2 gad \
+		| gawk '\''{printf "gd %s zimbraPublicServiceHostname zimbraVirtualHostname\n", $0}'\'' \
+		| "$1"/bin/zmprov $2 -' "" "$zmpath" "$zmprov_opts" \
+		| gawk -v domain="$domain" '/zimbraPublicServiceHostname:|zimbraVirtualHostname:/ {if ($2 != domain && $2 != "") {print $2}}' \
+		| sort -u
+	)
 	! "$quiet" && printf 'Found %s extra domains through auto-detection (zimbraPublicServiceHostname, zimbraVirtualHostname)\n' "${#extra_domains[*]}" >&2
 
 	return 0
