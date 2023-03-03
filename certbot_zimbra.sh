@@ -115,7 +115,7 @@ check_depends() {
 	! "$quiet" && printf 'Checking for dependencies...\n' >&2
 
 	# do not check for lsof or ss here as we'll do that later
-	for name in su openssl grep sort head cut sed chmod chown cat cp gawk "$zmpath/bin/zmhostname" "$zmpath/bin/zmcertmgr" "$zmpath/bin/zmcontrol" "$zmpath/bin/zmprov" "$zmpath/libexec/get_plat_tag.sh"; do
+	for name in capsh openssl grep sort head cut sed chmod chown cat cp gawk "$zmpath/bin/zmhostname" "$zmpath/bin/zmcertmgr" "$zmpath/bin/zmcontrol" "$zmpath/bin/zmprov" "$zmpath/libexec/get_plat_tag.sh"; do
 		if ! hash "$name" 2>/dev/null; then
 			printf 'Error: "%s" not found or executable\n' "$name" >&2
 			exit 1
@@ -147,7 +147,7 @@ bootstrap() {
 	platform="$("$zmpath/libexec/get_plat_tag.sh")"
 	readonly platform
 
-	detected_zimbra_version="$(su - zimbra -c "$zmpath/bin/zmcontrol -v" | grep -Po '(\d+).(\d+).(\d+)' | head -n 1)"
+	detected_zimbra_version="$(capsh --user=zimbra -- -c '"$1"/bin/zmcontrol -v' "" "$zmpath" | grep -Po '(\d+).(\d+).(\d+)' | head -n 1)"
 	readonly detected_zimbra_version
 	[[ -z "$detected_zimbra_version" ]] && printf 'Error: Unable to detect Zimbra version.\n' >&2 && exit 1
 	! "$quiet" && printf 'Detected Zimbra %s on %s\n' "$detected_zimbra_version" "$platform" >&2
@@ -164,13 +164,18 @@ check_zimbra_proxy() {
 	! "$quiet" && printf 'Checking zimbra-proxy is running and enabled\n' >&2
 
 	# TODO: check if path to zmproxyctl is different on <8.7
-	! su - zimbra -c "$zmpath/bin/zmproxyctl status > /dev/null" && printf 'Error: zimbra-proxy is not running.\n' >&2 && exit 1
-	! su - zimbra -c "$zmpath/bin/zmprov $zmprov_opts gs $domain zimbraReverseProxyHttpEnabled | grep -q TRUE" \
-			&& printf 'Error: http reverse proxy not enabled (zimbraReverseProxyHttpEnabled: FALSE).\n' >&2 && exit 1
+	if ! capsh --user=zimbra -- -c '"$1"/bin/zmproxyctl status > /dev/null' "" "$zmpath"; then
+		printf 'Error: zimbra-proxy is not running.\n' >&2
+		exit 1
+	fi
+	if ! capsh --user=zimbra -- -c '"$1"/bin/zmprov $2 gs "$3" zimbraReverseProxyHttpEnabled | grep -q TRUE' "" "$zmpath" "$zmprov_opts" "$domain"; then
+		printf 'Error: http reverse proxy not enabled (zimbraReverseProxyHttpEnabled: FALSE).\n' >&2
+		exit 1
+	fi
 
 	if [[ -z "$port" ]]; then
 		! "$quiet" && printf 'Detecting port from zimbraMailProxyPort\n' >&2
-		port="$(su - zimbra -c "$zmpath/bin/zmprov $zmprov_opts gs $domain zimbraMailProxyPort | sed -n 's/zimbraMailProxyPort: //p'")"
+		port="$(capsh --user=zimbra -- -c '"$1"/bin/zmprov $2 gs "$3" zimbraMailProxyPort | sed -n "s/zimbraMailProxyPort: //p"' "" "$zmpath" "$zmprov_opts" "$domain")"
 		[[ -z "$port" ]] && printf 'Error: zimbraMailProxyPort not found.\n' >&2 && exit 1
 	else
 		printf 'Skipping port detection from zimbraMailProxyPort due to --port override\n' >&2
@@ -298,7 +303,7 @@ patch_nginx() {
 
 		! "$quiet" && printf 'Running zmproxyctl restart.\n' >&2
 		# reload nginx config
-		su - zimbra -c 'zmproxyctl restart' 200>&-; e="$?"
+		capsh --user=zimbra -- -c '"$1"/bin/zmproxyctl restart' "" "$zmpath" 200>&-; e="$?"
 		if (( e != 0 )); then
 			! "$quiet" && printf 'Error restarting zmproxy ("zmproxyctl restart" exit status %s).\n' "$e" >&2
 			exit 1
@@ -649,7 +654,7 @@ prepare_cert() {
 
 	# Test cert. 8.6 and below must use root
 	if version_ge "$detected_zimbra_version" "8.7"; then
-		su - zimbra -c "$zmpath/bin/zmcertmgr verifycrt comm $tmpcerts/privkey.pem $tmpcerts/cert.pem $tmpcerts/zimbra_chain.pem"
+		capsh --user=zimbra -- -c '"$1"/bin/zmcertmgr verifycrt comm "$2"/privkey.pem "$2"/cert.pem "$2"/zimbra_chain.pem' "" "$zmpath" "$tmpcerts"
 	else
 		"$zmpath/bin/zmcertmgr" verifycrt comm "$tmpcerts/privkey.pem" "$tmpcerts/cert.pem" "$tmpcerts/zimbra_chain.pem"
 	fi
@@ -685,7 +690,7 @@ deploy_cert() {
 	"$quiet" && exec 2>/dev/null
 	# this is it, deploy the cert.
 	if version_ge "$detected_zimbra_version" "8.7"; then
-		su - zimbra -c "$zmpath/bin/zmcertmgr deploycrt comm $tmpcerts/cert.pem $tmpcerts/zimbra_chain.pem -deploy ${services}"
+		capsh --user=zimbra -- -c '"$1"/bin/zmcertmgr deploycrt comm "$2"/cert.pem "$2"/zimbra_chain.pem -deploy "$3"' "" "$zmpath" "$tmpcerts" "$services"
 	else
 		"$zmpath/bin/zmcertmgr" deploycrt comm "$tmpcerts/cert.pem" "$tmpcerts/zimbra_chain.pem"
 	fi
@@ -710,7 +715,7 @@ deploy_cert() {
 		"$quiet" && exec > /dev/null
 		"$quiet" && exec 2> /dev/null
 		# Finally apply cert!
-		su - zimbra -c 'zmcontrol restart' 200>&-
+		capsh --user=zimbra -- -c '"$1"/bin/zmcontrol restart' "" "$zmpath" 200>&-
 		# FIXME And hope that everything started fine! :)
 		"$quiet" && exec > /dev/stdout
 		"$quiet" && exec 2> /dev/stderr
