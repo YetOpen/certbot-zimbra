@@ -630,8 +630,19 @@ prepare_cert() {
 		# if we can't find the issuer CN in the bundle file, it may have spaces removed, hopefully we'll find it without spaces
 		grep -q "^# $issuercn\$" "$pki_ca_bundle_file" || issuercn="${issuercn//' '}"
 		# the following awk script extracts the CA cert from the bundle or exits 1 if not found
-		! gawk "BEGIN {e=1}; /^# $issuercn$/{e=0} /^# $issuercn$/,/END CERTIFICATE/; END {exit e}" "$pki_ca_bundle_file" >> "$tmpcerts/zimbra_chain.pem"\
-			&& printf 'Error: Cannot find "%s" in "%s".\n' "$issuercn" "$pki_ca_bundle_file" && exit 1
+		if ! gawk -v issuercn="$issuercn" -f - "$pki_ca_bundle_file" >> "$tmpcerts/zimbra_chain.pem" <<-'EOF'
+			BEGIN {e=1}
+			$0 ~ "^# " issuercn "$" {e=0; next}
+			(!e){
+				print
+				if ($0 ~ /END CERTIFICATE/){exit e}
+			}
+			END {exit e}
+			EOF
+			then
+				printf 'Error: Cannot find "%s" in "%s".\n' "$issuercn" "$pki_ca_bundle_file"
+				exit 1
+		fi
 	else
 		# we shouldn't be here
 		printf 'Error in prepare_cert: cannot find installed CA certificates (check_depends_ca should have caught this).\n' >&2
