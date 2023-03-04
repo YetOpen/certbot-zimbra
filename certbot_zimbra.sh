@@ -420,20 +420,11 @@ find_certbot () {
 
 	! "$quiet" && printf 'Detecting Certbot version...\n' >&2
 
-	# get Certbot version, we need to use some trickery here in case Certbot is bootstrapping (1st run) and expects user input
-	# if run with --prompt-confirm, show the output of Certbot on stderr and allow the user to answer yes/no
-	# otherwise add --no-bootstrap and exit in case of error
-	# TODO: --no-bootstrap is not used in Certbot, deprecated in Certbot >=1.13.0, and certbot-auto is already dead,
-	# so no point in keeping it, Certbot does not need to bootstrap (but may ask for accepting the TOS)
-	local certbot_version_params=()
-	! "$prompt_confirm" && certbot_version_params=("--no-bootstrap")
-	"$le_noniact" && certbot_version_params+=("--non-interactive")
-	certbot_version_params+=("--version")
-
-	detected_certbot_version="$($le_bin "${certbot_version_params[@]}" 2>&1 | $( "$prompt_confirm" && printf 'tee /dev/stderr |') | grep -oP '^certbot \K(\d+).(\d+).(\d+)$')"
+	# get Certbot version
+	detected_certbot_version="$("$le_bin" --quiet --version 2>&1 | grep -oP '^certbot \K(\d+).(\d+).(\d+)$')"
 	local certbot_version_exit="${PIPESTATUS[0]}"
 	if (( certbot_version_exit != 0 )); then
-		printf 'Error: "%s" exit status %s.\nTry running "%s" by itself on the command line and see if it works.\n' "$le_bin ${certbot_version_params[*]}" "$certbot_version_exit" "$le_bin" >&2
+		printf 'Error: "%s" exit status %s.\n' "$le_bin --quiet --version" "$certbot_version_exit" >&2
 		exit 1
 	fi
 
