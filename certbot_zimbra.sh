@@ -730,39 +730,38 @@ deploy_cert() {
 
 usage () {
 	cat >&2 <<-EOF
-		USAGE: $progname < -d | -n | -p > [-aNuzjxcq] [-H my.host.name] [-e extra.domain.tld] [-w /var/www] [-s <service_names>] [-P port] [-L "--extra-le-parameter"]...
+		USAGE: $progname [ -d | -n | -p ] [options]...
 		  Only one option at a time can be supplied. Options cannot be chained.
 		  Mandatory options (only one can be specified):
-			 -d | --deploy-only: Just deploys certificates. Will detect if it's being run from Certbot renew_hook or --deploy-hook and only deploy if env variable RENEWED_DOMAINS matches the hostname. If run standalone, assumes valid certificates are in $le_live_path. Incompatible with -n/--new, -p/--patch-only.
-			 -n | --new: performs a request for a new certificate ("certonly"). Can be used to update the domains in an existing certificate. Incompatible with -d/--deploy-only, -p/--patch-only.
-			 -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade. Incompatible with -d/--deploy-only, -n/--new, -x/--no-nginx.
+		    -d | --deploy-only: Just deploys certificates. Will detect if it's being run from Certbot renew_hook or --deploy-hook and only deploy if env variable RENEWED_DOMAINS matches the hostname. If run standalone, assumes valid certificates are in $le_live_path.
+		    -n | --new: performs a request for a new certificate ("certonly"). Can be used to update the domains in an existing certificate.
+		    -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade.
 
-		  Options only used with -n/--new:
-			 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
-			 -L | --letsencrypt-params "--extra-le-parameter": Additional parameter to pass to certbot/letsencrypt. Must be repeated for each parameter and argument, e.g. -L "--preferred-chain" -L "ISRG Root X1"
-			 -N | --noninteractive: Pass --non-interactive to certbot/letsencrypt.
-			 --no-override-key-type-rsa: if Certbot >=v2.0.0 has been detected, do not override ECDSA to RSA with "--key-type rsa" (use this to get the default ECDSA key type, Zimbra does NOT support it!)
-
-		  Domain options:
-			 -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u/--no-public-hostname-detection.
-			 -H | --hostname <my.host.name>: hostname being requested. If not passed it's automatically detected using "zmhostname".
-			 -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraPublicServiceHostname and zimbraVirtualHostname.
+		  Options for -n/--new:
+		    -a | --agree-tos: agree with the Terms of Service of the ACME server (avoids prompt)
+		    -L | --letsencrypt-params "--extra-le-parameter": Additional parameter to pass to Certbot. Must be repeated for each parameter and argument, e.g. -L "--preferred-chain" -L "ISRG Root X1"
+		    -N | --noninteractive: Pass --non-interactive to Certbot.
+		    --no-override-key-type-rsa: if Certbot >=v2.0.0 has been detected, do not override ECDSA to RSA with "--key-type rsa" (use this to get the default ECDSA key type, Zimbra does NOT support it!)
+		    -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u/--no-public-hostname-detection.
+		    -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraPublicServiceHostname and zimbraVirtualHostname.
 
 		  Deploy options:
-			 -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy. Default: 'all'
-			 -z | --no-zimbra-restart: do not restart Zimbra after a certificate deployment
+		    -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy,imapd. Default: 'all'
+		    -z | --no-zimbra-restart: do not restart Zimbra after a certificate deployment
 
-		  Port check:
-			 -j | --no-port-check: disable port check. Incompatible with -P/--port.
-			 -P | --port <port>: HTTP port the web server to use for Lets Encrypt authentication is listening on. Is detected from zimbraMailProxyPort. Mandatory with -x/--no-nginx.
+		  Patch options:
+		    Port check:
+		      -j | --no-port-check: disable port check.
+		      -P | --port <port>: port the web server to use for the ACME HTTP-01 challenge is listening on. Is detected from zimbraMailProxyPort if not set. Mandatory with -x/--no-nginx unless -j/--no-port-check is set.
 
-		  Nginx options:
-			 -w | --webroot "/path/to/www": path to the webroot of alternate webserver. Valid only with -x/--no-nginx.
-			 -x | --no-nginx: Alternate webserver mode. Don't check and patch zimbra-proxy's nginx. Must also specify -P/--port and -w/--webroot. Incompatible with -p/--patch-only.
+		    Nginx options:
+		      -w | --webroot "/path/to/www": path to the webroot of alternate webserver. Valid only with -x/--no-nginx.
+		      -x | --no-nginx: Alternate webserver mode. Don't check and patch zimbra-proxy's nginx. Must also specify -P/--port and -w/--webroot. Also used with --new.
 
-		  Output options:
-			 -c | --prompt-confirm: ask for confirmation. Incompatible with -q/--quiet.
-			 -q | --quiet: Do not output on stdout or stderr. Useful for scripts. Implies -N/--noninteractive, incompatible with -c/--prompt-confirm.
+		  Global options:
+		    -c | --prompt-confirm: ask for confirmation.
+		    -q | --quiet: Do not output anything except errors. Useful for scripts. Implies -N/--noninteractive.
+		    -H | --hostname <my.host.name>: hostname being requested. If not passed it's automatically detected using "zmhostname". Used as Zimbra server name in zmprov, CN and name for certificate.
 
 		Authors: Lorenzo Milesi <maxxer@yetopen.com>, Jernej Jakob <jernej.jakob@gmail.com> @jjakob
 		Feedback, bugs and PR are welcome on GitHub: https://github.com/yetopen/certbot-zimbra.
