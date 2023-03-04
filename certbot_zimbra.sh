@@ -16,7 +16,7 @@ readonly le_live_path="$le_conf_path/live" # the domain will be appended to this
 readonly temppath="/run/$progname"
 # other options
 readonly zmprov_opts="-l" # use ldap (faster)
-# used to extract the CA for the Lets Encrypt certs
+# used to extract the CA for the certificates
 readonly ca_certificates_file="/etc/ssl/certs/ca-certificates.crt"
 readonly pki_ca_bundle_file="/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
 # Do NOT modify anything after this line.
@@ -238,7 +238,7 @@ patch_nginx() {
 	else
 		[[ -z $webroot ]] && printf 'Unexpected error: patch_nginx WEBROOT not set.\n' >&2 && exit 1
 
-		# Let's make a backup of Zimbra's original templates
+		# make a backup of Zimbra's original templates
 		set -e
 		local bkdate="$(date +'%Y%m%d_%H%M%S')"
 		! "$quiet" && printf 'Making a backup of nginx templates in "%s"\n' "$zmpath/conf/nginx/templates.$bkdate" >&2
@@ -443,7 +443,7 @@ find_certbot () {
 	return 0
 }
 
-# perform the Lets Encrypt request
+# perform the ACME request
 request_cert() {
 	check_webroot
 
@@ -789,7 +789,7 @@ while (( $# > 0 )); do
 			patch_only=true
 			;;
 		# optional parameters
-		# Lets Encrypt
+		# Certbot
 		-a|--agree-tos)
 			le_agree_tos=true
 			;;
