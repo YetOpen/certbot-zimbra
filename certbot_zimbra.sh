@@ -284,7 +284,8 @@ patch_nginx() {
 			else
 				! "$quiet" && printf 'Success.\n' >&2
 			fi
-			! "$quiet" && printf 'Error patching nginx templates.\n' >&2 && exit 1
+			! "$quiet" && printf 'Error patching nginx templates.\n' >&2
+			exit 1
 		else
 			! "$quiet" && printf 'Success.\n' >&2
 		fi
