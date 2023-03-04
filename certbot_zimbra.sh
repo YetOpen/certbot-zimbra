@@ -871,13 +871,41 @@ done
 readonly deploy_only new_cert patch_only le_agree_tos le_noniact le_override_key_type_rsa detect_public_hostnames skip_port_check no_nginx services restart_zimbra prompt_confirm quiet
 
 # exit if an invalid option combination was passed
-"$quiet" && "$prompt_confirm" && printf 'Incompatible parameters: -q -c\n' >&2 && exit 1
-"$le_noniact" && "$prompt_confirm" && printf 'Incompatible parameters: -N -c\n' >&2 && exit 1
+"$quiet" && "$prompt_confirm" && printf 'Incompatible option combination: --quiet --prompt-confirm\n' >&2 && exit 1
+"$le_noniact" && "$prompt_confirm" && printf 'Incompatible option combination: --noninteractive --prompt-confirm\n' >&2 && exit 1
 
-"$deploy_only" && ("$new_cert" || "$patch_only") && printf 'Incompatible option combination\n' >&2 && exit 1
-"$new_cert" && ("$deploy_only" || "$patch_only") && printf 'Incompatible option combination\n' >&2 && exit 1
-"$patch_only" && ("$deploy_only" || "$new_cert" || "$no_nginx") && printf 'Incompatible option combination\n' >&2 && exit 1
-! ("$deploy_only" || "$new_cert" || "$patch_only") && printf 'Nothing to do. Please specify one of: -d -n -p.\n' >&2 && exit 1
+"$deploy_only" && { "$patch_only" ||
+		"$le_agree_tos" || [[ -n "${le_params[*]}" ]] || "$le_noniact" || ! "$le_override_key_type_rsa" ||
+		[[ -n "${extra_domains[*]}" ]] ||
+		"$no_nginx" || [[ -n "$webroot" ]] || [[ -n "$port" ]] || "$skip_port_check"
+	} && cat >&2 <<-'EOF' &&
+		Incompatible option combination:
+		--deploy-only
+		& [
+		  --patch-only |
+		  --agree-tos | --letsencrypt-params | --noninteractive | --no-override-key-type-rsa |
+		  --extra-domain |
+		  --no-nginx | --webroot | --port | --no-port-check
+		]
+		EOF
+	exit 1
+"$new_cert" && "$deploy_only" && printf 'Incompatible option combination: --new --deploy-only\n' >&2 && exit 1
+"$patch_only" && { "$new_cert" || "$no_nginx" ||
+		"$le_agree_tos" || [[ -n "${le_params[*]}" ]] || "$le_noniact" || ! "$le_override_key_type_rsa" ||
+		[[ -n "${extra_domains[*]}" ]] ||
+		[[ "$services" != "all" ]] || ! "$restart_zimbra"
+	} && cat >&2 <<-'EOF' &&
+		Incompatible option combination:
+		--patch-only
+		& [
+		  --new | --no-nginx |
+		  --agree-tos | --letsencrypt-params | --noninteractive | --no-override-key-type-rsa |
+		  --extra-domain |
+		  --services | --no-zimbra-restart
+		]
+		EOF
+	exit 1
+! { "$deploy_only" || "$new_cert" || "$patch_only"; } && printf 'Nothing to do. Please specify one of: -d | -n | -p\n' >&2 && exit 1
 
 "$no_nginx" && [[ -z "$webroot" || ( -z "$port" && ! "$skip_port_check" ) ]] && printf 'Error: --no-nginx requires --webroot and --port or --no-port-check.\n' >&2 && exit 1
 ! "$no_nginx" && [[ -n "$webroot" ]] && printf 'Error: -w/--webroot cannot be used in zimbra-proxy mode. Please use -x/--no-nginx (alternate webserver mode).\n' >&2 && exit 1
