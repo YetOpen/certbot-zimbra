@@ -740,7 +740,7 @@ usage () {
 		  Options only used with -n/--new:
 			 -a | --agree-tos: agree with the Terms of Service of Let's Encrypt (avoids prompt)
 			 -L | --letsencrypt-params "--extra-le-parameter": Additional parameter to pass to certbot/letsencrypt. Must be repeated for each parameter and argument, e.g. -L "--preferred-chain" -L "ISRG Root X1"
-			 -N | --noninteractive: Pass --noninteractive to certbot/letsencrypt.
+			 -N | --noninteractive: Pass --non-interactive to certbot/letsencrypt.
 			 --no-override-key-type-rsa: if Certbot >=v2.0.0 has been detected, do not override ECDSA to RSA with "--key-type rsa" (use this to get the default ECDSA key type, Zimbra does NOT support it!)
 
 		  Domain options:
