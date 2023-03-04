@@ -178,7 +178,7 @@ check_zimbra_proxy() {
 		port="$(capsh --user=zimbra -- -c '"$1"/bin/zmprov $2 gs "$3" zimbraMailProxyPort | sed -n "s/zimbraMailProxyPort: //p"' "" "$zmpath" "$zmprov_opts" "$domain")"
 		[[ -z "$port" ]] && printf 'Error: zimbraMailProxyPort not found.\n' >&2 && exit 1
 	else
-		printf 'Skipping port detection from zimbraMailProxyPort due to --port override\n' >&2
+		! "$quiet" && printf 'Skipping port detection from zimbraMailProxyPort due to --port override\n' >&2
 	fi
 
 	if [[ "$port" != "80" ]] && ! "$quiet"; then
@@ -305,7 +305,7 @@ patch_nginx() {
 		# reload nginx config
 		capsh --user=zimbra -- -c '"$1"/bin/zmproxyctl restart' "" "$zmpath" 200>&-; e="$?"
 		if (( e != 0 )); then
-			! "$quiet" && printf 'Error restarting zmproxy ("zmproxyctl restart" exit status %s).\n' "$e" >&2
+			printf 'Error restarting zmproxy ("zmproxyctl restart" exit status %s).\n' "$e" >&2
 			exit 1
 		else
 			! "$quiet" && printf 'Success.\n' >&2
@@ -404,7 +404,7 @@ check_webroot () {
 			prompt "Webroot $webroot doesn't exist, create it?"
 			(( $? == 1 )) && printf 'Cannot proceed.\n' >&2 && exit 0
 		fi
-		printf 'Creating webroot %s\n' "$webroot" >&2
+		! "$quiet" && printf 'Creating webroot %s\n' "$webroot" >&2
 		set -e
 		mkdir -p "$webroot"
 		set +e
@@ -432,19 +432,19 @@ find_certbot () {
 	detected_certbot_version="$($le_bin "${certbot_version_params[@]}" 2>&1 | $( "$prompt_confirm" && printf 'tee /dev/stderr |') | grep -oP '^certbot \K(\d+).(\d+).(\d+)$')"
 	local certbot_version_exit="${PIPESTATUS[0]}"
 	if (( certbot_version_exit != 0 )); then
-		! "$quiet" && printf 'Error: "%s" exit status %s.\nTry running "%s" by itself on the command line and see if it works.\n' "$le_bin ${certbot_version_params[*]}" "$certbot_version_exit" "$le_bin" >&2
+		printf 'Error: "%s" exit status %s.\nTry running "%s" by itself on the command line and see if it works.\n' "$le_bin ${certbot_version_params[*]}" "$certbot_version_exit" "$le_bin" >&2
 		exit 1
 	fi
 
 	if [[ -z "$detected_certbot_version" ]]; then
-		! "$quiet" && printf 'Error: unable to parse Certbot version.\n' >&2
+		printf 'Error: unable to parse Certbot version.\n' >&2
 		exit 1
 	fi
 
-	! "$quiet" && ! "$prompt_confirm" && printf 'Detected Certbot %s\n' "$detected_certbot_version" >&2
+	! "$quiet" && printf 'Detected Certbot %s\n' "$detected_certbot_version" >&2
 
 	if ! version_ge "$detected_certbot_version" "$min_certbot_version"; then
-		! "$quiet" && printf 'Error: Certbot is too old, please upgrade to Certbot >=%s.\n' "$min_certbot_version" >&2
+		printf 'Error: Certbot is too old, please upgrade to Certbot >=%s.\n' "$min_certbot_version" >&2
 		exit 1
 	fi
 
@@ -633,7 +633,8 @@ prepare_cert() {
 			&& printf 'Error: Cannot find "%s" in "%s".\n' "$issuercn" "$pki_ca_bundle_file" && exit 1
 	else
 		# we shouldn't be here
-		printf 'Error in prepare_cert: cannot find installed CA certificates (check_depends_ca should have caught this).\n' >&2 && exit 1
+		printf 'Error in prepare_cert: cannot find installed CA certificates (check_depends_ca should have caught this).\n' >&2
+		exit 1
 	fi
 
 	cat "$certpath/chain.pem" >> "$tmpcerts/zimbra_chain.pem"
