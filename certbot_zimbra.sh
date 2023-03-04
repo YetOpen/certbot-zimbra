@@ -343,13 +343,13 @@ find_additional_public_hostnames() {
 get_domain () {
 	# If we got no domain from command line try using Zimbra hostname
 	if [[ -z "$domain" ]]; then
-		! "$quiet" && printf 'Using zmhostname to detect domain.\n' >&2
+		! "$quiet" && printf 'Using zmhostname to detect domain name.\n' >&2
 		domain="$("$zmpath/bin/zmhostname")"
 	fi
 
-	[[ -z "$domain" ]] && printf 'Error: No domain found! Please run with -d/--hostname or check why zmhostname is not working.\n' >&2 && exit 1
+	[[ -z "$domain" ]] && printf 'Error: No hostname found! Please run with -d/--hostname or check why zmhostname is not working.\n' >&2 && exit 1
 
-	! "$quiet" && printf 'Using domain %s (as certificate DN)\n' "$domain" >&2
+	! "$quiet" && printf 'Using domain name %s (as certificate DN)\n' "$domain" >&2
 
 	if "$prompt_confirm"; then
 		prompt "Is this correct?"
@@ -360,7 +360,7 @@ get_domain () {
 	"$new_cert" && find_additional_public_hostnames
 
 	if [[ "${extra_domains[*]}" ]] && ! "$quiet"; then
-		printf 'Got %s domains to use as certificate SANs: %s\n' "${#extra_domains[@]}" "${extra_domains[*]}" >&2
+		printf 'Got %s domain names to use as certificate SANs: %s\n' "${#extra_domains[@]}" "${extra_domains[*]}" >&2
 		if "$prompt_confirm"; then
 			prompt "Include these in the certificate?"
 			(( $? == 1 )) && unset extra_domains
@@ -385,10 +385,10 @@ set_certpath() {
 		set +f
 		# exit gracefully if no matching domains were found. We must be running for some other cert, not ours.
 		if [[ -z "$certpath" ]]; then
-			! "$quiet" && printf 'Detected --deploy-hook but no matching domain found. Nothing to do.\n' >&2
+			! "$quiet" && printf 'Detected --deploy-hook but no matching domain name found. Nothing to do.\n' >&2
 			exit 0
 		else
-			! "$quiet" && printf 'Detected --deploy-hook and matching domain found\n' >&2
+			! "$quiet" && printf 'Detected --deploy-hook and matching domain name found\n' >&2
 		fi
 	else
 		# we were run standalone
