@@ -125,6 +125,8 @@ When obtaining a new certificate with `certbot-zimbra.sh --new`, the script will
 
 Certbot will install a crontab or systemd timer to automatically renew certificates close to expiring. You will likely want to modify the time at which it runs, or else Certbot might restart Zimbra at a random time during the day, which might mean downtime when you don't want it! Read Certbot's documentation to see how to do this (modify the default Certbot crontab or systemd timer).
 
+Note: previously this readme instructed to disable Certbot's crontab or timer and install a script-specific one. This is not required, if you are still using the custom cronjob or timer, you can remove it, reenable stock Certbot ones (though you will probably want to modify the time at which they execute) and [manually add hooks to Certbot](#manually-adding-hooks-to-certbot).
+
 ### Renewal failure notifications
 
 Make sure you have a working mail setup (valid alias for root or similar). Cron can send script output to mail if the crontab is correctly configured. Configuring systemd timers to send mail is harder but possible.
