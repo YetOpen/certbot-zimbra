@@ -370,48 +370,6 @@ get_domain () {
 	return 0
 }
 
-set_certpath() {
-	# must be run after get_domain
-	[[ -z "$domain" ]] && printf 'Unexpected error (set_certpath domain not set).\n' >&2 && exit 1
-
-	# when run as --deploy-hook, check if any of RENEWED_DOMAINS match Zimbra's domain.
-	# RENEWED_DOMAINS and RENEWED_LINEAGE are passed by Certbot as env vars to --deploy-hook
-	if [[ -n "$RENEWED_DOMAINS" ]]; then
-		# we were run as --deploy-hook
-		set -f
-		for renewed_domain in $RENEWED_DOMAINS; do
-			[[ "$renewed_domain" == "$domain" ]] && certpath="$RENEWED_LINEAGE"
-		done
-		set +f
-		# exit gracefully if no matching domains were found. We must be running for some other cert, not ours.
-		if [[ -z "$certpath" ]]; then
-			! "$quiet" && printf 'Detected --deploy-hook but no matching domain name found. Nothing to do.\n' >&2
-			exit 0
-		else
-			! "$quiet" && printf 'Detected --deploy-hook and matching domain name found\n' >&2
-		fi
-	else
-		# we were run standalone
-		certpath="$le_live_path/$domain"
-	fi
-}
-
-check_webroot () {
-	[[ -z "$webroot" ]] && printf 'Unexpected error: check_webroot webroot not set.\n' >&2 && exit 1
-	
-	# <8.7 didn't have nginx webroot
-	if ! [[ -d "$webroot" ]]; then
-		if "$prompt_confirm"; then
-			prompt "Webroot $webroot doesn't exist, create it?"
-			(( $? == 1 )) && printf 'Cannot proceed.\n' >&2 && exit 0
-		fi
-		! "$quiet" && printf 'Creating webroot %s\n' "$webroot" >&2
-		set -e
-		mkdir -p "$webroot"
-		set +e
-	fi
-}
-
 find_certbot () {
 	# check for executable certbot-auto / certbot / letsencrypt
 	# TODO: remove dead certbot-auto
@@ -445,7 +403,19 @@ find_certbot () {
 
 # perform the ACME request
 request_cert() {
-	check_webroot
+	[[ -z "$webroot" ]] && printf 'Unexpected error: check_webroot webroot not set.\n' >&2 && exit 1
+
+	# <8.7 didn't have nginx webroot
+	if ! [[ -d "$webroot" ]]; then
+		if "$prompt_confirm"; then
+			prompt "Webroot $webroot doesn't exist, create it?"
+			(( $? == 1 )) && printf 'Cannot proceed.\n' >&2 && exit 0
+		fi
+		! "$quiet" && printf 'Creating webroot %s\n' "$webroot" >&2
+		set -e
+		mkdir -p "$webroot"
+		set +e
+	fi
 
 	if "$prompt_confirm"; then
 		prompt "We will now run Certbot to request the certificate. Proceed?"
@@ -567,8 +537,28 @@ add_certbot_hooks() {
 prepare_cert() {
 	! "$quiet" && printf 'Preparing certificates for deployment.\n' >&2
 
-	[[ -z "$certpath" ]] && printf 'Unexpected error (prepare_cert certpath not set).\n' >&2 && exit 1
 	[[ -z "$domain" ]] && printf 'Unexpected error (prepare_cert domain not set).\n' >&2 && exit 1
+
+	# when run as --deploy-hook, check if any of RENEWED_DOMAINS match Zimbra's domain.
+	# RENEWED_DOMAINS and RENEWED_LINEAGE are passed by Certbot as env vars to --deploy-hook
+	if [[ -n "$RENEWED_DOMAINS" ]]; then
+		# we were run as --deploy-hook
+		set -f
+		for renewed_domain in $RENEWED_DOMAINS; do
+			[[ "$renewed_domain" == "$domain" ]] && certpath="$RENEWED_LINEAGE"
+		done
+		set +f
+		# exit gracefully if no matching domains were found. We must be running for some other cert, not ours.
+		if [[ -z "$certpath" ]]; then
+			! "$quiet" && printf 'Detected --deploy-hook but no matching domain name found. Nothing to do.\n' >&2
+			exit 0
+		else
+			! "$quiet" && printf 'Detected --deploy-hook and matching domain name found\n' >&2
+		fi
+	else
+		# we were run standalone
+		certpath="$le_live_path/$domain"
+	fi
 
 	# Make Zimbra accessible files
 	# save old umask
@@ -935,7 +925,6 @@ if ! "$deploy_only"; then
 	add_certbot_hooks
 fi
 
-set_certpath
 prepare_cert
 deploy_cert
 
