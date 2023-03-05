@@ -27,7 +27,7 @@ The command line parameters were changed with v0.7. `-r/--renew-only` was rename
 
 ## Requirements
 
-- bash, su, which, lsof or ss, openssl, grep, sed (GNU), gawk (GNU awk)
+- bash, capsh, lsof or ss, openssl, grep, sed (GNU), gawk (GNU)
 - ca-certificates (Debian/Ubuntu) or pki-base (RHEL/CentOS)
 - Zimbra: zmhostname, zmcontrol, zmproxyctl, zmprov, zmcertmgr
 - zimbra-proxy installed and working or an alternate webserver configured for ACME webroot
