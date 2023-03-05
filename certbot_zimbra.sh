@@ -335,7 +335,18 @@ find_additional_public_hostnames() {
 		| gawk -v domain="$domain" '/zimbraPublicServiceHostname:|zimbraVirtualHostname:/ {if ($2 != domain && $2 != "") {print $2}}' \
 		| sort -u
 	)
-	! "$quiet" && printf 'Found %s extra domains through auto-detection (zimbraPublicServiceHostname, zimbraVirtualHostname)\n' "${#extra_domains[*]}" >&2
+
+	if ! "$quiet"; then
+		if [[ "${extra_domains[*]}" ]]; then
+			printf 'Got %s domain names to use as certificate SANs: %s\n' "${#extra_domains[@]}" "${extra_domains[*]}" >&2
+			if "$prompt_confirm"; then
+				prompt "Include these in the certificate?"
+				(( $? == 1 )) && unset extra_domains
+			fi
+		else
+			printf 'No additional domain names found.\n' >&2
+		fi
+	fi
 
 	return 0
 }
@@ -354,17 +365,6 @@ get_domain () {
 	if "$prompt_confirm"; then
 		prompt "Is this correct?"
 		(( $? == 1 )) && printf 'Error: Please manually specify your hostname with "--hostname your.host.name".\n' >&2 && exit 0
-	fi
-
-	# Find additional domains
-	"$new_cert" && find_additional_public_hostnames
-
-	if [[ "${extra_domains[*]}" ]] && ! "$quiet"; then
-		printf 'Got %s domain names to use as certificate SANs: %s\n' "${#extra_domains[@]}" "${extra_domains[*]}" >&2
-		if "$prompt_confirm"; then
-			prompt "Include these in the certificate?"
-			(( $? == 1 )) && unset extra_domains
-		fi
 	fi
 
 	return 0
@@ -920,6 +920,7 @@ if ! "$deploy_only"; then
 
 	"$patch_only" && exit 0
 
+	find_additional_public_hostnames
 	find_certbot
 	request_cert
 	add_certbot_hooks
