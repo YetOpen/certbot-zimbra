@@ -20,6 +20,9 @@ USE AT YOUR OWN RISK.
 
 The command line parameters were changed with v0.7. `-r/--renew-only` was renamed to `-d/--deploy-only`, and `-d` was changed to `-H`. This is a BREAKING change so please update your crontabs and any other places they are used. Some new parameters were added, though they won't break backwards-compatibility, they add new features. Refer to the usage and/or the changelog for more information.
 
+## Warning: when upgrading from Certbot 1.x to 2.x
+[Read this](#zmcertmgr-certificate-and-private-key-do-not-match-expecting-an-rsa-key)
+
 # Installation
 
 ## Requirements
@@ -215,10 +218,20 @@ It may be possible to [patch zmcertmgr](https://forums.zimbra.org/viewtopic.php?
 
 Certbot-zimbra >=0.7.13 will auto-detect if Certbot is >=2.0.0 and apply options while requesting a new certificate to obtain a RSA key.
 
-If you used Certbot >=2 with certbot-zimbra <0.7.13, you might run into this issue. There are two options to fix it:
+### Already renewed with ECDSA key, which failed to deploy
+If you used Certbot >=2 with certbot-zimbra <0.7.13, or upgraded Certbot from 1.x to 2.x, and Certbot has already renewed with an ECDSA key, there are two options:
 
 - `certbot renew --key-type rsa --rsa-key-size 4096 --cert-name "zimbra-cert-name" --force-renewal` replace zimbra-cert-name with the name of the existing certificate, you can find it with `certbot certificates`. You can also change the key size to one that you prefer. If renewal is successful, redeploy the certificate with `/usr/local/bin/certbot_zimbra.sh -d`.
 - update to certbot-zimbra >=0.7.13 and rerequest the certificate with `certbot-zimbra --new`, and add all the options you used with the original `--new` invocation, else your certificate may get replaced with one with different CN and SANs.
+
+### Just upgraded Certbot 1.x to 2.x, not renewed yet, still using RSA key
+If you have just upgraded to Certbot >=2.0.0 but the certificate has not yet renewed (is still RSA) you can set it to force a RSA key on renewal:
+
+Certbot >=2.3.0: `certbot reconfigure --cert-name "zimbra-cert-name" --key-type rsa`
+
+Certbot <2.3.0: edit `/etc/letsencrypt/renewal/zimbra-cert-name.conf`, under `[renewalparams]` add `key_type = rsa`
+
+On next scheduled renewal the set key type will be honored.
 
 # Notes
 
