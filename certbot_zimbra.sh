@@ -468,6 +468,11 @@ add_certbot_hooks() {
 		if version_ge "$detected_certbot_version" "2.3.0"; then
 			# Certbot >=2.3.0 has "reconfigure"
 			local le_reconfigure_params=("--cert-name" "$domain" "--pre-hook" "$progname -p" "--deploy-hook" "$progname -d")
+			"$quiet" && le_reconfigure_params+=("--quiet")
+			"$le_noniact" && le_reconfigure_params+=("--non-interactive")
+
+			! "$le_noniact" && ! "$quiet" && printf 'WARNING: Certbot will ask if you want to test run the deploy hook, answer D "(D)o not run"!\n' >&2
+			! "$quiet" && printf 'WARNING: Certbot will test run the pre_hook, it will fail, this is normal. There is no way to disable testing the pre_hook.' >&2
 			! "$quiet" && printf 'Running "%s"\n' "$le_bin reconfigure ${le_reconfigure_params[*]}" >&2
 			"$le_bin" reconfigure "${le_reconfigure_params[@]}"
 			e="$?"
@@ -529,7 +534,7 @@ add_certbot_hooks() {
 	fi
 
 	if (( e != 0 )); then
-		printf 'Error while adding hooks to "%s"! Please do so manually as described in the README.\n' "$le_domain_conf" >&2
+		printf 'Error while adding hooks to Certbot certificate renewal configuration! Please do so manually as described in the README.\n' >&2
 	fi
 }
 
