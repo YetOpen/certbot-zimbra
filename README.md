@@ -130,7 +130,7 @@ Make sure you have a working mail setup (valid alias for root or similar). Cron 
 
 If adding hooks fails during script execution, or if you requested a new certificate without using the script, you can add hooks manually.
 
-#### Certbot >=2.2.0:
+#### Certbot >=2.3.0:
 ```
 certbot reconfigure --cert-name "cert.name" --pre-hook "certbot_zimbra.sh -p" --deploy-hook "certbot_zimbra.sh -d"
 ```
