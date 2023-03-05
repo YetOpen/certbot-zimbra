@@ -115,7 +115,7 @@ check_depends() {
 	! "$quiet" && printf 'Checking for dependencies...\n' >&2
 
 	# do not check for lsof or ss here as we'll do that later
-	for name in capsh openssl grep sort head cut sed chmod chown cat cp gawk "$zmpath/bin/zmhostname" "$zmpath/bin/zmcertmgr" "$zmpath/bin/zmcontrol" "$zmpath/bin/zmprov" "$zmpath/libexec/get_plat_tag.sh"; do
+	for name in capsh openssl grep sort head sed chmod chown cat cp gawk "$zmpath/bin/zmhostname" "$zmpath/bin/zmcertmgr" "$zmpath/bin/zmcontrol" "$zmpath/bin/zmprov" "$zmpath/libexec/get_plat_tag.sh"; do
 		if ! hash "$name" 2>/dev/null; then
 			printf 'Error: "%s" not found or executable\n' "$name" >&2
 			exit 1
