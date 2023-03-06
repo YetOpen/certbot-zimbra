@@ -115,7 +115,7 @@ check_depends() {
 	! "$quiet" && printf 'Checking for dependencies...\n' >&2
 
 	# do not check for lsof or ss here as we'll do that later
-	for name in capsh openssl grep sort head sed chmod chown cat cp gawk "$zmpath/bin/zmhostname" "$zmpath/bin/zmcertmgr" "$zmpath/bin/zmcontrol" "$zmpath/bin/zmprov" "$zmpath/libexec/get_plat_tag.sh"; do
+	for name in capsh openssl grep sort head sed chmod chown cat cp awk "$zmpath/bin/zmhostname" "$zmpath/bin/zmcertmgr" "$zmpath/bin/zmcontrol" "$zmpath/bin/zmprov" "$zmpath/libexec/get_plat_tag.sh"; do
 		if ! hash "$name" 2>/dev/null; then
 			printf 'Error: "%s" not found or executable\n' "$name" >&2
 			exit 1
@@ -254,22 +254,31 @@ patch_nginx() {
 			# it adds the directives to all of them. It breaks in special cases of one-liner server blocks (rare)
 			# and unbalanced curly brace count (missing braces aka broken formatting).
 			# Exits 0 (success) if at least 1 substitution was made, 1 (failure) if 0 substitutions were made.
-			gawk -v webroot="$webroot" -v progname="$progname" -f - "$zmpath/conf/nginx/templates.$bkdate/nginx.conf.web.$file.template" > "$zmpath/conf/nginx/templates/nginx.conf.web.$file.template" <<-'EOF'
+			awk -v webroot="$webroot" -v progname="$progname" -f - "$zmpath/conf/nginx/templates.$bkdate/nginx.conf.web.$file.template" > "$zmpath/conf/nginx/templates/nginx.conf.web.$file.template" <<-'EOF'
+				function count(s, t) {
+					i=1; n=0
+					while (j = index(substr(s, i), t)) {
+						i += j
+						n++
+					}
+					return n
+				}
 				BEGIN {e = 1}
-				/^#/ {print; next}
-				/^server[[:space:]{]*.*$/ {found++}
-				/{/ && found {
-				  b++
+				/^[[:blank:]]*#/ {print; next}
+				/^[[:blank:]]*server[[:space:]{]*$/ { found = 1 }
+				/\{/ && found {
+				  b += count($0, "{")
 				  if (first == 0) first = NR
 				}
-				/}/ && found {b--}
-				{ if (found && b == 0 && first != 0) {
-				    print gensub(/}[^}]*/, "\n    # patched by " progname "\n    location ^~ /.well-known/acme-challenge {\n        root " webroot ";\n    }\n&", 1)
+				/\}/ && found { b -= count($0, "}") }
+				{
+				  if (found && b == 0 && first != 0) {
+				    sub(/\}[^}]*$/, "\n    # patched by " progname "\n    location ^~ /.well-known/acme-challenge {\n        root " webroot ";\n    }\n&")
 				    found = 0
 				    first = 0
 				    e = 0
 				  }
-				  else print
+				  print
 				}
 				END {exit e}
 			EOF
@@ -330,9 +339,9 @@ find_additional_public_hostnames() {
 	! "$quiet" && printf 'Detecting additional public service hostnames...\n' >&2
 
 	readarray -t extra_domains < <(capsh --user=zimbra -- -c '"$1"/bin/zmprov $2 gad \
-		| gawk '\''{printf "gd %s zimbraPublicServiceHostname zimbraVirtualHostname\n", $0}'\'' \
+		| awk '\''{printf "gd %s zimbraPublicServiceHostname zimbraVirtualHostname\n", $0}'\'' \
 		| "$1"/bin/zmprov $2 -' "" "$zmpath" "$zmprov_opts" \
-		| gawk -v domain="$domain" '/zimbraPublicServiceHostname:|zimbraVirtualHostname:/ {if ($2 != domain && $2 != "") {print $2}}' \
+		| awk -v domain="$domain" '/zimbraPublicServiceHostname:|zimbraVirtualHostname:/ {if ($2 != domain && $2 != "") {print $2}}' \
 		| sort -u
 	)
 
@@ -499,7 +508,7 @@ add_certbot_hooks() {
 				# (it would be very odd if they didn't!)
 				# Certbot stores --deploy-hook as "renew_hook" in the config file
 				# https://github.com/certbot/certbot/issues/5935
-				gawk -v progname="$progname" -f - "$le_domain_conf" > "$le_domain_conf_temp" <<- "EOF"
+				awk -v progname="$progname" -f - "$le_domain_conf" > "$le_domain_conf_temp" <<- "EOF"
 					function print_hooks() {
 					        print "pre_hook =", progname, "-p"
 					        print "renew_hook =", progname, "-d"
@@ -616,7 +625,7 @@ prepare_cert() {
 		# if we can't find the issuer CN in the bundle file, it may have spaces removed, hopefully we'll find it without spaces
 		grep -q "^# $issuercn\$" "$pki_ca_bundle_file" || issuercn="${issuercn//' '}"
 		# the following awk script extracts the CA cert from the bundle or exits 1 if not found
-		if ! gawk -v issuercn="$issuercn" -f - "$pki_ca_bundle_file" >> "$tmpcerts/zimbra_chain.pem" <<-'EOF'
+		if ! awk -v issuercn="$issuercn" -f - "$pki_ca_bundle_file" >> "$tmpcerts/zimbra_chain.pem" <<-'EOF'
 			BEGIN {e=1}
 			$0 ~ "^# " issuercn "$" {e=0; next}
 			(!e){
