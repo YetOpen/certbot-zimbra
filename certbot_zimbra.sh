@@ -18,6 +18,7 @@
 readonly progname="certbot_zimbra.sh"
 readonly version="0.7.13 (unreleased)"
 readonly github_url="https://github.com/YetOpen/certbot-zimbra"
+readonly copyright="Copyright (c) 2023 Lorenzo Milesi <maxxer@yetopen.com>, Jernej Jakob <jernej.jakob@gmail.com>"
 # paths
 readonly zmpath="/opt/zimbra"
 readonly zmwebroot="$zmpath/data/nginx/html"
@@ -745,44 +746,64 @@ deploy_cert() {
 
 usage () {
 	cat >&2 <<-EOF
-		USAGE: $progname [ -d | -n | -p ] [options]...
+		Usage: $progname [ -d | -n | -p ] [options]...
+		  This script automates installing, renewing and deploying ACME certificates to Zimbra. It's a wrapper around Certbot and Zimbra tools.
+
+		Options:
 		  Only one option at a time can be supplied. Options cannot be chained.
-		  Mandatory options (only one can be specified):
-		    -d | --deploy-only: Just deploys certificates. Will detect if it's being run from Certbot renew_hook or --deploy-hook and only deploy if env variable RENEWED_DOMAINS matches the hostname. If run standalone, assumes valid certificates are in $le_live_path.
-		    -n | --new: performs a request for a new certificate ("certonly"). Can be used to update the domains in an existing certificate.
-		    -p | --patch-only: does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade.
 
-		  Options for -n/--new:
-		    -a | --agree-tos: agree with the Terms of Service of the ACME server (avoids prompt)
-		    -L | --letsencrypt-params "--extra-le-parameter": Additional parameter to pass to Certbot. Must be repeated for each parameter and argument, e.g. -L "--preferred-chain" -L "ISRG Root X1"
-		    -N | --noninteractive: Pass --non-interactive to Certbot.
-		    --no-override-key-type-rsa: if Certbot >=v2.0.0 has been detected, do not override ECDSA to RSA with "--key-type rsa" (use this to get the default ECDSA key type, Zimbra does NOT support it!)
-		    -e | --extra-domain <extra.domain.tld>: additional domains being requested. Can be used multiple times. Implies -u/--no-public-hostname-detection.
-		    -u | --no-public-hostname-detection: do not detect additional hostnames from domains' zimbraPublicServiceHostname and zimbraVirtualHostname.
+		Mode selection:
+		  -p | --patch-only:  does only nginx patching. Useful to be called before renew, in case nginx templates have been overwritten by an upgrade.
+		  -n | --new:  performs a request for a new certificate ("certonly"). Can be used to update the domains in an existing certificate.
+		  -d | --deploy-only:  Just deploys certificates. Will detect if it's being run from Certbot renew_hook or --deploy-hook and only deploy if env variable RENEWED_DOMAINS matches the hostname. If run standalone, assumes valid certificates are in $le_live_path.
 
-		  Deploy options:
-		    -s | --services <service_names>: the set of services to be used for a certificate. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy,imapd. Default: 'all'
-		    -z | --no-zimbra-restart: do not restart Zimbra after a certificate deployment
+		Global options:
+		  -c | --prompt-confirm:  ask for confirmation.
+		  -q | --quiet:  Do not output anything except errors. Useful for scripts. Implies -N/--noninteractive.
+		  -H | --hostname <my.host.name>:  hostname being requested. If not passed it's automatically detected using "zmhostname". Used as Zimbra server name in zmprov, CN and name for certificate.
 
-		  Patch options:
-		    Port check:
-		      -j | --no-port-check: disable port check.
-		      -P | --port <port>: port the web server to use for the ACME HTTP-01 challenge is listening on. Is detected from zimbraMailProxyPort if not set. Mandatory with -x/--no-nginx unless -j/--no-port-check is set.
+		Port check (--patch-only and --new):
+		  -j | --no-port-check:  disable port check.
+		  -P | --port <port>:  port the web server to use for the ACME HTTP-01 challenge is listening on. Is detected from zimbraMailProxyPort if not set. Mandatory with -x/--no-nginx unless -j/--no-port-check is set.
 
-		    Nginx options:
-		      -w | --webroot "/path/to/www": path to the webroot of alternate webserver. Valid only with -x/--no-nginx.
-		      -x | --no-nginx: Alternate webserver mode. Don't check and patch zimbra-proxy's nginx. Must also specify -P/--port and -w/--webroot. Also used with --new.
+		Nginx options (--patch-only and --new):
+		  -w | --webroot "/path/to/www":  path to the webroot of alternate webserver. Valid only with -x/--no-nginx.
+		  -x | --no-nginx:  Alternate webserver mode. Don't check and patch zimbra-proxy's nginx. Must also specify -P/--port and -w/--webroot.
 
-		  Global options:
-		    -c | --prompt-confirm: ask for confirmation.
-		    -q | --quiet: Do not output anything except errors. Useful for scripts. Implies -N/--noninteractive.
-		    -H | --hostname <my.host.name>: hostname being requested. If not passed it's automatically detected using "zmhostname". Used as Zimbra server name in zmprov, CN and name for certificate.
+		Options for -n|--new:
+		  -a | --agree-tos:  agree with the Terms of Service of the ACME server (avoids prompt)
+		  -L | --letsencrypt-params "--extra-le-parameter":  Additional parameter to pass to Certbot. Must be repeated for each parameter and argument, e.g. -L "--preferred-chain" -L "ISRG Root X1"
+		  -N | --noninteractive:  Pass --non-interactive to Certbot.
+		  --no-override-key-type-rsa:  if Certbot >=v2.0.0 has been detected, do not override ECDSA to RSA with "--key-type rsa" (use this to get the default ECDSA key type, Zimbra does NOT support it!)
+		  -e | --extra-domain <extra.domain.tld>:  additional domain names being requested. Can be used multiple times. Implies -u/--no-public-hostname-detection.
+		  -u | --no-public-hostname-detection:  do not detect additional hostnames from domain zimbraPublicServiceHostname and zimbraVirtualHostname.
 
-		Authors: Lorenzo Milesi <maxxer@yetopen.com>, Jernej Jakob <jernej.jakob@gmail.com> @jjakob
-		Feedback, bugs and PR are welcome on GitHub: https://github.com/yetopen/certbot-zimbra.
+		Deploy options:
+		  -s | --services <service_names>:  comma-separated list of services to be used for a certificate. Passed to 'zmcertmgr'. Valid services are 'all' or any of: ldap,mailboxd,mta,proxy,imapd. Default: 'all'
+		  -z | --no-zimbra-restart:  do not restart Zimbra after a certificate deployment
+	EOF
+}
 
-		Disclaimer:
-		THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+print_version(){
+	cat >&2 <<-EOF
+		$progname $version
+
+		Report bugs at: $github_url
+
+		$copyright
+
+		This program is free software: you can redistribute it and/or modify
+		it under the terms of the GNU General Public License as published by
+		the Free Software Foundation, either version 3 of the License, or
+		(at your option) any later version.
+
+		This program is distributed in the hope that it will be useful,
+		but WITHOUT ANY WARRANTY; without even the implied warranty of
+		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+		GNU General Public License for more details.
+
+		You should have received a copy of the GNU General Public License
+		along with this program.  If not, see <http://www.gnu.org/licenses/>.
 	EOF
 }
 ## functions end ##
@@ -872,6 +893,10 @@ while (( $# > 0 )); do
 			;;
 		-h|--help)
 			usage
+			exit 0
+			;;
+		-V|--version)
+			print_version
 			exit 0
 			;;
 		*)
