@@ -1,0 +1,2 @@
+#!/bin/bash
+help2man -N --no-discard-stderr ./certbot_zimbra.sh > certbot_zimbra.sh.1
