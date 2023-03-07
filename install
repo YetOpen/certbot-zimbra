@@ -1,0 +1,124 @@
+#!/bin/bash
+# Generic install script
+# Copyright (c) 2023 Jernej Jakob <jernej.jakob@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+: "${PREFIX:="/usr/local"}"
+bin_files="certbot_zimbra.sh"
+man_files="certbot_zimbra.sh.1"
+valid_targets=("bin" "man")
+
+# do not modify anything below this line
+targets=()
+uninstall=
+quiet=
+
+for arg; do
+	case "$arg" in
+		-u|--uninstall)
+			uninstall=1
+			shift
+			;;
+		-q|--quiet)
+			quiet=1
+			shift
+			;;
+		-h|--help)
+			cat >&2 <<-EOF
+			Usage: install [options...] targets...
+
+			Options:
+			  --uninstall	uninstall
+			  --quiet	do not print progress to stderr
+			  --help	print this help message
+			  targets	list of targets to install
+
+			Targets:
+			  bin		install binary to \$DESTDIR/\$PREFIX/bin
+			  man		install manpage to \$DESTDIR/\$PREFIX/share/man
+			  all		install all targets
+
+
+			Environment:
+			  DESTDIR:	current "$DESTDIR" (default "")
+			  PREFIX:	current "$PREFIX"  (default "/usr/local")
+			EOF
+			exit 0
+			;;
+		-*)
+			printf 'Error: unknown option "%s".\n' "$arg" >&2
+			exit 1
+			;;
+		*)
+			targets+=("$arg")
+			shift
+			;;
+	esac
+done
+
+verb=-v
+if (( quiet )); then verb=; fi
+
+if ! [[ "${targets[*]}" ]]; then
+	printf 'Error: nothing to do. Need at least one target.\n' >&2
+	exit 1
+fi
+
+for target in "${targets[@]}"; do
+	if [[ "$target" == "all" ]]; then
+		targets=("${valid_targets[@]}")
+		break
+	fi
+	for valid_target in "${valid_targets[@]}"; do
+		if [[ "$target" == "$valid_target" ]]; then
+			continue 2
+		fi
+	done
+
+	printf 'Error: target "%s" not valid.\n' "$target" >&2
+	exit 1
+done
+
+umask 022
+
+for target in "${targets[@]}"; do
+	declare -n target_files="${target}_files"
+
+	for f in $target_files; do
+		if [[ "$target" == "bin" ]]; then
+			if (( uninstall )); then
+				rm $verb "$DESTDIR/$PREFIX/bin/$f"
+			else
+				install $verb -m 0755 -o root -g root "$f" "$DESTDIR/$PREFIX/bin/"
+			fi
+		fi
+
+		if [[ "$target" == "man" ]]; then
+			section="${f##*.}"
+			if (( uninstall )); then
+				rm $verb "$DESTDIR/$PREFIX/share/man/man$section/$f"
+			else
+				mkdir $verb -p "$DESTDIR/$PREFIX/share/man/man$section" &&
+				install $verb -m 0644 -o root -g root "$f" "$DESTDIR/$PREFIX/share/man/man$section/"
+			fi
+		fi
+	done
+
+	if [[ "$target" == "man" ]]; then
+		mandb
+	fi
+done
+
+exit 0
