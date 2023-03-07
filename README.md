@@ -8,7 +8,7 @@ Automated Certbot (ACME) certificate script for Zimbra.
 Thanks to the awesome job of @jjakob the script has undergone a considerable rewrite. 
 Some things changed, some parameters have been renamed, so **if you're upgrading please read the [WARNING chapter](#warning) below**.
 
-We encourage you to test the script and report back any issues you might encounter. The latest version can be downloaded from the [Releases tab](https://github.com/YetOpen/certbot-zimbra/releases), or if you prefer bleeding edge (may be broken) from the [master branch directly](/../../raw/master/certbot_zimbra.sh).
+We encourage you to test the script and report back any issues you might encounter. The latest version can be downloaded from the [Releases tab](https://github.com/YetOpen/certbot-zimbra/releases), or if you prefer bleeding edge (may be broken) from the [master branch directly](https://github.com/YetOpen/certbot-zimbra/archive/master.tar.gz).
 
 If you encounter any problem please [open an issue](https://github.com/YetOpen/certbot-zimbra/issues/new).
 
@@ -43,12 +43,11 @@ Download the latest release and install it (copy the latest URL from the Release
 
 ```
 wget --content-disposition https://github.com/YetOpen/certbot-zimbra/archive/0.7.13.tar.gz
-tar xzf certbot-zimbra-0.7.13.tar.gz certbot_zimbra.sh
-chmod +x certbot_zimbra.sh
-chown root: certbot_zimbra.sh
-mv certbot_zimbra.sh /usr/local/bin/
+tar xf certbot-zimbra-0.7.13.tar.gz
+cd certbot-zimbra-0.7.13
+./install all
 ```
-Or from the master branch (unstable): [certbot_zimbra.sh](/../../raw/master/certbot_zimbra.sh)
+Or from the master branch (unstable): [certbot-zimbra-master.tar.gz](https://github.com/YetOpen/certbot-zimbra/archive/master.tar.gz)
 
 # Usage
 
