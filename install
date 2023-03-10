@@ -71,6 +71,11 @@ done
 verb=-v
 if (( quiet )); then verb=; fi
 
+if (( EUID != 0 )); then
+	printf 'Error: This script must be run as root.\n' >&2
+	exit 1
+fi
+
 if ! [[ "${targets[*]}" ]]; then
 	printf 'Error: nothing to do. Need at least one target.\n' >&2
 	exit 1
