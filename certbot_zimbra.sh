@@ -479,8 +479,9 @@ add_certbot_hooks() {
         fi
 
 	declare -i e=0
+	progpath="$(hash -t "$progname" 2>/dev/null)"
 
-	if ! hash "$progname" 2>/dev/null; then
+	if [[ -z "$progpath" ]]; then
 		printf 'Error: could not find "%s" in PATH!\n' "$progname" >&2
 		e=1
 	else
@@ -488,7 +489,7 @@ add_certbot_hooks() {
 
 		if version_ge "$detected_certbot_version" "2.3.0"; then
 			# Certbot >=2.3.0 has "reconfigure"
-			local le_reconfigure_params=("--cert-name" "$domain" "--pre-hook" "$progname -p" "--deploy-hook" "$progname -d")
+			local le_reconfigure_params=("--cert-name" "$domain" "--pre-hook" "$progpath -p" "--deploy-hook" "$progpath -d")
 			"$quiet" && le_reconfigure_params+=("--quiet")
 			"$le_noniact" && le_reconfigure_params+=("--non-interactive")
 
@@ -515,15 +516,15 @@ add_certbot_hooks() {
 				e=1
 			fi
 
-			if (( e != 0 )); then
+			if (( e == 0 )); then
 				# awk program works if [renewalparams] does or doesn't already exist
 				# (it would be very odd if they didn't!)
 				# Certbot stores --deploy-hook as "renew_hook" in the config file
 				# https://github.com/certbot/certbot/issues/5935
-				awk -v progname="$progname" -f - "$le_domain_conf" > "$le_domain_conf_temp" <<- "EOF"
+				awk -v progname="$progname" -v progpath="$progpath" -f - "$le_domain_conf" > "$le_domain_conf_temp" <<- 'EOF'
 					function print_hooks() {
-					        print "pre_hook =", progname, "-p"
-					        print "renew_hook =", progname, "-d"
+					        print "pre_hook =", progpath, "-p"
+					        print "renew_hook =", progpath, "-d"
 					}
 					BEGIN {e=1}
 					/^(pre|renew)_hook.*/ {next}
