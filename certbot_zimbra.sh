@@ -479,7 +479,7 @@ add_certbot_hooks() {
         fi
 
 	declare -i e=0
-	progpath="$(hash -t "$progname" 2>/dev/null)"
+	progpath="$(command -v "$progname" 2>/dev/null)"
 
 	if [[ -z "$progpath" ]]; then
 		printf 'Error: could not find "%s" in PATH!\n' "$progname" >&2
