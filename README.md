@@ -3,23 +3,6 @@ Automated Certbot (ACME) certificate script for Zimbra.
 
 [![asciicast](https://asciinema.org/a/219713.svg)](https://asciinema.org/a/219713)
 
-## Rewrite
-
-Thanks to the awesome job of @jjakob the script has undergone a considerable rewrite. 
-Some things changed, some parameters have been renamed, so **if you're upgrading please read the [WARNING chapter](#warning) below**.
-
-We encourage you to test the script and report back any issues you might encounter. The latest version can be downloaded from the [Releases tab](https://github.com/YetOpen/certbot-zimbra/releases), or if you prefer bleeding edge (may be broken) from the [master branch directly](https://github.com/YetOpen/certbot-zimbra/archive/master.tar.gz).
-
-If you encounter any problem please [open an issue](https://github.com/YetOpen/certbot-zimbra/issues/new).
-
-Things explicitly not tested are in the [TESTING](TESTING) file.
-
-USE AT YOUR OWN RISK.
-
-## WARNING
-
-The command line parameters were changed with v0.7. `-r/--renew-only` was renamed to `-d/--deploy-only`, and `-d` was changed to `-H`. This is a BREAKING change so please update your crontabs and any other places they are used. Some new parameters were added, though they won't break backwards-compatibility, they add new features. Refer to the usage and/or the changelog for more information.
-
 ## Warning: when upgrading from Certbot 1.x to 2.x
 [Read this](#zmcertmgr-certificate-and-private-key-do-not-match-expecting-an-rsa-key)
 
