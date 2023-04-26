@@ -143,9 +143,10 @@ Replace `cert.name` with the name of the certificate, you can see it using `cert
 #### Older certbot versions:
 Edit `/etc/letsencrypt/renewal/cert.name.conf` and modify section `[renewalparams]` to contain:
 ```
-pre_hook = certbot_zimbra.sh -p
-renew_hook = certbot_zimbra.sh -d
+pre_hook = /usr/local/bin/certbot_zimbra.sh -p
+renew_hook = /usr/local/bin/certbot_zimbra.sh -d
 ```
+If you changed the path where the script is installed, change the path here accordingly.
 
 ## Alternate webserver mode
 
