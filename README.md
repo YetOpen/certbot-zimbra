@@ -119,12 +119,13 @@ If adding hooks fails during script execution, or if you requested a new certifi
 
 #### Certbot >=2.3.0:
 ```
-certbot reconfigure --cert-name "cert.name" --pre-hook "certbot_zimbra.sh -p" --deploy-hook "certbot_zimbra.sh -d"
+certbot reconfigure --cert-name "cert.name" --pre-hook "/usr/local/bin/certbot_zimbra.sh -p" --deploy-hook "/usr/local/bin/certbot_zimbra.sh -d"
 ```
 Replace `cert.name` with the name of the certificate, you can see it using `certbot certificates`.
+If you changed the path where the script is installed, change the path here accordingly.
 
 #### Older certbot versions:
-Edit `/etc/letsencrypt/renewal/cert.name.conf` and modify section `[renewalparams]` to contain:
+Edit `/etc/letsencrypt/renewal/cert.name.conf` (replace cert.name with the name of your certificate) and modify section `[renewalparams]` to contain:
 ```
 pre_hook = /usr/local/bin/certbot_zimbra.sh -p
 renew_hook = /usr/local/bin/certbot_zimbra.sh -d
