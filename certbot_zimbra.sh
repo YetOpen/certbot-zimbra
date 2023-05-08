@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 readonly progname="certbot_zimbra.sh"
-readonly version="0.7.13 (unreleased)"
+readonly version="1.0.0"
 readonly github_url="https://github.com/YetOpen/certbot-zimbra"
 readonly copyright="Copyright (c) 2023 Lorenzo Milesi <maxxer@yetopen.com>, Jernej Jakob <jernej.jakob@gmail.com>"
 # paths

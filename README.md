@@ -25,9 +25,9 @@ The preferred way is to install it is by using the wizard [at Certbot's home](ht
 Download the latest release and install it (copy the latest URL from the Releases tab):
 
 ```
-wget --content-disposition https://github.com/YetOpen/certbot-zimbra/archive/0.7.13.tar.gz
-tar xf certbot-zimbra-0.7.13.tar.gz
-cd certbot-zimbra-0.7.13
+wget --content-disposition https://github.com/YetOpen/certbot-zimbra/archive/1.0.0.tar.gz
+tar xf certbot-zimbra-1.0.0.tar.gz
+cd certbot-zimbra-1.0.0
 ./install all
 ```
 Or from the master branch (unstable): [certbot-zimbra-master.tar.gz](https://github.com/YetOpen/certbot-zimbra/archive/master.tar.gz)
