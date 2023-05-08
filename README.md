@@ -293,11 +293,12 @@ THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.
 
 ## Contributors
 - Jernej Jakob @jjakob
-- @eN0RM
+- Fredrik Normann @eN0Rm
 - Pavel Pulec @pulecp
-- Antonio Prado
-- @afrimberger
-- @mauriziomarini
+- Antonio Prado @Antonio-Prado
+- André Frimberger @afrimberger
+- Maurizio Marini @mauriziomarini
+- Friedrich Lobenstock @lsl-at
 
 *if you are a contributor, add yourself here (and in the code)*
 
