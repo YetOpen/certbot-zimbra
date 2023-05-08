@@ -1,8 +1,29 @@
-## v0.7.13 (unreleased)
+## v1.0.0 (unreleased)
 
+* Add install script
+* Add manpage using help2man, helper script for generating manpage
+* Reformat help text, add --version (in a format suitable for help2man)
+* Use POSIX compliant awk programs instead of GNU awk
+* Improve detection of invalid option combinations
+* Remove certbot-auto version detection bootstrapping hack
+* Improve awk script extracting CA certificate from bundle
+* Fix bug with the script not exiting after "Error patching nginx templates"
+* Print messages only when not '--quiet', always print errors
+* Use capsh instead of su
+* Add pre and deploy hooks to cerbot certificate configuration (fixes #48, #56, #154)
+* Fix --agree-tos not working
+* Rewrite logic for finding CA certificate from chain (fixes #140)
+* If certbot >=v2 is detected, override private key type to RSA
+    - If certbot is >=2.0.0 apply options while requesting a new certificate
+      to obtain a RSA key. Also request a 4096 bit key.
+      Fixes #164
+* deprecate certbot-auto support, move it to bottom priority
+* Fix -L|--letsencrypt-params parsing for argument strings with spaces
+    Issues #140 #151
 * Change the way certbot-zimbra establishes the list of SAN's (#161)
     - In addition to zimbraPublicServiceHostname it also looks at entries
       added to zimbraVirtualHostname to find all SAN's for the certificate.
+* various syntax and coding style changes
 
 ## v0.7.12
 
