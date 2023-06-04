@@ -1,4 +1,12 @@
-## v1.0.0 (unreleased)
+## v1.0.1
+
+* Bugfix: zmcertmgr breaks if it cannot chdir into PWD
+* Replace $zmpath with $HOME when executing commands as user zimbra
+* Add simple posix sh compliant install script
+* install: check if bash version is compatible
+* README.md: add note to use install_posix if using old bash < 4.3
+
+## v1.0.0
 
 * Add install script
 * Add manpage using help2man, helper script for generating manpage

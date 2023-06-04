@@ -25,9 +25,9 @@ The preferred way is to install it is by using the wizard [at Certbot's home](ht
 Download the latest release and install it (copy the latest URL from the Releases tab):
 
 ```
-wget --content-disposition https://github.com/YetOpen/certbot-zimbra/archive/1.0.0.tar.gz
-tar xf certbot-zimbra-1.0.0.tar.gz
-cd certbot-zimbra-1.0.0
+wget --content-disposition https://github.com/YetOpen/certbot-zimbra/archive/1.0.1.tar.gz
+tar xf certbot-zimbra-1.0.1.tar.gz
+cd certbot-zimbra-1.0.1
 ./install all
 ```
 If you have bash older than 4.3 (RHEL/CentOS 7), use `./install_posix` instead.
