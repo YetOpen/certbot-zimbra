@@ -675,7 +675,7 @@ prepare_cert() {
 
 	# Test cert. 8.6 and below must use root
 	if version_ge "$detected_zimbra_version" "8.7"; then
-		capsh --user=zimbra -- -c '"$1"/bin/zmcertmgr verifycrt comm "$2"/privkey.pem "$2"/cert.pem "$2"/zimbra_chain.pem' "" "$zmpath" "$tmpcerts"
+		capsh --user=zimbra -- -c 'cd "$HOME" && "$HOME"/bin/zmcertmgr verifycrt comm "$1"/privkey.pem "$1"/cert.pem "$1"/zimbra_chain.pem' "" "$tmpcerts"
 	else
 		"$zmpath/bin/zmcertmgr" verifycrt comm "$tmpcerts/privkey.pem" "$tmpcerts/cert.pem" "$tmpcerts/zimbra_chain.pem"
 	fi
@@ -711,7 +711,7 @@ deploy_cert() {
 	"$quiet" && exec 2>/dev/null
 	# this is it, deploy the cert.
 	if version_ge "$detected_zimbra_version" "8.7"; then
-		capsh --user=zimbra -- -c '"$1"/bin/zmcertmgr deploycrt comm "$2"/cert.pem "$2"/zimbra_chain.pem -deploy "$3"' "" "$zmpath" "$tmpcerts" "$services"
+		capsh --user=zimbra -- -c 'cd "$HOME" && "$HOME"/bin/zmcertmgr deploycrt comm "$1"/cert.pem "$1"/zimbra_chain.pem -deploy "$2"' "" "$tmpcerts" "$services"
 	else
 		"$zmpath/bin/zmcertmgr" deploycrt comm "$tmpcerts/cert.pem" "$tmpcerts/zimbra_chain.pem"
 	fi
