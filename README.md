@@ -30,6 +30,8 @@ tar xf certbot-zimbra-1.0.0.tar.gz
 cd certbot-zimbra-1.0.0
 ./install all
 ```
+If you have bash older than 4.3 (RHEL/CentOS 7), use `./install_posix` instead.
+
 Or from the master branch (unstable): [certbot-zimbra-master.tar.gz](https://github.com/YetOpen/certbot-zimbra/archive/master.tar.gz)
 
 # Usage
