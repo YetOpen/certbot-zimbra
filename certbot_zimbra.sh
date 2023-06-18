@@ -20,7 +20,7 @@ readonly version="1.0.1"
 readonly github_url="https://github.com/YetOpen/certbot-zimbra"
 readonly copyright="Copyright (c) 2023 Lorenzo Milesi <maxxer@yetopen.com>, Jernej Jakob <jernej.jakob@gmail.com>"
 # paths
-readonly zmpath="/opt/zimbra"
+readonly zmpath=~zimbra
 readonly zmwebroot="$zmpath/data/nginx/html"
 readonly le_conf_path="/etc/letsencrypt"
 readonly le_conf_renewal_path="$le_conf_path/renewal"
