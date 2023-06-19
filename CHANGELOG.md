@@ -1,3 +1,12 @@
+## v1.0.2
+
+* Fix bug introduced in 8b352f75 when fixing #168
+    capsh does not set HOME to the user's home. Reverting to sudo is
+    necessary to set the user's HOME and other login environment.
+    sudo was previously replaced with capsh in 930fa012.
+    Fixes #169
+* Set zmpath from user's HOME (tilde prefix)
+
 ## v1.0.1
 
 * Bugfix: zmcertmgr breaks if it cannot chdir into PWD
